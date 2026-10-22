@@ -1,0 +1,668 @@
+<title>SKALA Console Simulator</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=PT+Mono&family=PT+Sans+Narrow:wght@400;700&family=PT+Sans:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+/* Layout: a control-room wall in three bays (reactor desk / SKALA console / printers), stacking on phones.
+   Look: grey-green enamel panels with black engraved nameplates and cream dial faces. Digital readouts are drawn as
+   Soviet side-view VFD tubes (one glass envelope per digit, glowing filament at the top, green or cyan filter glass),
+   modelled on a photographed SKALA engineer's console. The SKALA bay uses that console's warm grey enamel. */
+:root {
+  --panel: #c4cdc0;
+  --panel-deep: #b3beb0;
+  --panel-edge: #8d9a8a;
+  --plate: #23292a;           /* engraved nameplate */
+  --plate-ink: #eef0e6;
+  --ink: #1b221e;
+  --ink-soft: #485349;
+  --face: #f3efe0;            /* dial face */
+  --paper: #f3f1e6;           /* teletype roll */
+  --fanfold: #f4f6f0;         /* drum-printer paper */
+  --fanfold-bar: #dfeadb;
+  --ribbon: #273046;
+  --gloss: #6d766a;
+  --window: #121512;
+  --digit: #9dffc0;
+  --digit-dim: #183323;
+  --enamel: #d6d3c8;          /* SKALA console enamel */
+  --enamel-deep: #c9c5b8;
+  --enamel-edge: #9d988a;
+  --keycap: #1d1f1e;
+  --vfd-green-bg: #0c1d10; --vfd-green-on: #b2ffa8; --vfd-green-glow: #46f070; --vfd-green-off: #17301c;
+  --vfd-cyan-bg: #0a2221;  --vfd-cyan-on: #9ff8ea;  --vfd-cyan-glow: #36e6cc;  --vfd-cyan-off: #133533;
+  --amber: #f0a232;
+  --red: #c8352a;
+  --green: #4fbf62;
+  --blue: #3d6fb4;
+  --steel: #e8ece5;
+  --font-display: "PT Sans Narrow", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --font-body: "PT Sans", "Segoe UI", Roboto, sans-serif;
+  --font-mono: "PT Mono", "Courier New", ui-monospace, monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { background: var(--panel); color: var(--ink); }
+body { font-family: var(--font-body); font-size: 14px; line-height: 1.4; margin: 0;
+  background-image: radial-gradient(rgba(255,255,255,0.18) 1px, transparent 1.2px); background-size: 4px 4px; }
+.wrap { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 14px 40px; max-width: 1500px; margin: 0 auto; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible, select:focus-visible, canvas:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.lbl { font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.06em; font-size: 12px; color: var(--ink-soft); }
+
+/* header */
+.top { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: flex-end; justify-content: space-between; padding-bottom: 12px; border-bottom: 2px solid var(--panel-edge); }
+.top > * { min-width: 0; max-width: 100%; }
+.brand { display: flex; gap: 14px; align-items: center; }
+.brand .badge { background: var(--plate); color: var(--plate-ink); font-family: var(--font-display); font-weight: 700; font-size: 30px; letter-spacing: 0.16em; padding: 6px 14px 4px; border-radius: 3px; box-shadow: inset 0 0 0 2px #3a4243, 0 2px 0 rgba(0,0,0,0.25); line-height: 1; }
+.brand p { margin: 0; font-family: var(--font-display); font-size: 14px; color: var(--ink-soft); max-width: 46ch; }
+.ctrlrow { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; min-width: 0; max-width: 100%; }
+.ctrlrow > div { min-width: 0; max-width: 100%; }
+.ctrlrow > div:first-child { flex: 1 1 280px; }
+.ctrlrow select { width: 100%; }
+.seg { display: inline-flex; border: 1px solid var(--panel-edge); border-radius: 3px; overflow: hidden; }
+.seg button { background: var(--steel); border: 0; border-right: 1px solid var(--panel-edge); padding: 6px 10px; font-family: var(--font-mono); font-size: 13px; }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--plate); color: var(--plate-ink); }
+select { font: inherit; background: var(--steel); border: 1px solid var(--panel-edge); border-radius: 3px; padding: 6px 8px; color: var(--ink); max-width: 100%; }
+.clock { display: flex; gap: 8px; align-items: flex-end; }
+.clock .lbl { display: block; margin-bottom: 2px; }
+
+/* VFD indicator windows: black bezel, filter glass, one tube per digit */
+.vfd { --bg: var(--vfd-green-bg); --on: var(--vfd-green-on); --glow: var(--vfd-green-glow); --off: var(--vfd-green-off);
+  --tw: 22px; --th: 36px;
+  display: inline-flex; gap: calc(var(--tw) * 0.16); padding: calc(var(--th) * 0.16) calc(var(--tw) * 0.55);
+  background: #0b0c0b; border-radius: 5px; position: relative; isolation: isolate; max-width: 100%;
+  box-shadow: inset 0 0 0 2px #232724, inset 0 0 0 3px #000, 0 1px 0 rgba(255,255,255,0.35); }
+.vfd.cyan { --bg: var(--vfd-cyan-bg); --on: var(--vfd-cyan-on); --glow: var(--vfd-cyan-glow); --off: var(--vfd-cyan-off); }
+.vfd::before { content: ""; position: absolute; inset: 3px; border-radius: 3px; z-index: -1;
+  background: linear-gradient(to bottom, var(--bg), color-mix(in srgb, var(--bg) 70%, #000)); }
+.vfd::after { content: ""; position: absolute; inset: 3px; border-radius: 3px; pointer-events: none;
+  background: linear-gradient(160deg, rgba(255,255,255,0.10) 0, rgba(255,255,255,0.02) 38%, transparent 40%);
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--glow) 45%, transparent); }
+.vfd.sm { --tw: 15px; --th: 25px; }
+.vfd.md { --tw: 19px; --th: 31px; }
+.vfd.lg { --tw: 27px; --th: 45px; }
+.tube { width: var(--tw); height: var(--th); flex: none; position: relative; border-radius: 45% 45% 14% 14% / 26% 26% 8% 8%;
+  background: radial-gradient(ellipse at 50% 28%, rgba(255,255,255,0.06), transparent 62%);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05), inset 0 -4px 6px rgba(0,0,0,0.35); }
+.tube::before { content: ""; position: absolute; left: 30%; right: 30%; top: 7%; height: 2px; border-radius: 1px;
+  background: var(--on); box-shadow: 0 0 4px var(--glow); opacity: 0.75; }   /* the hot filament seen at the top of each tube */
+.tube svg { position: absolute; inset: 9% 6% 3%; width: 88%; height: 88%; overflow: visible; }
+.tube .gh path, .tube .gh circle { fill: var(--off); }
+.tube .lt path, .tube .lt circle { fill: var(--on); opacity: 0; }
+.tube .lt .on { opacity: 1; }
+.tube .lt { filter: drop-shadow(0 0 1.6px var(--glow)) drop-shadow(0 0 4px color-mix(in srgb, var(--glow) 55%, transparent)); }
+.vfd.dark .tube::before, .vfd.dark .tube .lt, .blank .tube::before, .blank .tube .lt, .poweroff .tube::before, .poweroff .tube .lt { opacity: 0; }
+.lamptest .tube .lt path, .lamptest .tube .lt circle { opacity: 1 !important; }
+.vfd.warn { box-shadow: inset 0 0 0 2px var(--amber), inset 0 0 0 3px #000, 0 1px 0 rgba(255,255,255,0.35); }
+.vfd.alarm { box-shadow: inset 0 0 0 2px var(--red), inset 0 0 0 3px #000, 0 0 10px rgba(200,53,42,0.5); }
+.vfdscrew { position: absolute; top: 50%; width: 5px; height: 5px; margin-top: -2.5px; border-radius: 50%; background: #3a3f3b; box-shadow: inset 0 0 0 1px #000; }
+.vfdscrew.l { left: 4px; } .vfdscrew.r { right: 4px; }
+.notice { font-family: var(--font-display); font-size: 13px; color: var(--red); min-height: 18px; margin-top: 6px; }
+
+/* bays and plates */
+/* Wide screens: one grid, so panels side by side share their top and bottom edges.
+   row 1: rod panel | request device | printers (spanning both rows)
+   row 2: instruments + controls | mnemonic + codes */
+.bays { display: grid; gap: 14px 16px; margin-top: 10px; }
+.bay, .stack { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.stack > .plate:last-child { flex: 1 1 auto; }
+.plate { display: flex; flex-direction: column; }
+@media (min-width: 781px) {
+  .bays { grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.78fr) minmax(0, 1fr); grid-template-rows: auto auto; align-items: stretch; }
+  .bay { display: contents; }
+  .a-core { grid-column: 1; grid-row: 1; } .a-left { grid-column: 1; grid-row: 2; }
+  .a-vu { grid-column: 2; grid-row: 1; }   .a-mid { grid-column: 2; grid-row: 2; }
+  .a-print { grid-column: 3; grid-row: 1 / span 2; }
+  .a-core .legend { margin-top: auto; padding-top: 8px; }
+  .a-vu .consoleface { flex: 1 1 auto; align-content: start; }
+}
+@media (min-width: 781px) and (max-width: 1220px) {
+  .bays { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto auto auto; }
+  .a-print { grid-column: 1 / -1; grid-row: 3; }
+}
+.plate { background: var(--panel-deep); border: 1px solid var(--panel-edge); border-radius: 5px; padding: 0 12px 12px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 1px 2px rgba(0,0,0,0.12); min-width: 0; }
+.plate > header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px 10px; margin: 0 -12px 10px; padding: 7px 12px; background: var(--plate); color: var(--plate-ink); border-radius: 5px 5px 0 0; }
+.plate h2 { font-family: var(--font-display); font-weight: 700; font-size: 15px; letter-spacing: 0.12em; text-transform: uppercase; margin: 0; }
+.plate h2 span { font-weight: 400; color: #aab3ab; letter-spacing: 0.02em; text-transform: none; font-family: var(--font-body); font-size: 12px; margin-left: 8px; }
+.plate > header .lbl { color: #c9d1c9; }
+.screw { width: 9px; height: 9px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #d9ddd5, #7f897f); box-shadow: inset 0 0 0 1px #6c756c; position: relative; flex: none; }
+.screw::after { content: ""; position: absolute; left: 1px; right: 1px; top: 4px; height: 1px; background: #5c655c; transform: rotate(35deg); }
+
+/* rod position panel */
+.core-wrap { position: relative; width: 100%; max-width: 100%; aspect-ratio: 1 / 1; }
+#core { width: 100%; height: 100%; display: block; cursor: crosshair; touch-action: manipulation; }
+.coretip { position: absolute; pointer-events: none; background: var(--plate); color: var(--plate-ink); font-family: var(--font-mono); font-size: 12px; padding: 3px 7px; border-radius: 3px; white-space: nowrap; transform: translate(-50%, calc(-100% - 10px)); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 8px; font-size: 12px; color: var(--ink-soft); }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; border: 3px solid; vertical-align: -2px; margin-right: 5px; background: var(--face); }
+.toggles { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 6px; font-size: 12px; }
+.toggles label { display: inline-flex; gap: 5px; align-items: center; cursor: pointer; }
+
+/* instruments */
+.gauges { display: grid; grid-template-columns: repeat(auto-fill, minmax(116px, 1fr)); gap: 8px; }
+.g { min-width: 0; }
+.g .lbl { color: var(--ink); font-weight: 700; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.g .vrow { display: flex; align-items: center; gap: 5px; }
+.g .u { font-family: var(--font-display); font-size: 11px; color: var(--ink-soft); line-height: 1.1; }
+.inst2 { display: grid; grid-template-columns: minmax(0, 1fr) 92px; gap: 10px; margin-top: 10px; align-items: stretch; }
+#trend { width: 100%; height: 120px; display: block; background: var(--window); border-radius: 4px; }
+.axial7 { background: var(--window); border-radius: 4px; padding: 6px 6px 4px; display: flex; flex-direction: column; gap: 3px; box-shadow: inset 0 0 0 2px #2c322d; }
+.axial7 .r { display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: 4px; align-items: center; font-family: var(--font-mono); font-size: 10px; color: #8c978d; }
+.axial7 .b { height: 10px; background: #1f2620; border-radius: 1px; position: relative; overflow: hidden; }
+.axial7 .b i { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(90deg, #6fd47f, #f0d060 60%, #ff7a3a); }
+.axial7 .cap { font-family: var(--font-display); font-size: 10px; letter-spacing: 0.05em; color: #9aa79b; text-align: center; }
+
+/* desk controls */
+.chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.chip { background: var(--steel); border: 1px solid var(--panel-edge); border-radius: 3px; padding: 5px 8px; font-family: var(--font-display); font-size: 13px; }
+.chip[aria-pressed="true"] { background: var(--plate); color: var(--plate-ink); border-color: var(--plate); }
+.drive { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.btn { background: var(--steel); border: 1px solid var(--panel-edge); border-bottom-width: 3px; border-radius: 4px; padding: 7px 12px; font-family: var(--font-display); font-size: 14px; letter-spacing: 0.03em; }
+.btn:active { border-bottom-width: 1px; transform: translateY(2px); }
+.btn[aria-pressed="true"] { background: #f7e2b8; border-color: #b9842e; }
+.btn:disabled { opacity: 0.5; cursor: default; }
+.row { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.sub { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--panel-edge); }
+.pumps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.pump { background: var(--steel); border: 1px solid var(--panel-edge); border-radius: 3px; padding: 5px 6px; text-align: left; font-family: var(--font-display); font-size: 13px; min-width: 0; }
+.pump b { display: block; font-family: var(--font-mono); font-weight: 400; font-size: 11px; color: var(--ink-soft); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pump.on { border-color: #3d7a46; box-shadow: inset 4px 0 0 var(--green); }
+.pump.coast { box-shadow: inset 4px 0 0 var(--amber); }
+.pump.trip { box-shadow: inset 4px 0 0 var(--red); background: #f3dcd8; }
+
+.banks { display: flex; gap: 8px; }
+.bank { width: 48px; text-align: center; font-family: var(--font-display); font-size: 12px; }
+.bank .bar { height: 56px; background: var(--window); border-radius: 2px; position: relative; overflow: hidden; margin-bottom: 3px; }
+.bank .bar i { position: absolute; left: 0; right: 0; top: 0; background: #d7c45a; }
+.bank.act { font-weight: 700; }
+.bank.act .bar { outline: 2px solid var(--amber); }
+.note { font-size: 12px; color: var(--ink-soft); max-width: 40ch; }
+
+/* AZ-5 */
+.az5box { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.az5 { width: 96px; height: 96px; border-radius: 50%; border: 6px solid #6b1c16; background: radial-gradient(circle at 38% 32%, #ef6a5c, var(--red) 55%, #7d1d16); color: #fff; font-family: var(--font-display); font-weight: 700; font-size: 22px; letter-spacing: 0.06em; box-shadow: 0 4px 0 #4a120e; position: relative; flex: none; }
+.az5:active { transform: translateY(3px); box-shadow: 0 1px 0 #4a120e; }
+.az5 .cap { position: absolute; inset: -6px; border-radius: 50%; background: rgba(214, 230, 220, 0.78); border: 2px solid #8a958c; display: grid; place-items: center; text-align: center; line-height: 1.1; color: var(--ink); font-size: 12px; letter-spacing: 0.02em; font-weight: 400; transition: transform .25s, opacity .25s; }
+.az5.armed .cap { transform: translateY(-80%) scale(0.6); opacity: 0; pointer-events: none; }
+
+/* SKALA console: warm grey enamel, black square keycaps in digit columns, red and cream function keys */
+.bay-skala .plate { background: var(--enamel); border-color: var(--enamel-edge); }
+.vu { background: var(--enamel-deep); border-radius: 4px; padding: 12px; border: 1px solid var(--enamel-edge); box-shadow: inset 0 1px 0 rgba(255,255,255,0.5); }
+.vurow { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: flex-end; }
+.vurow .cap { font-family: var(--font-display); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink); margin-bottom: 3px; }
+.vurow .valbox { flex: 1 1 auto; min-width: 0; }
+.vunit { font-family: var(--font-display); font-size: 13px; background: var(--plate); color: var(--plate-ink); border-radius: 2px; padding: 1px 6px; margin-left: 6px; letter-spacing: 0.04em; vertical-align: middle; }
+.vunit:empty { display: none; }
+.tablo { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; margin-top: 10px; }
+.tablo span { font-family: var(--font-display); font-size: 11px; letter-spacing: 0.05em; text-align: center; padding: 3px 2px; border-radius: 2px;
+  background: #e9e5d6; color: #8d897c; border: 1px solid var(--enamel-edge); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tablo span.on { background: #fff2bf; color: #4a3a05; box-shadow: 0 0 8px rgba(255,214,90,0.8), inset 0 0 0 1px #d9b632; }
+.tablo span.on.err { background: #ffd3cc; color: #6d140c; box-shadow: 0 0 8px rgba(255,90,70,0.7), inset 0 0 0 1px var(--red); }
+.vu .what { font-family: var(--font-body); color: var(--ink-soft); font-size: 12px; margin-top: 8px; min-height: 17px; }
+.consoleface { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px 16px; margin-top: 12px; align-items: start; }
+.switches { display: flex; flex-wrap: wrap; gap: 10px 18px; grid-column: 1 / -1; padding-bottom: 8px; border-bottom: 1px solid var(--enamel-edge); }
+.sw { display: inline-flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: 0; padding: 0; font-family: var(--font-display); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink); }
+.sw .lever { width: 26px; height: 26px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #f4f4f0, #a9aba5 60%, #6f726c); box-shadow: inset 0 0 0 1px #6f726c; position: relative; }
+.sw .lever::after { content: ""; position: absolute; left: 50%; top: 50%; width: 7px; height: 20px; margin-left: -3.5px; margin-top: -18px; border-radius: 3px; background: linear-gradient(90deg, #222, #555 50%, #1a1a1a); transform-origin: 50% 100%; transition: transform .12s; }
+.sw[aria-pressed="true"] .lever::after { transform: translateY(16px) scaleY(-1); }
+.sw.push .lever { background: radial-gradient(circle at 40% 35%, #fff9e6, #e8dcb6 55%, #b7a97f); box-shadow: inset 0 0 0 1px #8f8466, 0 2px 0 #8f8466; }
+.sw.push .lever::after { display: none; }
+.sw.push:active .lever { transform: translateY(2px); box-shadow: inset 0 0 0 1px #8f8466; }
+.colkeys { display: grid; grid-template-columns: repeat(3, 40px); gap: 6px 8px; }
+.colkeys .colcap { font-family: var(--font-display); font-size: 11px; text-align: center; color: var(--ink); letter-spacing: 0.04em; }
+.colkeys .col { display: flex; flex-direction: column; gap: 5px; }
+.key { background: linear-gradient(to bottom, #3a3d3b 0, var(--keycap) 18%, var(--keycap) 85%, #0b0c0b 100%); color: #f1efe6; border: 0; border-radius: 3px; width: 40px; height: 30px;
+  font-family: var(--font-display); font-weight: 700; font-size: 15px; box-shadow: 0 2px 0 #000, inset 0 0 0 1px #000; padding: 0; }
+.key:active, .key.on { transform: translateY(2px); box-shadow: 0 0 0 #000, inset 0 0 0 1px #000; }
+.key.on { background: #3b3f3c; color: #fff; outline: 2px solid #d9b632; outline-offset: -2px; }
+.fnkeys { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.fkey { border: 0; border-radius: 3px; padding: 9px 10px; font-family: var(--font-display); font-weight: 700; font-size: 14px; letter-spacing: 0.06em; box-shadow: 0 3px 0 rgba(0,0,0,0.45), inset 0 0 0 1px rgba(0,0,0,0.5); text-align: center; }
+.fkey:active { transform: translateY(3px); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.5); }
+.fkey.red { background: linear-gradient(to bottom, #e0574a, #b8281d); color: #fff; }
+.fkey.cream { background: linear-gradient(to bottom, #fbf6e3, #ddd2ad); color: var(--ink); }
+.fkey.dark { background: linear-gradient(to bottom, #3a3d3b, var(--keycap)); color: #f1efe6; }
+.fnkeys .note { max-width: none; font-size: 11.5px; }
+.dir { list-style: none; padding: 0; margin: 0; display: grid; gap: 2px; }
+.dir li button { width: 100%; text-align: left; background: transparent; border: 0; border-radius: 3px; padding: 4px 6px; display: grid; grid-template-columns: 42px minmax(0, 1fr); gap: 8px; align-items: baseline; }
+.dir li button:hover { background: rgba(255,255,255,0.4); }
+.dir code { font-family: var(--font-mono); font-size: 14px; color: var(--ink); }
+.dir span { font-size: 13px; }
+.dir span em { font-style: normal; color: var(--ink-soft); font-size: 12px; display: block; }
+.dirhead { font-family: var(--font-display); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); margin: 8px 0 2px; }
+.dir li button:hover { background: rgba(255,255,255,0.45); }
+.mnemo { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; }
+.lamp { background: #2a302b; border-radius: 3px; padding: 6px 4px; text-align: center; font-family: var(--font-display); font-size: 12px; color: #8d988f; letter-spacing: 0.04em; border: 1px solid #1c201d; }
+.lamp.on { background: #24402a; color: #b9f3c1; box-shadow: inset 0 0 10px rgba(79,191,98,0.55); }
+.lamp.busy { background: #4a3818; color: #ffd99b; box-shadow: inset 0 0 10px rgba(240,162,50,0.6); }
+.lamp.fault { background: #4d1b17; color: #ffc0b8; box-shadow: inset 0 0 10px rgba(200,53,42,0.7); }
+.lamp.dark { opacity: 0.45; }
+.lamp.blink { animation: blink 1s steps(2) infinite; }
+@keyframes blink { 50% { opacity: 0.35; } }
+.mode { margin-top: 8px; font-family: var(--font-mono); font-size: 12px; color: var(--ink-soft); }
+@media (prefers-reduced-motion: reduce) { .lamp.blink, .cursor { animation: none !important; } .az5 .cap { transition: none; } }
+
+/* printers */
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.tab { background: var(--panel); border: 1px solid var(--panel-edge); border-bottom: 0; border-radius: 4px 4px 0 0; padding: 6px 10px; font-family: var(--font-display); font-size: 13px; }
+.tab[aria-selected="true"] { background: var(--paper); }
+.tab .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--amber); margin-left: 6px; vertical-align: 1px; }
+.paperwrap { border: 1px solid var(--panel-edge); border-radius: 0 4px 4px 4px; position: relative; background: #8f9a8d; overflow: hidden; }
+.paper { height: 620px; overflow: auto; font-family: var(--font-mono); font-size: 13px; color: var(--ribbon); line-height: 1.5; text-transform: none; }
+@media (min-width: 1221px) {   /* the printer bay runs the full height of the wall: the paper fills it */
+  .a-print .paperwrap { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
+  .a-print .paper { height: auto; flex: 1 1 0; min-height: 440px; }
+}
+/* paper is at least as wide as the longest printed line, so text never runs off the sheet */
+.paper .sheet { min-width: 100%; width: fit-content; }
+.paper.roll .sheet { width: auto; min-width: 0; }
+/* DREG and archive listings wrap long lines under the message column (time column = 10 characters),
+   so nothing prints off the sheet at any screen width. The drum printer keeps fixed lines: its
+   cartogram is a map, and the paper widens to hold it. */
+.paper.wrap .pl { white-space: pre-wrap; padding-left: 10ch; text-indent: -10ch; }
+.pl .nb { white-space: nowrap; }
+.paper.fanfold { font-size: 12px; }
+
+@media (max-width: 780px) { .paper { height: 440px; } .clock .vfd.lg { --tw: 21px; --th: 35px; } }
+/* teletype roll: narrow cream roll on a dark platen */
+.paper.roll { background: linear-gradient(90deg, #6e786c 0, #6e786c 12px, transparent 12px, transparent calc(100% - 12px), #6e786c calc(100% - 12px)); padding: 0 12px; }
+.paper.roll .sheet { background: var(--paper); min-height: 100%; padding: 14px 16px 26px; box-shadow: 0 0 0 1px #d6d2c0; max-width: calc(64ch + 34px); margin: 0 auto; }
+/* drum-printer fanfold: green bars and tractor holes both sides */
+.paper.fanfold .sheet { background-color: var(--fanfold); background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 39px, var(--fanfold-bar) 39px, var(--fanfold-bar) 78px); background-attachment: local; min-height: 100%; padding: 14px 30px 26px; position: relative; }
+.paper.fanfold .sheet::before, .paper.fanfold .sheet::after { content: ""; position: absolute; top: 0; bottom: 0; width: 12px; background-image: radial-gradient(circle, #a8b2a5 3px, transparent 3.6px); background-size: 12px 20px; }
+.paper.fanfold .sheet::before { left: 8px; } .paper.fanfold .sheet::after { right: 8px; }
+.paper.tape .sheet { background: #f0eee6; min-height: 100%; padding: 14px 16px 26px; }
+.pl { white-space: pre; }
+.pl .t { color: #1b2236; font-weight: 700; }
+.pl .cyc { color: var(--gloss); }
+.gl { white-space: normal; font-family: var(--font-body); font-style: italic; font-size: 12px; color: var(--gloss); margin: 0 0 3px 0; padding-left: 2ch; }
+.paper.noen .gl { display: none; }
+.pblock { margin-bottom: 8px; }
+.pblock.alarm .pl { color: #8c1d14; }
+.pblock.sys .pl { color: #5a6457; }
+.cut { border-top: 1px dashed #b9c0b5; margin: 10px 0; }
+.empty { font-family: var(--font-body); font-style: italic; color: var(--gloss); white-space: normal; }
+.srcnote { font-family: var(--font-body); white-space: normal; font-size: 12px; color: var(--ink-soft); border-left: 3px solid var(--panel-edge); padding-left: 10px; margin: 6px 0 12px; }
+.srcnote a { color: var(--blue); }
+.cursor { display: inline-block; width: 0.6em; height: 1.05em; background: var(--ribbon); vertical-align: -0.15em; animation: blink 0.8s steps(2) infinite; }
+.cutoff { color: var(--red); font-family: var(--font-body); font-style: italic; font-size: 12px; white-space: normal; }
+
+/* hidden physics + about */
+details.plate { padding-top: 0; }
+details.plate > summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 12px; margin: 0 -12px; padding: 8px 12px; background: var(--plate); color: var(--plate-ink); border-radius: 5px; font-family: var(--font-display); font-weight: 700; font-size: 15px; letter-spacing: 0.12em; text-transform: uppercase; }
+details.plate[open] > summary { border-radius: 5px 5px 0 0; margin-bottom: 10px; }
+details.plate > summary::-webkit-details-marker { display: none; }
+details.plate > summary span { flex: 1; font-family: var(--font-body); font-weight: 400; text-transform: none; letter-spacing: 0; font-size: 12px; color: #aab3ab; }
+details.plate > summary::after { content: "+"; font-family: var(--font-mono); }
+details.plate[open] > summary::after { content: "−"; }
+.hp { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+@media (max-width: 780px) { .hp { grid-template-columns: minmax(0, 1fr); } }
+table.rho { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+table.rho td { padding: 3px 6px; border-bottom: 1px solid var(--panel-edge); }
+table.rho td:last-child { text-align: right; font-family: var(--font-mono); }
+#axial { width: 100%; height: 260px; display: block; background: var(--steel); border-radius: 4px; }
+.about { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px 28px; }
+@media (max-width: 900px) { .about { grid-template-columns: minmax(0, 1fr); } }
+.about h3 { font-family: var(--font-display); font-size: 15px; letter-spacing: 0.06em; text-transform: uppercase; margin: 8px 0 4px; }
+.about p, .about li { max-width: 70ch; }
+.about ul { padding-left: 18px; margin: 4px 0; }
+.about a { color: var(--blue); }
+.tag { display: inline-block; font-family: var(--font-display); font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; padding: 1px 6px; border-radius: 2px; margin-right: 4px; }
+.tag.doc { background: #cfe3d0; color: #1f4b28; }
+.tag.inv { background: #f4dfb7; color: #6a4410; }
+.tablewrap { overflow-x: auto; }
+table.val { border-collapse: collapse; font-size: 13px; min-width: 460px; }
+table.val th, table.val td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--panel-edge); vertical-align: top; }
+table.val th { font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.05em; font-size: 12px; color: var(--ink-soft); }
+table.val td.num { font-family: var(--font-mono); white-space: nowrap; }
+
+/* glossary: dotted terms open a nameplate-style bubble on hover, focus or tap */
+abbr.term { text-decoration: underline dotted; text-decoration-thickness: 1px; text-underline-offset: 2px; cursor: help; border: 0; }
+abbr.term:focus-visible { outline: 2px solid var(--amber); outline-offset: 1px; border-radius: 2px; }
+.plate > header abbr.term, details.plate > summary abbr.term, .lamp abbr.term { text-decoration-color: rgba(238,240,230,0.55); }
+.gbub { position: fixed; z-index: 80; width: max-content; max-width: min(320px, calc(100vw - 16px)); background: var(--plate); color: var(--plate-ink); border-radius: 5px; padding: 10px 12px 11px;
+  font: 13px/1.45 var(--font-body); text-align: left; text-transform: none; letter-spacing: 0; box-shadow: 0 8px 22px rgba(0,0,0,0.3), inset 0 0 0 1px #3a4243; }
+.gbub b { display: block; font-family: var(--font-display); font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; color: #fff2bf; margin-bottom: 4px; }
+.gbub span { display: block; }
+.gbub a { display: inline-block; margin-top: 7px; color: #9ff8ea; font-size: 12px; }
+.gbub::after { content: ""; position: absolute; left: var(--ax, 50%); bottom: -5px; width: 10px; height: 10px; margin-left: -5px; background: var(--plate); transform: rotate(45deg); }
+.gbub.below::after { bottom: auto; top: -5px; }
+footer.thanks { margin: 14px 0 0; font-size: 12px; color: var(--ink-soft); text-align: center; }
+
+/* end overlay */
+.endov { position: fixed; inset: 0; background: rgba(18,21,18,0.82); display: grid; place-items: center; z-index: 50; padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.endov .card { background: var(--paper); max-width: 720px; max-height: calc(100vh - 32px); overflow: auto; border-radius: 4px; padding: 22px; border-top: 6px solid var(--red); }
+.endov h3 { font-family: var(--font-display); font-size: 15px; letter-spacing: 0.06em; text-transform: uppercase; margin: 16px 0 6px; padding-top: 10px; border-top: 1px solid #d6d2c0; }
+.endov ul.cost { padding-left: 18px; margin: 4px 0; } .endov ul.cost li { margin: 4px 0; }
+.endov .small { font-size: 12px; color: var(--ink-soft); margin: 10px 0 2px; }
+.endov ul.names { list-style: none; padding: 0; margin: 0; columns: 2 220px; column-gap: 20px; font-size: 13px; }
+.endov ul.names li { break-inside: avoid; padding: 2px 0; }
+.endov ul.names span { display: block; font-size: 11.5px; color: var(--gloss); }
+.endov h2 { font-family: var(--font-display); font-size: 22px; margin: 0 0 8px; }
+.endov p { margin: 6px 0; }
+</style>
+
+<div class="wrap">
+  <div class="top">
+    <div class="brand">
+      <div class="badge">СКАЛА</div>
+      <p>Система контроля аппарата Ленинградской атомной · РБМК-1000, блок 4 ЧАЭС · behavioural simulator on the documented core map</p>
+    </div>
+    <div class="ctrlrow">
+      <div>
+        <div class="lbl" id="scLbl">Select a scenario</div>
+        <select id="scenario" aria-labelledby="scLbl">
+          <option value="apr26">26.04.1986 01:22:30 · 200 MW, rods as recorded</option>
+          <option value="apr26_0039">What-if · rods as at 00:39 (ORM 16.5), plant as at 01:22:30</option>
+          <option value="nominal">25.04.1986 01:05 · 3100 MW, start of unloading</option>
+        </select>
+      </div>
+      <div>
+        <div class="lbl">Speed</div>
+        <div class="seg" id="speed" role="group" aria-label="Simulation speed">
+          <button data-s="0" aria-pressed="false" aria-label="Pause">❚❚</button>
+          <button data-s="1" aria-pressed="true">×1</button>
+          <button data-s="10" aria-pressed="false">×10</button>
+          <button data-s="60" aria-pressed="false">×60</button>
+          <button data-s="600" aria-pressed="false">×600</button>
+        </div>
+      </div>
+      <div class="clock" id="clock" role="timer" aria-label="Plant time">
+        <div><span class="lbl">Date</span><div class="vfd cyan sm" id="date"></div></div>
+        <div><span class="lbl">Time</span><div class="vfd lg" id="time"></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="notice" id="notice" role="status"></div>
+
+  <div class="bays">
+    <!-- BAY 1: reactor desk -->
+    <section class="bay bay-desk">
+      <div class="plate a-core">
+        <header><span class="screw"></span><h2>Положение стержней СУЗ <span>rod position indicators · 211 channels</span></h2><span class="lbl" id="selInfo"></span><span class="screw"></span></header>
+        <div class="core-wrap"><canvas id="core" tabindex="0" aria-label="Rod position indicator panel laid out on the real channel grid. Click a dial to select that rod."></canvas><div class="coretip" id="coretip" hidden></div></div>
+        <div class="legend">
+          <span><i style="border-color:#3c4542"></i>РР / ЛАР / АЗ, not told apart in the sources (175)</span>
+          <span><i style="border-color:#d9b632"></i>АР auto (3 × 4)</span>
+          <span><i style="border-color:#3f78c8"></i>УСП from below (24)</span>
+          <span><b style="font-family:var(--font-mono)">Н</b>&nbsp;height detectors (12)</span>
+        </div>
+        <div class="toggles">
+          <label><input type="checkbox" id="showFuel" checked> Fuel channels coloured by relative power (illustrative)</label>
+          <label><input type="checkbox" id="showGrid" checked> Plant grid labels</label>
+        </div>
+      </div>
+      <div class="stack a-left">
+      <div class="plate">
+        <header><span class="screw"></span><h2>Приборы БЩУ <span>unit control board</span></h2><span class="screw"></span></header>
+        <div class="gauges" id="gauges"></div>
+        <div class="inst2">
+          <div><canvas id="trend" aria-label="Thermal power trend"></canvas><div class="legend" id="trendInfo" style="margin-top:4px"></div></div>
+          <div class="axial7" id="axial7" aria-label="Axial power, seven 1 m sections, top first"></div>
+        </div>
+      </div>
+
+      <div class="plate">
+        <header><span class="screw"></span><h2>Управление <span>reactor and plant controls</span></h2><span class="screw"></span></header>
+        <div class="lbl">Selected for manual drive · sectors 1–8, all РР, or УСП</div>
+        <div class="chips" id="groups" style="margin-top:4px"></div>
+        <div class="drive">
+          <button class="btn" id="mvOut">▲ Вывод · withdraw</button>
+          <button class="btn" id="mvStop">■ Стоп</button>
+          <button class="btn" id="mvIn">▼ Ввод · insert</button>
+        </div>
+        <div class="note" style="margin-top:6px">Click any dial on the panel to drive that single rod. Sectors are a simulator convenience, not groups the plant used.</div>
+
+        <div class="sub">
+          <div class="row" style="align-items:flex-start">
+            <div>
+              <div class="lbl">Автоматический регулятор АР</div>
+              <div class="row" style="margin-top:4px">
+                <button class="btn" id="arOn" aria-pressed="true">АР вкл.</button>
+                <div class="vfd md" id="arSet"></div><span class="lbl">MW setpoint</span>
+              </div>
+              <div class="drive">
+                <button class="btn" data-ars="-100">−100</button><button class="btn" data-ars="-10">−10</button>
+                <button class="btn" data-ars="10">+10</button><button class="btn" data-ars="100">+100</button>
+              </div>
+              <label class="note" style="display:flex;gap:6px;align-items:center;margin-top:8px;cursor:pointer"><input type="checkbox" id="assist"> Помощник СИУР · re-centre the AR with manual rods (simulator aid)</label>
+            </div>
+            <div>
+              <div class="banks" id="banks" aria-label="AR bank positions"></div>
+              <div class="note" style="margin-top:4px">Bank numbers 1–3 are assumed: 1 = 2 m square, 2 = 3 m diamond, 3 = 1 m cross.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sub">
+          <div class="lbl">ГЦН · main circulation pumps, left 11–14 · right 21–24 (m³/h)</div>
+          <div class="pumps" id="pumps" style="margin-top:6px"></div>
+          <div class="row" style="margin-top:10px">
+            <button class="btn" id="testBtn">Закрыть СРК ТГ-8 · start rundown test</button>
+            <span class="note">Closes turbine 8's stop valves. Pumps 13, 14, 23 and 24 then run down with the coasting generator, as at 01:23:04.</span>
+          </div>
+        </div>
+
+        <div class="sub az5box">
+          <button class="az5" id="az5" aria-label="AZ-5 emergency shutdown button"><span class="cap" aria-hidden="true">Снять<br>колпачок</span>АЗ-5</button>
+          <div class="note" style="color:#932705">AZ-5 (the scram, or emergency shutdown) drives every rod except УСП into the core at 0.4 m/s. First tap lifts the guard cap, second tap presses the button. Before 1987 it had to be held down.</div>
+        </div>
+      </div>
+      </div>
+    </section>
+
+    <!-- BAY 2: SKALA operator console -->
+    <section class="bay bay-skala">
+      <div class="plate a-vu">
+        <header><span class="screw"></span><h2>Вызывное устройство <span>SKALA request device</span></h2><span class="screw"></span></header>
+        <div class="vu" id="vu">
+          <div class="vurow">
+            <div><div class="cap">Код</div><div class="vfd cyan md" id="vuCode"></div></div>
+            <div class="valbox"><div class="cap">Значение <span class="vunit" id="vuUnit"></span></div><div class="vfd lg" id="vuVal"></div></div>
+          </div>
+          <div class="tablo" id="tablo" aria-live="polite"></div>
+          <div class="what" id="vuWhat" aria-live="polite">Set a code in the three columns and press ВВОД. The request codes below list what you can ask for.</div>
+        </div>
+        <div class="consoleface">
+          <div class="switches">
+            <button class="sw" id="swBlank" aria-pressed="false"><span class="lever"></span>Гашение</button>
+            <button class="sw push" id="swTest"><span class="lever"></span>Контроль индик.</button>
+          </div>
+          <div class="colkeys" id="keys" aria-label="Code entry: one column per digit"></div>
+          <div class="fnkeys">
+            <button class="fkey cream" data-k="ent">ВВОД</button>
+            <button class="fkey red" data-k="clr">СБРОС</button>
+            <button class="fkey dark" data-k="back">← ШАГ</button>
+            <p class="note">Each column sets one digit of the code, left to right. The keys run 0–7, as on the photographed SKALA console. Typing digits on a keyboard also works.</p>
+          </div>
+        </div>
+      </div>
+      <div class="stack a-mid">
+      <div class="plate">
+        <header><span class="screw"></span><h2>Мнемосхема СКАЛА <span>system status</span></h2><span class="screw"></span></header>
+        <div class="mnemo" id="mnemo"></div>
+        <div class="mode" id="mode"></div>
+      </div>
+
+      <div class="plate">
+        <header><span class="screw"></span><h2>Коды <span>request codes</span></h2><span class="tag inv">invented numbers</span></header>
+        <div id="dir"></div>
+        <p class="note" style="margin-top:8px">Operators dialled a numeric code and waited for the value on the digital display (Dyatlov, quoted by Karpan p.351). The real code table is not public, so these numbers are this simulator's own, using only the digits 0–7 so they can be keyed on the column keyboard. (The one raw SKALA code we do know, К06L005, is a DREG signal identifier, not a request code.)</p>
+      </div>
+      </div>
+    </section>
+
+    <!-- BAY 3: printers -->
+    <section class="bay bay-print">
+      <div class="plate a-print">
+        <header>
+          <span class="screw"></span><h2>Печать <span>printers and tape</span></h2>
+          <label class="lbl" style="display:flex;gap:6px;align-items:center;cursor:pointer;color:#c9d1c9"><input type="checkbox" id="enToggle" checked> English gloss</label>
+        </header>
+        <div class="tabs" role="tablist">
+          <button class="tab" role="tab" aria-selected="true" data-tab="tty" id="tab-tty">РТА-80 · teletype</button>
+          <button class="tab" role="tab" aria-selected="false" data-tab="dreg" id="tab-dreg">ДРЕГ · listing</button>
+          <button class="tab" role="tab" aria-selected="false" data-tab="lpt" id="tab-lpt">АЦПУ · drum printer</button>
+          <button class="tab" role="tab" aria-selected="false" data-tab="arc" id="tab-arc">Архив 26.04.86</button>
+        </div>
+        <div class="paperwrap">
+          <div class="paper roll" id="p-tty" role="tabpanel" aria-labelledby="tab-tty"><div class="sheet"></div></div>
+          <div class="paper fanfold wrap" id="p-dreg" role="tabpanel" aria-labelledby="tab-dreg" hidden><div class="sheet"></div></div>
+          <div class="paper fanfold" id="p-lpt" role="tabpanel" aria-labelledby="tab-lpt" hidden><div class="sheet"></div></div>
+          <div class="paper fanfold wrap" id="p-arc" role="tabpanel" aria-labelledby="tab-arc" hidden><div class="sheet"></div></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <details class="plate" id="hidden" style="margin-top:16px">
+    <summary>Скрытая физика <span>additional insight unavailable to the Chernobyl operators</span></summary>
+    <div class="hp">
+      <div>
+        <table class="rho" id="rhoTable"></table>
+        <p class="note" style="margin-top:8px;max-width:none">Reactivity in dollars (1 $ = β, the delayed-neutron fraction). Above +1 $ the chain reaction runs on prompt neutrons alone. Contributions are flux-weighted averages of each term in the local multiplication.</p>
+      </div>
+      <div>
+        <canvas id="axial" aria-label="Axial profiles: neutron flux, steam void and xenon over core height"></canvas>
+        <p class="note" style="margin-top:6px;max-width:none">Core height runs bottom to top, as in INSAG-7 Fig. II-5. The dashed curve is the measured pre-accident flux (curve 4) the 01:22:30 state starts from.</p>
+      </div>
+    </div>
+  </details>
+
+  <details class="plate" id="aboutBox" style="margin-top:12px" open>
+    <summary>What is real here and what is not <span>sources, model and validation</span></summary>
+    <div class="about">
+      <div>
+        <h3>From the documents</h3>
+        <ul>
+          <li><span class="tag doc">doc</span>All 211 rod positions, their types (АР, УСП) and the 12 height-detector cells, from Karpan's maps for 00:39 and 01:22:30 (pp. 362–363), cross-checked against INSAG-7 Fig. II-6. Plant grid labels 66…12 / 11…65.</li>
+          <li><span class="tag doc">doc</span>Pre-accident axial flux shape (INSAG-7 Fig. II-5, curve 4); coolant flow 56 800 → 51 000 m³/h during the run-down; rundown pumps 13, 14, 23, 24 and their trips at 01:23:42.6–43.0 (Karpan App. 3).</li>
+          <li><span class="tag doc">doc</span>Teletype: two RTA-80s printing 7 characters per second, time without a leading zero ("1.23.39 АВАР ЗАЩИТА 5"), cut off when power failed (Karpan pp. 359–361). DREG: low-priority 2–4 s cycles numbered "№NNNД", "=0" marks a signal clearing, 9 rod positions logged once a minute (INSAG-7 p.77).</li>
+          <li><span class="tag doc">doc</span>PRIZMA: SKALA recalculated core parameters about every 5 minutes; the duty engineer printed PRIZMA every two hours on odd hours and carried it to the control room (Karpan p.350). ORM was never on a continuous display.</li>
+          <li><span class="tag doc">doc</span>The Архив tab reproduces the surviving teletype and DREG lines of 26 April 1986.</li>
+        </ul>
+        <h3>Reconstructed or invented</h3>
+        <ul>
+          <li><span class="tag inv">inv</span>Console look: the VFD tubes, the column keyboard (keys 0–7), the red and cream function keys and the Гашение switch are modelled on a photograph of a SKALA engineer's console in the computer room, whose controls (cabinet power-on, subprogram start) mark it as the duty engineer's panel rather than the SIUR's request device. Applying its style to the SIUR's device is a design choice, not a documented match.</li>
+          <li><span class="tag inv">inv</span>Not an emulator: the V-3M instruction set and SKALA software are not public. Request codes, PRIZMA and cartogram printout layouts, and the choice of the 9 logged rods are this simulator's own.</li>
+          <li><span class="tag inv">inv</span>Physics: 28-slice axial one-group diffusion (quasi-static) with point kinetics, per-slice void, Doppler, xenon/iodine and a burnup profile; every rod's absorber, graphite displacer and water columns at its real depth, weighted by its radial position. Rods are radially averaged, so the local character of the excursion (rows 12–30, Karpan p.380) is not captured.</li>
+          <li><span class="tag inv">inv</span>Tuned, not derived: migration area, water-column absorption, burnup profile, and a boiling-crisis threshold after which channels rupture, rods jam and steam floods the core. The xenon profile at 01:22:30 is solved from the measured flux shape because it was never measured (INSAG-7 p.81).</li>
+          <li><span class="tag inv">inv</span>Fuel-channel positions are inferred (every lattice cell inside the core not used by a rod or detector). Their colouring is an illustrative radial estimate, not a 2D solution. The 175 plain rods are 139 РР manual, 12 ЛАР local-automatic and 24 АЗ emergency rods, which the sources do not tell apart. 24 of them read exactly 7 cm in both maps; they are probably fully withdrawn, but their scattered positions rule them out as the АЗ group, which would be laid out symmetrically like the АР and УСП rods.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Validation against the record</h3>
+        <div class="tablewrap">
+          <table class="val">
+            <thead><tr><th>Check</th><th>Record</th><th>Model</th></tr></thead>
+            <tbody>
+              <tr><td>ORM at 01:22:30 from the real rods</td><td class="num">6–8 rods</td><td class="num">6.4</td></tr>
+              <tr><td>ORM from the 00:39 rods</td><td class="num">16.5</td><td class="num">14.3</td></tr>
+              <tr><td>Coolant flow just before AZ-5</td><td class="num">51 000 m³/h</td><td class="num">50 400</td></tr>
+              <tr><td>Overpower trip after AZ-5</td><td class="num">+3 s</td><td class="num">+2.7 s</td></tr>
+              <tr><td>Core destroyed</td><td class="num">≈01:23:45</td><td class="num">01:23:45</td></tr>
+              <tr><td>AZ-5 at 3100 MW, ORM ≈ 23–31</td><td class="num">safe</td><td class="num">safe</td></tr>
+              <tr><td>AZ-5 with the 00:39 rods</td><td class="num">safe (Karpan)</td><td class="num">peak 396 MW, no trip</td></tr>
+              <tr><td>AZ-5 at 01:22:30 without the run-down</td><td class="num">INSAG-7: dangerous after ≈00:30</td><td class="num">destroyed at +7 s</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="note" style="max-width:none">INSAG-7 (p.142) notes that none of the three Soviet 3D models reproduced the overpower signal within 3 seconds, and that every model was extremely sensitive to the starting axial distribution. This one is too: lowering the water-column absorption by 7 % (0.30 → 0.28) stops the 01:22:30 state from exploding, and raising it by 7 % makes the 00:39 rods trip. Matching the record here comes from tuning a far simpler model to the documents. It is not proof that the model is right.</p>
+        <h3>Sources</h3>
+        <ul>
+          <li>IAEA, INSAG-7, Russian edition, 1993 (<a href="https://www-pub.iaea.org/MTCD/Publications/PDF/Pub913r_web.pdf" target="_blank" rel="noopener">PDF</a>)</li>
+          <li>Н.В. Карпан, «Чернобыль. Месть мирного атома», Kyiv, 2005</li>
+          <li><a href="https://archive.org/details/dreg-protocol-last-40-seconds-of-chernobyl" target="_blank" rel="noopener">DREG protocol transcript, L. Sturm and R. Plaskov (CC BY-NC 4.0)</a></li>
+          <li><a href="http://v-alekseev.org/chnpp/" target="_blank" rel="noopener">V. Alekseev, Чернобыль</a></li>
+          <li><a href="https://chernobylcritical.blogspot.com/p/dreg-reactor-parameter-data-from-skala.html" target="_blank" rel="noopener">Chernobyl Witness, DREG parameter graphs</a></li>
+          <li><a href="https://hackaday.com/2026/03/03/inside-skala-how-chernobyls-reactor-was-actually-controlled/" target="_blank" rel="noopener">Hackaday on the Chornobyl Family SKALA videos</a></li>
+          <li><a href="https://habr.com/ru/articles/220941/" target="_blank" rel="noopener">Habr, СКАЛА: ЭВМ ЧАЭС</a></li>
+        </ul>
+        <h3>Thank you</h3>
+        <p>This reconstruction rests on the shoulders of experts and their work (and some impressive AI to tie it together).</p>
+        <ul>
+          <li><b>Nikolai Karpan</b>, whose book «Чернобыль. Месть мирного атома» preserved the rod maps, shift logs and recorder data the core model is built on.</li>
+          <li><b>The IAEA's International Nuclear Safety Advisory Group</b>, whose INSAG-7 report supplied the measured flux shape, the rod positions to cross-check against, and a frank account of the reactor's design flaws.</li>
+          <li><b><a href="https://www.youtube.com/watch?v=ZbaptQh2AM4" target="_blank" rel="noopener">Chornobyl Family</a></b>, whose restoration of real SKALA hardware shows how the console, printers and DREG actually behaved.</li>
+          <li><b>Linus Sturm and R. Plaskov</b>, for transcribing the DREG protocol of the last 40 seconds.</li>
+          <li><b>Claude (Anthropic)</b>, the AI assistant that read the Russian sources side by side with the English ones, extracted the rod map from the book's typography, cross-checked it cell by cell against INSAG-7, and ran many simulation runs to test the model against every figure in the record.</li>
+        </ul>
+        <p class="note" style="max-width:none">Working this way was a lesson in what AI can do to aid historical reconstruction. Its value was not knowing the answers, but holding scattered Russian and English sources together, reconstructing them into tabulated data, and testing them against each other far faster than one person could. Every finding was checked against the source documents, and the gaps are marked accordingly.</p>
+      </div>
+    </div>
+  </details>
+  <footer class="thanks">Built by Fernand G. (2026) with gratitude to Nikolai Karpan, the IAEA's INSAG-7 authors, Chornobyl Family, L. Sturm and R. Plaskov. This simulation is released under a <a href="https://creativecommons.org/licenses/by-nc/4.0/deed.en" target="_blank" rel="noopener">CC BY-NC 4.0</a> license.</footer>
+</div>
+
+<div class="endov" id="endov" hidden>
+  <div class="card" role="dialog" aria-labelledby="endH">
+    <h2 id="endH">Связь с реактором потеряна · signals lost</h2>
+    <p id="endTxt"></p>
+    <p>On 26 April 1986 reactor No. 4 was destroyed at about 01:23:45.</p>
+    <h3>The human cost</h3>
+    <ul class="cost">
+      <li><b>Killed that night: 2.</b> Valery Khodemchuk, main circulation pump operator, died in the explosion; his body was never recovered. Vladimir Shashenok, a commissioning engineer, died of his injuries in Pripyat hospital that morning.</li>
+      <li><b>Acute radiation syndrome: 134</b> plant staff and emergency workers were diagnosed. <b>28 of them died in 1986</b>, bringing the deaths that year to 30 (UNSCEAR). Further deaths among the survivors followed over the next decades.</li>
+      <li><b>Thyroid cancer:</b> almost 20,000 cases were registered in 1991–2015 among people who were children or adolescents in 1986 in Belarus, Ukraine and the most affected parts of Russia. About a quarter (roughly 5,000) are probably due to radioactive iodine from the accident (UNSCEAR 2018). Most were treated successfully; at least nine children had died of it by 2005 (WHO).</li>
+      <li><b>Eventual cancer deaths are estimates, and they differ widely.</b> The UN Chernobyl Forum (WHO, IAEA, 2005) projected up to about 4,000 among the 600,000 most exposed. The International Agency for Research on Cancer projected about 16,000 across Europe by 2065, with an uncertainty range of 6,700–38,000 (Cardis et al., 2006). Most scientific bodies place the toll in this range. Higher figures, such as 27,000 (Union of Concerned Scientists, 2011), 93,000 (Greenpeace, 2006) and 985,000 (Yablokov et al., Annals of the New York Academy of Sciences), rest on contested methods; the last is widely rejected.</li>
+    </ul>
+    <h3>Those who died in 1986</h3>
+    <p class="small">Plant personnel and contractors</p>
+    <ul class="names">
+      <li>Aleksandr Akimov <span>unit 4 shift supervisor · 10 May</span></li>
+      <li>Anatoly Baranov <span>senior electrical engineer · 20 May</span></li>
+      <li>Vyacheslav Brazhnik <span>senior turbine operator · 14 May</span></li>
+      <li>Viktor Degtyarenko <span>reactor operator · 19 May</span></li>
+      <li>Valery Khodemchuk <span>main circulation pump operator · 26 April</span></li>
+      <li>Yuriy Konoval <span>electrician · 28 May</span></li>
+      <li>Aleksandr Kudryavtsev <span>trainee reactor control engineer · 14 May</span></li>
+      <li>Anatoly Kurguz <span>senior reactor operator, central hall · 12 May</span></li>
+      <li>Aleksandr Lelechenko <span>deputy chief, electrical shop · 6 May</span></li>
+      <li>Viktor Lopatyuk <span>electrician · 17 May</span></li>
+      <li>Aleksandr Novyk <span>turbine equipment inspector · 26 July</span></li>
+      <li>Ivan Orlov <span>Chernobylenergozashita · 13 May</span></li>
+      <li>Kostyantyn Perchuk <span>senior turbine engineer · 20 May</span></li>
+      <li>Valery Perevozchenko <span>reactor section foreman · 13 June</span></li>
+      <li>Georgi Popov <span>Turboatom (contractor) · 13 June</span></li>
+      <li>Viktor Proskuryakov <span>trainee reactor control engineer · 17 May</span></li>
+      <li>Vladimir Savenkov <span>Turboatom (contractor) · 21 May</span></li>
+      <li>Anatoliy Shapovalov <span>electrician · 19 May</span></li>
+      <li>Vladimir Shashenok <span>Atomenergonaladka (contractor) · 26 April</span></li>
+      <li>Anatoly Sitnikov <span>deputy chief operational engineer · 30 May</span></li>
+      <li>Leonid Toptunov <span>senior reactor control engineer (СИУР) · 14 May</span></li>
+      <li>Yuriy Vershynin <span>turbine equipment inspector · 21 July</span></li>
+    </ul>
+    <p class="small">Firefighters</p>
+    <ul class="names">
+      <li>Vasily Ignatenko <span>firefighter · 13 May</span></li>
+      <li>Viktor Kibenok <span>lieutenant, shift leader · 11 May</span></li>
+      <li>Volodymyr Pravyk <span>lieutenant, shift leader · 11 May</span></li>
+      <li>Vladimir Tishura <span>firefighter · 10 May</span></li>
+      <li>Mykola Tytenok <span>firefighter · 16 May</span></li>
+      <li>Nikolai Vashchuk <span>firefighter · 14 May</span></li>
+    </ul>
+    <p class="small">Security guards</p>
+    <ul class="names">
+      <li>Yekaterina Ivanenko <span>26 May</span></li>
+      <li>Klavdia Luzganova <span>31 July</span></li>
+    </ul>
+    <p class="small">The official roster lists 31 names. It includes Major Leonid Telyatnikov, who led the plant's fire brigade that night and died in 2004. Sources: UNSCEAR; WHO (2005); IARC (2006); UNSCEAR (2018) via the Canadian Nuclear Safety Commission; <a href="https://en.wikipedia.org/wiki/Deaths_due_to_the_Chernobyl_disaster" target="_blank" rel="noopener">Wikipedia: Deaths due to the Chernobyl disaster</a>.</p>
+    <div class="row" style="margin-top:14px">
+      <button class="btn" id="endRestart">Restart scenario</button>
+      <button class="btn" id="endStay">Read the printouts</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/*DATA*/
+</script>
+<script>
+/*GLOSS*/
+</script>
+<script>
+/*SIM*/
+</script>
+<script>
+/*UI*/
+</script>

@@ -1,0 +1,10 @@
+time,record,thermal_MW,electric_MW,ORM_rods,Kr,Kz,W_channel_max_MW,graphite_T_max_C,coolant_flow_m3_h,source
+25.04 00:00,К1К printout,3100,,30.1,1.34,1.2,2.5,594,48000,Karpan p.325
+25.04 01:05,start of unloading,3100,930,31,,,,,,INSAG-7; Karpan p.325
+25.04 07:10,PRIZMA (faulty: 12 AR rods zeroed),~1500,,13.2,,,,,,INSAG-7; Karpan p.342 (true ~16-18)
+25.04 15:20,,1500,,16.8,,,,,,INSAG-7
+25.04 22:45,shift log,1600,,26.0,1.41,1.14,1.35,525,50000,Karpan p.329
+26.04 00:00,shift change,760,200,24,,,,,,Karpan
+26.04 00:39,rod map Fig.2,~0-200,,16.5,,,,,,Karpan p.362
+26.04 01:00,PRIZMA printout carried to control room,200,,~17-19,,,,,,Karpan p.350-351 (testimony)
+26.04 01:22:30,tape record; PRIZMA-ANALOG after accident,200,,6-8 (IAEA) / 7.5 (Karpan fig) / ~15 (Karpan analysis),,,,,56000,INSAG-7 p.87; Karpan p.363

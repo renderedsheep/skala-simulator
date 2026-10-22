@@ -1,0 +1,24 @@
+n,event_ru,event_en,time_nikiet_report,time_gpan1991_ukr1995,time_karpan_synced_to_dreg,note
+1,Стопорные клапаны закрыты,Turbine stop valves closed,1:23:04,1:23:04,1:23:04,По ДРЕГ
+2,Нажатие кнопки МПА – реперная точка времени,Design-basis-accident (MPA) button pressed,1:23:04,1:23:10.6,1:23:06.5,Fig 5.10; interval 0–6.6–2.5 s
+3,Отделение секции 8РНА от 8РА и включение 2ДГ-6,Section 8RNA separated from 8RA; diesel 2DG-6 started,,,1:23:06.5,
+4,Вкл. 1-ой ступени нагрузки ДГ,Diesel load step 1,1:23:16.6,1:23:23.2,1:23:19.1,interval 12.6 s
+5,Вкл. 2-ой ступени нагрузки ДГ,Diesel load step 2,1:23:21.9,1:23:28.7,1:23:24.4,5.3 s
+6,Вкл. 3-й ступени нагрузки ДГ,Diesel load step 3,1:23:27.1,1:23:33.9,1:23:29.6,5.2 s
+7,Выход из работы одного ПЭН (запаривание),One feed pump drops out (steam binding),1:23:32.2,,,from oscillograms
+8,Вкл. 4-ой ступени нагрузки ДГ,Diesel load step 4,1:23:32.3,1:23:39.1,1:23:34.8,5.2 s
+9,Вкл. 5-ой ступени нагрузки ДГ,Diesel load step 5,1:23:37.4,1:23:44.2,1:23:39.9,5.1 s
+10,Отключение ГЦН-14,MCP-14 tripped,1:23:39.8,1:23:46,1:23:42.6,first pair of rundown pumps tripped by protection
+11,Отключение ГЦН-24,MCP-24 tripped,1:23:39.9,1:23:46,1:23:42.9,0.1 s
+12,Отключение ГЦН-13,MCP-13 tripped,1:23:3.8 [sic],1:23:46.5,1:23:42.7,second pair; 0.6 s
+13,Отключение ГЦН-23,MCP-23 tripped,1:23:40.4,1:23:46.5,1:23:43.0,0.1 s
+14,АЗ-5 СУЗ – аварийное сообщение – реперная точка,AZ-5 emergency message (reference event),1:23:40 / 1:23:41,1:23:40,1:23:39 teletype; 1:23:40 DREG,
+15,Разгон реактора,Reactor power excursion,,1:23:43,1:23:43,"AZM, AZSR by DREG"
+16,Колебания тока на шинах секции 8РБ и первые удары,Current oscillation on 8RB buses; first shocks,,,1:23:44.1 / 1:23:45.9,graph and oscillogram
+17,Включение 6-ой ступени нагрузки ДГ,Diesel load step 6,1:23:42.4,1:23:49.2 (beyond end of recording),1:23:44.9,5.0 s
+18,Включение 7-ой ступени нагрузки ДГ,Diesel load step 7,1:23:42.4,,,oscillogram lacks this
+19,Пик тока на секции 8РНА с 1900А до 2700А,"Current peak on 8RNA, 1900→2700 A",,,1:23:46.8,oscillogram
+20,Падение расходов по ГЦН,Collapse of MCP flows,,1:23:47,1:23:46–47,DREG
+21,Срыв ДГ,Diesel generator trip,1:23:42.4,,1:23:46.8,
+22,"Повышение давления в РП свыше 0,15 кгс/см2 (разрывы ТК)",Reactor-space pressure above 0.15 kgf/cm² (channel ruptures),,,1:23:47,"DREG cycle 47–49 s, allowing for time to reach setpoint"
+23,Конец регистрации – взрыв ЦЗ – реперная точка,End of recording – explosion in central hall,1:23:46.5,1:23:53.3 (beyond 49 s),1:23:49,by DREG

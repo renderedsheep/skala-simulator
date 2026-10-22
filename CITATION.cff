@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use this reconstruction or its data, please cite it as below."
+title: "SKALA: an interactive reconstruction of the Chernobyl unit 4 process computer"
+type: software
+authors:
+  - name: "Fernand G."
+version: "3"
+date-released: "2026-10-21"
+repository-code: "https://github.com/renderedsheep/skala-simulator"
+url: "https://renderedsheep.github.io/skala-simulator/"
+license: "CC-BY-NC-4.0"
+keywords:
+  - Chornobyl
+  - Chernobyl
+  - RBMK
+  - SKALA
+  - history of computing
+  - digital history

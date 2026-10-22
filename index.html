@@ -1,0 +1,2001 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="SKALA: an interactive reconstruction of the Chernobyl unit 4 process computer and its RBMK-1000 core, built from INSAG-7, Karpan and the surviving DREG record.">
+<title>SKALA Console Simulator</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=PT+Mono&family=PT+Sans+Narrow:wght@400;700&family=PT+Sans:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+/* Layout: a control-room wall in three bays (reactor desk / SKALA console / printers), stacking on phones.
+   Look: grey-green enamel panels with black engraved nameplates and cream dial faces. Digital readouts are drawn as
+   Soviet side-view VFD tubes (one glass envelope per digit, glowing filament at the top, green or cyan filter glass),
+   modelled on a photographed SKALA engineer's console. The SKALA bay uses that console's warm grey enamel. */
+:root {
+  --panel: #c4cdc0;
+  --panel-deep: #b3beb0;
+  --panel-edge: #8d9a8a;
+  --plate: #23292a;           /* engraved nameplate */
+  --plate-ink: #eef0e6;
+  --ink: #1b221e;
+  --ink-soft: #485349;
+  --face: #f3efe0;            /* dial face */
+  --paper: #f3f1e6;           /* teletype roll */
+  --fanfold: #f4f6f0;         /* drum-printer paper */
+  --fanfold-bar: #dfeadb;
+  --ribbon: #273046;
+  --gloss: #6d766a;
+  --window: #121512;
+  --digit: #9dffc0;
+  --digit-dim: #183323;
+  --enamel: #d6d3c8;          /* SKALA console enamel */
+  --enamel-deep: #c9c5b8;
+  --enamel-edge: #9d988a;
+  --keycap: #1d1f1e;
+  --vfd-green-bg: #0c1d10; --vfd-green-on: #b2ffa8; --vfd-green-glow: #46f070; --vfd-green-off: #17301c;
+  --vfd-cyan-bg: #0a2221;  --vfd-cyan-on: #9ff8ea;  --vfd-cyan-glow: #36e6cc;  --vfd-cyan-off: #133533;
+  --amber: #f0a232;
+  --red: #c8352a;
+  --green: #4fbf62;
+  --blue: #3d6fb4;
+  --steel: #e8ece5;
+  --font-display: "PT Sans Narrow", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --font-body: "PT Sans", "Segoe UI", Roboto, sans-serif;
+  --font-mono: "PT Mono", "Courier New", ui-monospace, monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { background: var(--panel); color: var(--ink); }
+body { font-family: var(--font-body); font-size: 14px; line-height: 1.4; margin: 0;
+  background-image: radial-gradient(rgba(255,255,255,0.18) 1px, transparent 1.2px); background-size: 4px 4px; }
+.wrap { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 14px 40px; max-width: 1500px; margin: 0 auto; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible, select:focus-visible, canvas:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.lbl { font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.06em; font-size: 12px; color: var(--ink-soft); }
+
+/* header */
+.top { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: flex-end; justify-content: space-between; padding-bottom: 12px; border-bottom: 2px solid var(--panel-edge); }
+.top > * { min-width: 0; max-width: 100%; }
+.brand { display: flex; gap: 14px; align-items: center; }
+.brand .badge { background: var(--plate); color: var(--plate-ink); font-family: var(--font-display); font-weight: 700; font-size: 30px; letter-spacing: 0.16em; padding: 6px 14px 4px; border-radius: 3px; box-shadow: inset 0 0 0 2px #3a4243, 0 2px 0 rgba(0,0,0,0.25); line-height: 1; }
+.brand p { margin: 0; font-family: var(--font-display); font-size: 14px; color: var(--ink-soft); max-width: 46ch; }
+.ctrlrow { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; min-width: 0; max-width: 100%; }
+.ctrlrow > div { min-width: 0; max-width: 100%; }
+.ctrlrow > div:first-child { flex: 1 1 280px; }
+.ctrlrow select { width: 100%; }
+.seg { display: inline-flex; border: 1px solid var(--panel-edge); border-radius: 3px; overflow: hidden; }
+.seg button { background: var(--steel); border: 0; border-right: 1px solid var(--panel-edge); padding: 6px 10px; font-family: var(--font-mono); font-size: 13px; }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--plate); color: var(--plate-ink); }
+select { font: inherit; background: var(--steel); border: 1px solid var(--panel-edge); border-radius: 3px; padding: 6px 8px; color: var(--ink); max-width: 100%; }
+.clock { display: flex; gap: 8px; align-items: flex-end; }
+.clock .lbl { display: block; margin-bottom: 2px; }
+
+/* VFD indicator windows: black bezel, filter glass, one tube per digit */
+.vfd { --bg: var(--vfd-green-bg); --on: var(--vfd-green-on); --glow: var(--vfd-green-glow); --off: var(--vfd-green-off);
+  --tw: 22px; --th: 36px;
+  display: inline-flex; gap: calc(var(--tw) * 0.16); padding: calc(var(--th) * 0.16) calc(var(--tw) * 0.55);
+  background: #0b0c0b; border-radius: 5px; position: relative; isolation: isolate; max-width: 100%;
+  box-shadow: inset 0 0 0 2px #232724, inset 0 0 0 3px #000, 0 1px 0 rgba(255,255,255,0.35); }
+.vfd.cyan { --bg: var(--vfd-cyan-bg); --on: var(--vfd-cyan-on); --glow: var(--vfd-cyan-glow); --off: var(--vfd-cyan-off); }
+.vfd::before { content: ""; position: absolute; inset: 3px; border-radius: 3px; z-index: -1;
+  background: linear-gradient(to bottom, var(--bg), color-mix(in srgb, var(--bg) 70%, #000)); }
+.vfd::after { content: ""; position: absolute; inset: 3px; border-radius: 3px; pointer-events: none;
+  background: linear-gradient(160deg, rgba(255,255,255,0.10) 0, rgba(255,255,255,0.02) 38%, transparent 40%);
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--glow) 45%, transparent); }
+.vfd.sm { --tw: 15px; --th: 25px; }
+.vfd.md { --tw: 19px; --th: 31px; }
+.vfd.lg { --tw: 27px; --th: 45px; }
+.tube { width: var(--tw); height: var(--th); flex: none; position: relative; border-radius: 45% 45% 14% 14% / 26% 26% 8% 8%;
+  background: radial-gradient(ellipse at 50% 28%, rgba(255,255,255,0.06), transparent 62%);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05), inset 0 -4px 6px rgba(0,0,0,0.35); }
+.tube::before { content: ""; position: absolute; left: 30%; right: 30%; top: 7%; height: 2px; border-radius: 1px;
+  background: var(--on); box-shadow: 0 0 4px var(--glow); opacity: 0.75; }   /* the hot filament seen at the top of each tube */
+.tube svg { position: absolute; inset: 9% 6% 3%; width: 88%; height: 88%; overflow: visible; }
+.tube .gh path, .tube .gh circle { fill: var(--off); }
+.tube .lt path, .tube .lt circle { fill: var(--on); opacity: 0; }
+.tube .lt .on { opacity: 1; }
+.tube .lt { filter: drop-shadow(0 0 1.6px var(--glow)) drop-shadow(0 0 4px color-mix(in srgb, var(--glow) 55%, transparent)); }
+.vfd.dark .tube::before, .vfd.dark .tube .lt, .blank .tube::before, .blank .tube .lt, .poweroff .tube::before, .poweroff .tube .lt { opacity: 0; }
+.lamptest .tube .lt path, .lamptest .tube .lt circle { opacity: 1 !important; }
+.vfd.warn { box-shadow: inset 0 0 0 2px var(--amber), inset 0 0 0 3px #000, 0 1px 0 rgba(255,255,255,0.35); }
+.vfd.alarm { box-shadow: inset 0 0 0 2px var(--red), inset 0 0 0 3px #000, 0 0 10px rgba(200,53,42,0.5); }
+.vfdscrew { position: absolute; top: 50%; width: 5px; height: 5px; margin-top: -2.5px; border-radius: 50%; background: #3a3f3b; box-shadow: inset 0 0 0 1px #000; }
+.vfdscrew.l { left: 4px; } .vfdscrew.r { right: 4px; }
+.notice { font-family: var(--font-display); font-size: 13px; color: var(--red); min-height: 18px; margin-top: 6px; }
+
+/* bays and plates */
+/* Wide screens: one grid, so panels side by side share their top and bottom edges.
+   row 1: rod panel | request device | printers (spanning both rows)
+   row 2: instruments + controls | mnemonic + codes */
+.bays { display: grid; gap: 14px 16px; margin-top: 10px; }
+.bay, .stack { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.stack > .plate:last-child { flex: 1 1 auto; }
+.plate { display: flex; flex-direction: column; }
+@media (min-width: 781px) {
+  .bays { grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.78fr) minmax(0, 1fr); grid-template-rows: auto auto; align-items: stretch; }
+  .bay { display: contents; }
+  .a-core { grid-column: 1; grid-row: 1; } .a-left { grid-column: 1; grid-row: 2; }
+  .a-vu { grid-column: 2; grid-row: 1; }   .a-mid { grid-column: 2; grid-row: 2; }
+  .a-print { grid-column: 3; grid-row: 1 / span 2; }
+  .a-core .legend { margin-top: auto; padding-top: 8px; }
+  .a-vu .consoleface { flex: 1 1 auto; align-content: start; }
+}
+@media (min-width: 781px) and (max-width: 1220px) {
+  .bays { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto auto auto; }
+  .a-print { grid-column: 1 / -1; grid-row: 3; }
+}
+.plate { background: var(--panel-deep); border: 1px solid var(--panel-edge); border-radius: 5px; padding: 0 12px 12px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 1px 2px rgba(0,0,0,0.12); min-width: 0; }
+.plate > header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px 10px; margin: 0 -12px 10px; padding: 7px 12px; background: var(--plate); color: var(--plate-ink); border-radius: 5px 5px 0 0; }
+.plate h2 { font-family: var(--font-display); font-weight: 700; font-size: 15px; letter-spacing: 0.12em; text-transform: uppercase; margin: 0; }
+.plate h2 span { font-weight: 400; color: #aab3ab; letter-spacing: 0.02em; text-transform: none; font-family: var(--font-body); font-size: 12px; margin-left: 8px; }
+.plate > header .lbl { color: #c9d1c9; }
+.screw { width: 9px; height: 9px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #d9ddd5, #7f897f); box-shadow: inset 0 0 0 1px #6c756c; position: relative; flex: none; }
+.screw::after { content: ""; position: absolute; left: 1px; right: 1px; top: 4px; height: 1px; background: #5c655c; transform: rotate(35deg); }
+
+/* rod position panel */
+.core-wrap { position: relative; width: 100%; max-width: 100%; aspect-ratio: 1 / 1; }
+#core { width: 100%; height: 100%; display: block; cursor: crosshair; touch-action: manipulation; }
+.coretip { position: absolute; pointer-events: none; background: var(--plate); color: var(--plate-ink); font-family: var(--font-mono); font-size: 12px; padding: 3px 7px; border-radius: 3px; white-space: nowrap; transform: translate(-50%, calc(-100% - 10px)); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 8px; font-size: 12px; color: var(--ink-soft); }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; border: 3px solid; vertical-align: -2px; margin-right: 5px; background: var(--face); }
+.toggles { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 6px; font-size: 12px; }
+.toggles label { display: inline-flex; gap: 5px; align-items: center; cursor: pointer; }
+
+/* instruments */
+.gauges { display: grid; grid-template-columns: repeat(auto-fill, minmax(116px, 1fr)); gap: 8px; }
+.g { min-width: 0; }
+.g .lbl { color: var(--ink); font-weight: 700; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.g .vrow { display: flex; align-items: center; gap: 5px; }
+.g .u { font-family: var(--font-display); font-size: 11px; color: var(--ink-soft); line-height: 1.1; }
+.inst2 { display: grid; grid-template-columns: minmax(0, 1fr) 92px; gap: 10px; margin-top: 10px; align-items: stretch; }
+#trend { width: 100%; height: 120px; display: block; background: var(--window); border-radius: 4px; }
+.axial7 { background: var(--window); border-radius: 4px; padding: 6px 6px 4px; display: flex; flex-direction: column; gap: 3px; box-shadow: inset 0 0 0 2px #2c322d; }
+.axial7 .r { display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: 4px; align-items: center; font-family: var(--font-mono); font-size: 10px; color: #8c978d; }
+.axial7 .b { height: 10px; background: #1f2620; border-radius: 1px; position: relative; overflow: hidden; }
+.axial7 .b i { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(90deg, #6fd47f, #f0d060 60%, #ff7a3a); }
+.axial7 .cap { font-family: var(--font-display); font-size: 10px; letter-spacing: 0.05em; color: #9aa79b; text-align: center; }
+
+/* desk controls */
+.chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.chip { background: var(--steel); border: 1px solid var(--panel-edge); border-radius: 3px; padding: 5px 8px; font-family: var(--font-display); font-size: 13px; }
+.chip[aria-pressed="true"] { background: var(--plate); color: var(--plate-ink); border-color: var(--plate); }
+.drive { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.btn { background: var(--steel); border: 1px solid var(--panel-edge); border-bottom-width: 3px; border-radius: 4px; padding: 7px 12px; font-family: var(--font-display); font-size: 14px; letter-spacing: 0.03em; }
+.btn:active { border-bottom-width: 1px; transform: translateY(2px); }
+.btn[aria-pressed="true"] { background: #f7e2b8; border-color: #b9842e; }
+.btn:disabled { opacity: 0.5; cursor: default; }
+.row { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.sub { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--panel-edge); }
+.pumps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.pump { background: var(--steel); border: 1px solid var(--panel-edge); border-radius: 3px; padding: 5px 6px; text-align: left; font-family: var(--font-display); font-size: 13px; min-width: 0; }
+.pump b { display: block; font-family: var(--font-mono); font-weight: 400; font-size: 11px; color: var(--ink-soft); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pump.on { border-color: #3d7a46; box-shadow: inset 4px 0 0 var(--green); }
+.pump.coast { box-shadow: inset 4px 0 0 var(--amber); }
+.pump.trip { box-shadow: inset 4px 0 0 var(--red); background: #f3dcd8; }
+
+.banks { display: flex; gap: 8px; }
+.bank { width: 48px; text-align: center; font-family: var(--font-display); font-size: 12px; }
+.bank .bar { height: 56px; background: var(--window); border-radius: 2px; position: relative; overflow: hidden; margin-bottom: 3px; }
+.bank .bar i { position: absolute; left: 0; right: 0; top: 0; background: #d7c45a; }
+.bank.act { font-weight: 700; }
+.bank.act .bar { outline: 2px solid var(--amber); }
+.note { font-size: 12px; color: var(--ink-soft); max-width: 40ch; }
+
+/* AZ-5 */
+.az5box { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.az5 { width: 96px; height: 96px; border-radius: 50%; border: 6px solid #6b1c16; background: radial-gradient(circle at 38% 32%, #ef6a5c, var(--red) 55%, #7d1d16); color: #fff; font-family: var(--font-display); font-weight: 700; font-size: 22px; letter-spacing: 0.06em; box-shadow: 0 4px 0 #4a120e; position: relative; flex: none; }
+.az5:active { transform: translateY(3px); box-shadow: 0 1px 0 #4a120e; }
+.az5 .cap { position: absolute; inset: -6px; border-radius: 50%; background: rgba(214, 230, 220, 0.78); border: 2px solid #8a958c; display: grid; place-items: center; text-align: center; line-height: 1.1; color: var(--ink); font-size: 12px; letter-spacing: 0.02em; font-weight: 400; transition: transform .25s, opacity .25s; }
+.az5.armed .cap { transform: translateY(-80%) scale(0.6); opacity: 0; pointer-events: none; }
+
+/* SKALA console: warm grey enamel, black square keycaps in digit columns, red and cream function keys */
+.bay-skala .plate { background: var(--enamel); border-color: var(--enamel-edge); }
+.vu { background: var(--enamel-deep); border-radius: 4px; padding: 12px; border: 1px solid var(--enamel-edge); box-shadow: inset 0 1px 0 rgba(255,255,255,0.5); }
+.vurow { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: flex-end; }
+.vurow .cap { font-family: var(--font-display); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink); margin-bottom: 3px; }
+.vurow .valbox { flex: 1 1 auto; min-width: 0; }
+.vunit { font-family: var(--font-display); font-size: 13px; background: var(--plate); color: var(--plate-ink); border-radius: 2px; padding: 1px 6px; margin-left: 6px; letter-spacing: 0.04em; vertical-align: middle; }
+.vunit:empty { display: none; }
+.tablo { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; margin-top: 10px; }
+.tablo span { font-family: var(--font-display); font-size: 11px; letter-spacing: 0.05em; text-align: center; padding: 3px 2px; border-radius: 2px;
+  background: #e9e5d6; color: #8d897c; border: 1px solid var(--enamel-edge); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tablo span.on { background: #fff2bf; color: #4a3a05; box-shadow: 0 0 8px rgba(255,214,90,0.8), inset 0 0 0 1px #d9b632; }
+.tablo span.on.err { background: #ffd3cc; color: #6d140c; box-shadow: 0 0 8px rgba(255,90,70,0.7), inset 0 0 0 1px var(--red); }
+.vu .what { font-family: var(--font-body); color: var(--ink-soft); font-size: 12px; margin-top: 8px; min-height: 17px; }
+.consoleface { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px 16px; margin-top: 12px; align-items: start; }
+.switches { display: flex; flex-wrap: wrap; gap: 10px 18px; grid-column: 1 / -1; padding-bottom: 8px; border-bottom: 1px solid var(--enamel-edge); }
+.sw { display: inline-flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: 0; padding: 0; font-family: var(--font-display); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink); }
+.sw .lever { width: 26px; height: 26px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #f4f4f0, #a9aba5 60%, #6f726c); box-shadow: inset 0 0 0 1px #6f726c; position: relative; }
+.sw .lever::after { content: ""; position: absolute; left: 50%; top: 50%; width: 7px; height: 20px; margin-left: -3.5px; margin-top: -18px; border-radius: 3px; background: linear-gradient(90deg, #222, #555 50%, #1a1a1a); transform-origin: 50% 100%; transition: transform .12s; }
+.sw[aria-pressed="true"] .lever::after { transform: translateY(16px) scaleY(-1); }
+.sw.push .lever { background: radial-gradient(circle at 40% 35%, #fff9e6, #e8dcb6 55%, #b7a97f); box-shadow: inset 0 0 0 1px #8f8466, 0 2px 0 #8f8466; }
+.sw.push .lever::after { display: none; }
+.sw.push:active .lever { transform: translateY(2px); box-shadow: inset 0 0 0 1px #8f8466; }
+.colkeys { display: grid; grid-template-columns: repeat(3, 40px); gap: 6px 8px; }
+.colkeys .colcap { font-family: var(--font-display); font-size: 11px; text-align: center; color: var(--ink); letter-spacing: 0.04em; }
+.colkeys .col { display: flex; flex-direction: column; gap: 5px; }
+.key { background: linear-gradient(to bottom, #3a3d3b 0, var(--keycap) 18%, var(--keycap) 85%, #0b0c0b 100%); color: #f1efe6; border: 0; border-radius: 3px; width: 40px; height: 30px;
+  font-family: var(--font-display); font-weight: 700; font-size: 15px; box-shadow: 0 2px 0 #000, inset 0 0 0 1px #000; padding: 0; }
+.key:active, .key.on { transform: translateY(2px); box-shadow: 0 0 0 #000, inset 0 0 0 1px #000; }
+.key.on { background: #3b3f3c; color: #fff; outline: 2px solid #d9b632; outline-offset: -2px; }
+.fnkeys { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.fkey { border: 0; border-radius: 3px; padding: 9px 10px; font-family: var(--font-display); font-weight: 700; font-size: 14px; letter-spacing: 0.06em; box-shadow: 0 3px 0 rgba(0,0,0,0.45), inset 0 0 0 1px rgba(0,0,0,0.5); text-align: center; }
+.fkey:active { transform: translateY(3px); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.5); }
+.fkey.red { background: linear-gradient(to bottom, #e0574a, #b8281d); color: #fff; }
+.fkey.cream { background: linear-gradient(to bottom, #fbf6e3, #ddd2ad); color: var(--ink); }
+.fkey.dark { background: linear-gradient(to bottom, #3a3d3b, var(--keycap)); color: #f1efe6; }
+.fnkeys .note { max-width: none; font-size: 11.5px; }
+.dir { list-style: none; padding: 0; margin: 0; display: grid; gap: 2px; }
+.dir li button { width: 100%; text-align: left; background: transparent; border: 0; border-radius: 3px; padding: 4px 6px; display: grid; grid-template-columns: 42px minmax(0, 1fr); gap: 8px; align-items: baseline; }
+.dir li button:hover { background: rgba(255,255,255,0.4); }
+.dir code { font-family: var(--font-mono); font-size: 14px; color: var(--ink); }
+.dir span { font-size: 13px; }
+.dir span em { font-style: normal; color: var(--ink-soft); font-size: 12px; display: block; }
+.dirhead { font-family: var(--font-display); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); margin: 8px 0 2px; }
+.dir li button:hover { background: rgba(255,255,255,0.45); }
+.mnemo { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; }
+.lamp { background: #2a302b; border-radius: 3px; padding: 6px 4px; text-align: center; font-family: var(--font-display); font-size: 12px; color: #8d988f; letter-spacing: 0.04em; border: 1px solid #1c201d; }
+.lamp.on { background: #24402a; color: #b9f3c1; box-shadow: inset 0 0 10px rgba(79,191,98,0.55); }
+.lamp.busy { background: #4a3818; color: #ffd99b; box-shadow: inset 0 0 10px rgba(240,162,50,0.6); }
+.lamp.fault { background: #4d1b17; color: #ffc0b8; box-shadow: inset 0 0 10px rgba(200,53,42,0.7); }
+.lamp.dark { opacity: 0.45; }
+.lamp.blink { animation: blink 1s steps(2) infinite; }
+@keyframes blink { 50% { opacity: 0.35; } }
+.mode { margin-top: 8px; font-family: var(--font-mono); font-size: 12px; color: var(--ink-soft); }
+@media (prefers-reduced-motion: reduce) { .lamp.blink, .cursor { animation: none !important; } .az5 .cap { transition: none; } }
+
+/* printers */
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.tab { background: var(--panel); border: 1px solid var(--panel-edge); border-bottom: 0; border-radius: 4px 4px 0 0; padding: 6px 10px; font-family: var(--font-display); font-size: 13px; }
+.tab[aria-selected="true"] { background: var(--paper); }
+.tab .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--amber); margin-left: 6px; vertical-align: 1px; }
+.paperwrap { border: 1px solid var(--panel-edge); border-radius: 0 4px 4px 4px; position: relative; background: #8f9a8d; overflow: hidden; }
+.paper { height: 620px; overflow: auto; font-family: var(--font-mono); font-size: 13px; color: var(--ribbon); line-height: 1.5; text-transform: none; }
+@media (min-width: 1221px) {   /* the printer bay runs the full height of the wall: the paper fills it */
+  .a-print .paperwrap { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
+  .a-print .paper { height: auto; flex: 1 1 0; min-height: 440px; }
+}
+/* paper is at least as wide as the longest printed line, so text never runs off the sheet */
+.paper .sheet { min-width: 100%; width: fit-content; }
+.paper.roll .sheet { width: auto; min-width: 0; }
+/* DREG and archive listings wrap long lines under the message column (time column = 10 characters),
+   so nothing prints off the sheet at any screen width. The drum printer keeps fixed lines: its
+   cartogram is a map, and the paper widens to hold it. */
+.paper.wrap .pl { white-space: pre-wrap; padding-left: 10ch; text-indent: -10ch; }
+.pl .nb { white-space: nowrap; }
+.paper.fanfold { font-size: 12px; }
+
+@media (max-width: 780px) { .paper { height: 440px; } .clock .vfd.lg { --tw: 21px; --th: 35px; } }
+/* teletype roll: narrow cream roll on a dark platen */
+.paper.roll { background: linear-gradient(90deg, #6e786c 0, #6e786c 12px, transparent 12px, transparent calc(100% - 12px), #6e786c calc(100% - 12px)); padding: 0 12px; }
+.paper.roll .sheet { background: var(--paper); min-height: 100%; padding: 14px 16px 26px; box-shadow: 0 0 0 1px #d6d2c0; max-width: calc(64ch + 34px); margin: 0 auto; }
+/* drum-printer fanfold: green bars and tractor holes both sides */
+.paper.fanfold .sheet { background-color: var(--fanfold); background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 39px, var(--fanfold-bar) 39px, var(--fanfold-bar) 78px); background-attachment: local; min-height: 100%; padding: 14px 30px 26px; position: relative; }
+.paper.fanfold .sheet::before, .paper.fanfold .sheet::after { content: ""; position: absolute; top: 0; bottom: 0; width: 12px; background-image: radial-gradient(circle, #a8b2a5 3px, transparent 3.6px); background-size: 12px 20px; }
+.paper.fanfold .sheet::before { left: 8px; } .paper.fanfold .sheet::after { right: 8px; }
+.paper.tape .sheet { background: #f0eee6; min-height: 100%; padding: 14px 16px 26px; }
+.pl { white-space: pre; }
+.pl .t { color: #1b2236; font-weight: 700; }
+.pl .cyc { color: var(--gloss); }
+.gl { white-space: normal; font-family: var(--font-body); font-style: italic; font-size: 12px; color: var(--gloss); margin: 0 0 3px 0; padding-left: 2ch; }
+.paper.noen .gl { display: none; }
+.pblock { margin-bottom: 8px; }
+.pblock.alarm .pl { color: #8c1d14; }
+.pblock.sys .pl { color: #5a6457; }
+.cut { border-top: 1px dashed #b9c0b5; margin: 10px 0; }
+.empty { font-family: var(--font-body); font-style: italic; color: var(--gloss); white-space: normal; }
+.srcnote { font-family: var(--font-body); white-space: normal; font-size: 12px; color: var(--ink-soft); border-left: 3px solid var(--panel-edge); padding-left: 10px; margin: 6px 0 12px; }
+.srcnote a { color: var(--blue); }
+.cursor { display: inline-block; width: 0.6em; height: 1.05em; background: var(--ribbon); vertical-align: -0.15em; animation: blink 0.8s steps(2) infinite; }
+.cutoff { color: var(--red); font-family: var(--font-body); font-style: italic; font-size: 12px; white-space: normal; }
+
+/* hidden physics + about */
+details.plate { padding-top: 0; }
+details.plate > summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 12px; margin: 0 -12px; padding: 8px 12px; background: var(--plate); color: var(--plate-ink); border-radius: 5px; font-family: var(--font-display); font-weight: 700; font-size: 15px; letter-spacing: 0.12em; text-transform: uppercase; }
+details.plate[open] > summary { border-radius: 5px 5px 0 0; margin-bottom: 10px; }
+details.plate > summary::-webkit-details-marker { display: none; }
+details.plate > summary span { flex: 1; font-family: var(--font-body); font-weight: 400; text-transform: none; letter-spacing: 0; font-size: 12px; color: #aab3ab; }
+details.plate > summary::after { content: "+"; font-family: var(--font-mono); }
+details.plate[open] > summary::after { content: "−"; }
+.hp { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+@media (max-width: 780px) { .hp { grid-template-columns: minmax(0, 1fr); } }
+table.rho { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+table.rho td { padding: 3px 6px; border-bottom: 1px solid var(--panel-edge); }
+table.rho td:last-child { text-align: right; font-family: var(--font-mono); }
+#axial { width: 100%; height: 260px; display: block; background: var(--steel); border-radius: 4px; }
+.about { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px 28px; }
+@media (max-width: 900px) { .about { grid-template-columns: minmax(0, 1fr); } }
+.about h3 { font-family: var(--font-display); font-size: 15px; letter-spacing: 0.06em; text-transform: uppercase; margin: 8px 0 4px; }
+.about p, .about li { max-width: 70ch; }
+.about ul { padding-left: 18px; margin: 4px 0; }
+.about a { color: var(--blue); }
+.tag { display: inline-block; font-family: var(--font-display); font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; padding: 1px 6px; border-radius: 2px; margin-right: 4px; }
+.tag.doc { background: #cfe3d0; color: #1f4b28; }
+.tag.inv { background: #f4dfb7; color: #6a4410; }
+.tablewrap { overflow-x: auto; }
+table.val { border-collapse: collapse; font-size: 13px; min-width: 460px; }
+table.val th, table.val td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--panel-edge); vertical-align: top; }
+table.val th { font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.05em; font-size: 12px; color: var(--ink-soft); }
+table.val td.num { font-family: var(--font-mono); white-space: nowrap; }
+
+/* glossary: dotted terms open a nameplate-style bubble on hover, focus or tap */
+abbr.term { text-decoration: underline dotted; text-decoration-thickness: 1px; text-underline-offset: 2px; cursor: help; border: 0; }
+abbr.term:focus-visible { outline: 2px solid var(--amber); outline-offset: 1px; border-radius: 2px; }
+.plate > header abbr.term, details.plate > summary abbr.term, .lamp abbr.term { text-decoration-color: rgba(238,240,230,0.55); }
+.gbub { position: fixed; z-index: 80; width: max-content; max-width: min(320px, calc(100vw - 16px)); background: var(--plate); color: var(--plate-ink); border-radius: 5px; padding: 10px 12px 11px;
+  font: 13px/1.45 var(--font-body); text-align: left; text-transform: none; letter-spacing: 0; box-shadow: 0 8px 22px rgba(0,0,0,0.3), inset 0 0 0 1px #3a4243; }
+.gbub b { display: block; font-family: var(--font-display); font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; color: #fff2bf; margin-bottom: 4px; }
+.gbub span { display: block; }
+.gbub a { display: inline-block; margin-top: 7px; color: #9ff8ea; font-size: 12px; }
+.gbub::after { content: ""; position: absolute; left: var(--ax, 50%); bottom: -5px; width: 10px; height: 10px; margin-left: -5px; background: var(--plate); transform: rotate(45deg); }
+.gbub.below::after { bottom: auto; top: -5px; }
+footer.thanks { margin: 14px 0 0; font-size: 12px; color: var(--ink-soft); text-align: center; }
+
+/* end overlay */
+.endov { position: fixed; inset: 0; background: rgba(18,21,18,0.82); display: grid; place-items: center; z-index: 50; padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.endov .card { background: var(--paper); max-width: 720px; max-height: calc(100vh - 32px); overflow: auto; border-radius: 4px; padding: 22px; border-top: 6px solid var(--red); }
+.endov h3 { font-family: var(--font-display); font-size: 15px; letter-spacing: 0.06em; text-transform: uppercase; margin: 16px 0 6px; padding-top: 10px; border-top: 1px solid #d6d2c0; }
+.endov ul.cost { padding-left: 18px; margin: 4px 0; } .endov ul.cost li { margin: 4px 0; }
+.endov .small { font-size: 12px; color: var(--ink-soft); margin: 10px 0 2px; }
+.endov ul.names { list-style: none; padding: 0; margin: 0; columns: 2 220px; column-gap: 20px; font-size: 13px; }
+.endov ul.names li { break-inside: avoid; padding: 2px 0; }
+.endov ul.names span { display: block; font-size: 11.5px; color: var(--gloss); }
+.endov h2 { font-family: var(--font-display); font-size: 22px; margin: 0 0 8px; }
+.endov p { margin: 6px 0; }
+</style>
+
+<div class="wrap">
+  <div class="top">
+    <div class="brand">
+      <div class="badge">СКАЛА</div>
+      <p>Система контроля аппарата Ленинградской атомной · РБМК-1000, блок 4 ЧАЭС · behavioural simulator on the documented core map</p>
+    </div>
+    <div class="ctrlrow">
+      <div>
+        <div class="lbl" id="scLbl">Select a scenario</div>
+        <select id="scenario" aria-labelledby="scLbl">
+          <option value="apr26">26.04.1986 01:22:30 · 200 MW, rods as recorded</option>
+          <option value="apr26_0039">What-if · rods as at 00:39 (ORM 16.5), plant as at 01:22:30</option>
+          <option value="nominal">25.04.1986 01:05 · 3100 MW, start of unloading</option>
+        </select>
+      </div>
+      <div>
+        <div class="lbl">Speed</div>
+        <div class="seg" id="speed" role="group" aria-label="Simulation speed">
+          <button data-s="0" aria-pressed="false" aria-label="Pause">❚❚</button>
+          <button data-s="1" aria-pressed="true">×1</button>
+          <button data-s="10" aria-pressed="false">×10</button>
+          <button data-s="60" aria-pressed="false">×60</button>
+          <button data-s="600" aria-pressed="false">×600</button>
+        </div>
+      </div>
+      <div class="clock" id="clock" role="timer" aria-label="Plant time">
+        <div><span class="lbl">Date</span><div class="vfd cyan sm" id="date"></div></div>
+        <div><span class="lbl">Time</span><div class="vfd lg" id="time"></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="notice" id="notice" role="status"></div>
+
+  <div class="bays">
+    <!-- BAY 1: reactor desk -->
+    <section class="bay bay-desk">
+      <div class="plate a-core">
+        <header><span class="screw"></span><h2>Положение стержней СУЗ <span>rod position indicators · 211 channels</span></h2><span class="lbl" id="selInfo"></span><span class="screw"></span></header>
+        <div class="core-wrap"><canvas id="core" tabindex="0" aria-label="Rod position indicator panel laid out on the real channel grid. Click a dial to select that rod."></canvas><div class="coretip" id="coretip" hidden></div></div>
+        <div class="legend">
+          <span><i style="border-color:#3c4542"></i>РР / ЛАР / АЗ, not told apart in the sources (175)</span>
+          <span><i style="border-color:#d9b632"></i>АР auto (3 × 4)</span>
+          <span><i style="border-color:#3f78c8"></i>УСП from below (24)</span>
+          <span><b style="font-family:var(--font-mono)">Н</b>&nbsp;height detectors (12)</span>
+        </div>
+        <div class="toggles">
+          <label><input type="checkbox" id="showFuel" checked> Fuel channels coloured by relative power (illustrative)</label>
+          <label><input type="checkbox" id="showGrid" checked> Plant grid labels</label>
+        </div>
+      </div>
+      <div class="stack a-left">
+      <div class="plate">
+        <header><span class="screw"></span><h2>Приборы БЩУ <span>unit control board</span></h2><span class="screw"></span></header>
+        <div class="gauges" id="gauges"></div>
+        <div class="inst2">
+          <div><canvas id="trend" aria-label="Thermal power trend"></canvas><div class="legend" id="trendInfo" style="margin-top:4px"></div></div>
+          <div class="axial7" id="axial7" aria-label="Axial power, seven 1 m sections, top first"></div>
+        </div>
+      </div>
+
+      <div class="plate">
+        <header><span class="screw"></span><h2>Управление <span>reactor and plant controls</span></h2><span class="screw"></span></header>
+        <div class="lbl">Selected for manual drive · sectors 1–8, all РР, or УСП</div>
+        <div class="chips" id="groups" style="margin-top:4px"></div>
+        <div class="drive">
+          <button class="btn" id="mvOut">▲ Вывод · withdraw</button>
+          <button class="btn" id="mvStop">■ Стоп</button>
+          <button class="btn" id="mvIn">▼ Ввод · insert</button>
+        </div>
+        <div class="note" style="margin-top:6px">Click any dial on the panel to drive that single rod. Sectors are a simulator convenience, not groups the plant used.</div>
+
+        <div class="sub">
+          <div class="row" style="align-items:flex-start">
+            <div>
+              <div class="lbl">Автоматический регулятор АР</div>
+              <div class="row" style="margin-top:4px">
+                <button class="btn" id="arOn" aria-pressed="true">АР вкл.</button>
+                <div class="vfd md" id="arSet"></div><span class="lbl">MW setpoint</span>
+              </div>
+              <div class="drive">
+                <button class="btn" data-ars="-100">−100</button><button class="btn" data-ars="-10">−10</button>
+                <button class="btn" data-ars="10">+10</button><button class="btn" data-ars="100">+100</button>
+              </div>
+              <label class="note" style="display:flex;gap:6px;align-items:center;margin-top:8px;cursor:pointer"><input type="checkbox" id="assist"> Помощник СИУР · re-centre the AR with manual rods (simulator aid)</label>
+            </div>
+            <div>
+              <div class="banks" id="banks" aria-label="AR bank positions"></div>
+              <div class="note" style="margin-top:4px">Bank numbers 1–3 are assumed: 1 = 2 m square, 2 = 3 m diamond, 3 = 1 m cross.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sub">
+          <div class="lbl">ГЦН · main circulation pumps, left 11–14 · right 21–24 (m³/h)</div>
+          <div class="pumps" id="pumps" style="margin-top:6px"></div>
+          <div class="row" style="margin-top:10px">
+            <button class="btn" id="testBtn">Закрыть СРК ТГ-8 · start rundown test</button>
+            <span class="note">Closes turbine 8's stop valves. Pumps 13, 14, 23 and 24 then run down with the coasting generator, as at 01:23:04.</span>
+          </div>
+        </div>
+
+        <div class="sub az5box">
+          <button class="az5" id="az5" aria-label="AZ-5 emergency shutdown button"><span class="cap" aria-hidden="true">Снять<br>колпачок</span>АЗ-5</button>
+          <div class="note" style="color:#932705">AZ-5 (the scram, or emergency shutdown) drives every rod except УСП into the core at 0.4 m/s. First tap lifts the guard cap, second tap presses the button. Before 1987 it had to be held down.</div>
+        </div>
+      </div>
+      </div>
+    </section>
+
+    <!-- BAY 2: SKALA operator console -->
+    <section class="bay bay-skala">
+      <div class="plate a-vu">
+        <header><span class="screw"></span><h2>Вызывное устройство <span>SKALA request device</span></h2><span class="screw"></span></header>
+        <div class="vu" id="vu">
+          <div class="vurow">
+            <div><div class="cap">Код</div><div class="vfd cyan md" id="vuCode"></div></div>
+            <div class="valbox"><div class="cap">Значение <span class="vunit" id="vuUnit"></span></div><div class="vfd lg" id="vuVal"></div></div>
+          </div>
+          <div class="tablo" id="tablo" aria-live="polite"></div>
+          <div class="what" id="vuWhat" aria-live="polite">Set a code in the three columns and press ВВОД. The request codes below list what you can ask for.</div>
+        </div>
+        <div class="consoleface">
+          <div class="switches">
+            <button class="sw" id="swBlank" aria-pressed="false"><span class="lever"></span>Гашение</button>
+            <button class="sw push" id="swTest"><span class="lever"></span>Контроль индик.</button>
+          </div>
+          <div class="colkeys" id="keys" aria-label="Code entry: one column per digit"></div>
+          <div class="fnkeys">
+            <button class="fkey cream" data-k="ent">ВВОД</button>
+            <button class="fkey red" data-k="clr">СБРОС</button>
+            <button class="fkey dark" data-k="back">← ШАГ</button>
+            <p class="note">Each column sets one digit of the code, left to right. The keys run 0–7, as on the photographed SKALA console. Typing digits on a keyboard also works.</p>
+          </div>
+        </div>
+      </div>
+      <div class="stack a-mid">
+      <div class="plate">
+        <header><span class="screw"></span><h2>Мнемосхема СКАЛА <span>system status</span></h2><span class="screw"></span></header>
+        <div class="mnemo" id="mnemo"></div>
+        <div class="mode" id="mode"></div>
+      </div>
+
+      <div class="plate">
+        <header><span class="screw"></span><h2>Коды <span>request codes</span></h2><span class="tag inv">invented numbers</span></header>
+        <div id="dir"></div>
+        <p class="note" style="margin-top:8px">Operators dialled a numeric code and waited for the value on the digital display (Dyatlov, quoted by Karpan p.351). The real code table is not public, so these numbers are this simulator's own, using only the digits 0–7 so they can be keyed on the column keyboard. (The one raw SKALA code we do know, К06L005, is a DREG signal identifier, not a request code.)</p>
+      </div>
+      </div>
+    </section>
+
+    <!-- BAY 3: printers -->
+    <section class="bay bay-print">
+      <div class="plate a-print">
+        <header>
+          <span class="screw"></span><h2>Печать <span>printers and tape</span></h2>
+          <label class="lbl" style="display:flex;gap:6px;align-items:center;cursor:pointer;color:#c9d1c9"><input type="checkbox" id="enToggle" checked> English gloss</label>
+        </header>
+        <div class="tabs" role="tablist">
+          <button class="tab" role="tab" aria-selected="true" data-tab="tty" id="tab-tty">РТА-80 · teletype</button>
+          <button class="tab" role="tab" aria-selected="false" data-tab="dreg" id="tab-dreg">ДРЕГ · listing</button>
+          <button class="tab" role="tab" aria-selected="false" data-tab="lpt" id="tab-lpt">АЦПУ · drum printer</button>
+          <button class="tab" role="tab" aria-selected="false" data-tab="arc" id="tab-arc">Архив 26.04.86</button>
+        </div>
+        <div class="paperwrap">
+          <div class="paper roll" id="p-tty" role="tabpanel" aria-labelledby="tab-tty"><div class="sheet"></div></div>
+          <div class="paper fanfold wrap" id="p-dreg" role="tabpanel" aria-labelledby="tab-dreg" hidden><div class="sheet"></div></div>
+          <div class="paper fanfold" id="p-lpt" role="tabpanel" aria-labelledby="tab-lpt" hidden><div class="sheet"></div></div>
+          <div class="paper fanfold wrap" id="p-arc" role="tabpanel" aria-labelledby="tab-arc" hidden><div class="sheet"></div></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <details class="plate" id="hidden" style="margin-top:16px">
+    <summary>Скрытая физика <span>additional insight unavailable to the Chernobyl operators</span></summary>
+    <div class="hp">
+      <div>
+        <table class="rho" id="rhoTable"></table>
+        <p class="note" style="margin-top:8px;max-width:none">Reactivity in dollars (1 $ = β, the delayed-neutron fraction). Above +1 $ the chain reaction runs on prompt neutrons alone. Contributions are flux-weighted averages of each term in the local multiplication.</p>
+      </div>
+      <div>
+        <canvas id="axial" aria-label="Axial profiles: neutron flux, steam void and xenon over core height"></canvas>
+        <p class="note" style="margin-top:6px;max-width:none">Core height runs bottom to top, as in INSAG-7 Fig. II-5. The dashed curve is the measured pre-accident flux (curve 4) the 01:22:30 state starts from.</p>
+      </div>
+    </div>
+  </details>
+
+  <details class="plate" id="aboutBox" style="margin-top:12px" open>
+    <summary>What is real here and what is not <span>sources, model and validation</span></summary>
+    <div class="about">
+      <div>
+        <h3>From the documents</h3>
+        <ul>
+          <li><span class="tag doc">doc</span>All 211 rod positions, their types (АР, УСП) and the 12 height-detector cells, from Karpan's maps for 00:39 and 01:22:30 (pp. 362–363), cross-checked against INSAG-7 Fig. II-6. Plant grid labels 66…12 / 11…65.</li>
+          <li><span class="tag doc">doc</span>Pre-accident axial flux shape (INSAG-7 Fig. II-5, curve 4); coolant flow 56 800 → 51 000 m³/h during the run-down; rundown pumps 13, 14, 23, 24 and their trips at 01:23:42.6–43.0 (Karpan App. 3).</li>
+          <li><span class="tag doc">doc</span>Teletype: two RTA-80s printing 7 characters per second, time without a leading zero ("1.23.39 АВАР ЗАЩИТА 5"), cut off when power failed (Karpan pp. 359–361). DREG: low-priority 2–4 s cycles numbered "№NNNД", "=0" marks a signal clearing, 9 rod positions logged once a minute (INSAG-7 p.77).</li>
+          <li><span class="tag doc">doc</span>PRIZMA: SKALA recalculated core parameters about every 5 minutes; the duty engineer printed PRIZMA every two hours on odd hours and carried it to the control room (Karpan p.350). ORM was never on a continuous display.</li>
+          <li><span class="tag doc">doc</span>The Архив tab reproduces the surviving teletype and DREG lines of 26 April 1986.</li>
+        </ul>
+        <h3>Reconstructed or invented</h3>
+        <ul>
+          <li><span class="tag inv">inv</span>Console look: the VFD tubes, the column keyboard (keys 0–7), the red and cream function keys and the Гашение switch are modelled on a photograph of a SKALA engineer's console in the computer room, whose controls (cabinet power-on, subprogram start) mark it as the duty engineer's panel rather than the SIUR's request device. Applying its style to the SIUR's device is a design choice, not a documented match.</li>
+          <li><span class="tag inv">inv</span>Not an emulator: the V-3M instruction set and SKALA software are not public. Request codes, PRIZMA and cartogram printout layouts, and the choice of the 9 logged rods are this simulator's own.</li>
+          <li><span class="tag inv">inv</span>Physics: 28-slice axial one-group diffusion (quasi-static) with point kinetics, per-slice void, Doppler, xenon/iodine and a burnup profile; every rod's absorber, graphite displacer and water columns at its real depth, weighted by its radial position. Rods are radially averaged, so the local character of the excursion (rows 12–30, Karpan p.380) is not captured.</li>
+          <li><span class="tag inv">inv</span>Tuned, not derived: migration area, water-column absorption, burnup profile, and a boiling-crisis threshold after which channels rupture, rods jam and steam floods the core. The xenon profile at 01:22:30 is solved from the measured flux shape because it was never measured (INSAG-7 p.81).</li>
+          <li><span class="tag inv">inv</span>Fuel-channel positions are inferred (every lattice cell inside the core not used by a rod or detector). Their colouring is an illustrative radial estimate, not a 2D solution. The 175 plain rods are 139 РР manual, 12 ЛАР local-automatic and 24 АЗ emergency rods, which the sources do not tell apart. 24 of them read exactly 7 cm in both maps; they are probably fully withdrawn, but their scattered positions rule them out as the АЗ group, which would be laid out symmetrically like the АР and УСП rods.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Validation against the record</h3>
+        <div class="tablewrap">
+          <table class="val">
+            <thead><tr><th>Check</th><th>Record</th><th>Model</th></tr></thead>
+            <tbody>
+              <tr><td>ORM at 01:22:30 from the real rods</td><td class="num">6–8 rods</td><td class="num">6.4</td></tr>
+              <tr><td>ORM from the 00:39 rods</td><td class="num">16.5</td><td class="num">14.3</td></tr>
+              <tr><td>Coolant flow just before AZ-5</td><td class="num">51 000 m³/h</td><td class="num">50 400</td></tr>
+              <tr><td>Overpower trip after AZ-5</td><td class="num">+3 s</td><td class="num">+2.7 s</td></tr>
+              <tr><td>Core destroyed</td><td class="num">≈01:23:45</td><td class="num">01:23:45</td></tr>
+              <tr><td>AZ-5 at 3100 MW, ORM ≈ 23–31</td><td class="num">safe</td><td class="num">safe</td></tr>
+              <tr><td>AZ-5 with the 00:39 rods</td><td class="num">safe (Karpan)</td><td class="num">peak 396 MW, no trip</td></tr>
+              <tr><td>AZ-5 at 01:22:30 without the run-down</td><td class="num">INSAG-7: dangerous after ≈00:30</td><td class="num">destroyed at +7 s</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="note" style="max-width:none">INSAG-7 (p.142) notes that none of the three Soviet 3D models reproduced the overpower signal within 3 seconds, and that every model was extremely sensitive to the starting axial distribution. This one is too: lowering the water-column absorption by 7 % (0.30 → 0.28) stops the 01:22:30 state from exploding, and raising it by 7 % makes the 00:39 rods trip. Matching the record here comes from tuning a far simpler model to the documents. It is not proof that the model is right.</p>
+        <h3>Sources</h3>
+        <ul>
+          <li>IAEA, INSAG-7, Russian edition, 1993 (<a href="https://www-pub.iaea.org/MTCD/Publications/PDF/Pub913r_web.pdf" target="_blank" rel="noopener">PDF</a>)</li>
+          <li>Н.В. Карпан, «Чернобыль. Месть мирного атома», Kyiv, 2005</li>
+          <li><a href="https://archive.org/details/dreg-protocol-last-40-seconds-of-chernobyl" target="_blank" rel="noopener">DREG protocol transcript, L. Sturm and R. Plaskov (CC BY-NC 4.0)</a></li>
+          <li><a href="http://v-alekseev.org/chnpp/" target="_blank" rel="noopener">V. Alekseev, Чернобыль</a></li>
+          <li><a href="https://chernobylcritical.blogspot.com/p/dreg-reactor-parameter-data-from-skala.html" target="_blank" rel="noopener">Chernobyl Witness, DREG parameter graphs</a></li>
+          <li><a href="https://hackaday.com/2026/03/03/inside-skala-how-chernobyls-reactor-was-actually-controlled/" target="_blank" rel="noopener">Hackaday on the Chornobyl Family SKALA videos</a></li>
+          <li><a href="https://habr.com/ru/articles/220941/" target="_blank" rel="noopener">Habr, СКАЛА: ЭВМ ЧАЭС</a></li>
+        </ul>
+        <h3>Thank you</h3>
+        <p>This reconstruction rests on the shoulders of experts and their work (and some impressive AI to tie it together).</p>
+        <ul>
+          <li><b>Nikolai Karpan</b>, whose book «Чернобыль. Месть мирного атома» preserved the rod maps, shift logs and recorder data the core model is built on.</li>
+          <li><b>The IAEA's International Nuclear Safety Advisory Group</b>, whose INSAG-7 report supplied the measured flux shape, the rod positions to cross-check against, and a frank account of the reactor's design flaws.</li>
+          <li><b><a href="https://www.youtube.com/watch?v=ZbaptQh2AM4" target="_blank" rel="noopener">Chornobyl Family</a></b>, whose restoration of real SKALA hardware shows how the console, printers and DREG actually behaved.</li>
+          <li><b>Linus Sturm and R. Plaskov</b>, for transcribing the DREG protocol of the last 40 seconds.</li>
+          <li><b>Claude (Anthropic)</b>, the AI assistant that read the Russian sources side by side with the English ones, extracted the rod map from the book's typography, cross-checked it cell by cell against INSAG-7, and ran many simulation runs to test the model against every figure in the record.</li>
+        </ul>
+        <p class="note" style="max-width:none">Working this way was a lesson in what AI can do to aid historical reconstruction. Its value was not knowing the answers, but holding scattered Russian and English sources together, reconstructing them into tabulated data, and testing them against each other far faster than one person could. Every finding was checked against the source documents, and the gaps are marked accordingly.</p>
+      </div>
+    </div>
+  </details>
+  <footer class="thanks">Built by Fernand G. (2026) with gratitude to Nikolai Karpan, the IAEA's INSAG-7 authors, Chornobyl Family, L. Sturm and R. Plaskov. This simulation is released under a <a href="https://creativecommons.org/licenses/by-nc/4.0/deed.en" target="_blank" rel="noopener">CC BY-NC 4.0</a> license.</footer>
+</div>
+
+<div class="endov" id="endov" hidden>
+  <div class="card" role="dialog" aria-labelledby="endH">
+    <h2 id="endH">Связь с реактором потеряна · signals lost</h2>
+    <p id="endTxt"></p>
+    <p>On 26 April 1986 reactor No. 4 was destroyed at about 01:23:45.</p>
+    <h3>The human cost</h3>
+    <ul class="cost">
+      <li><b>Killed that night: 2.</b> Valery Khodemchuk, main circulation pump operator, died in the explosion; his body was never recovered. Vladimir Shashenok, a commissioning engineer, died of his injuries in Pripyat hospital that morning.</li>
+      <li><b>Acute radiation syndrome: 134</b> plant staff and emergency workers were diagnosed. <b>28 of them died in 1986</b>, bringing the deaths that year to 30 (UNSCEAR). Further deaths among the survivors followed over the next decades.</li>
+      <li><b>Thyroid cancer:</b> almost 20,000 cases were registered in 1991–2015 among people who were children or adolescents in 1986 in Belarus, Ukraine and the most affected parts of Russia. About a quarter (roughly 5,000) are probably due to radioactive iodine from the accident (UNSCEAR 2018). Most were treated successfully; at least nine children had died of it by 2005 (WHO).</li>
+      <li><b>Eventual cancer deaths are estimates, and they differ widely.</b> The UN Chernobyl Forum (WHO, IAEA, 2005) projected up to about 4,000 among the 600,000 most exposed. The International Agency for Research on Cancer projected about 16,000 across Europe by 2065, with an uncertainty range of 6,700–38,000 (Cardis et al., 2006). Most scientific bodies place the toll in this range. Higher figures, such as 27,000 (Union of Concerned Scientists, 2011), 93,000 (Greenpeace, 2006) and 985,000 (Yablokov et al., Annals of the New York Academy of Sciences), rest on contested methods; the last is widely rejected.</li>
+    </ul>
+    <h3>Those who died in 1986</h3>
+    <p class="small">Plant personnel and contractors</p>
+    <ul class="names">
+      <li>Aleksandr Akimov <span>unit 4 shift supervisor · 10 May</span></li>
+      <li>Anatoly Baranov <span>senior electrical engineer · 20 May</span></li>
+      <li>Vyacheslav Brazhnik <span>senior turbine operator · 14 May</span></li>
+      <li>Viktor Degtyarenko <span>reactor operator · 19 May</span></li>
+      <li>Valery Khodemchuk <span>main circulation pump operator · 26 April</span></li>
+      <li>Yuriy Konoval <span>electrician · 28 May</span></li>
+      <li>Aleksandr Kudryavtsev <span>trainee reactor control engineer · 14 May</span></li>
+      <li>Anatoly Kurguz <span>senior reactor operator, central hall · 12 May</span></li>
+      <li>Aleksandr Lelechenko <span>deputy chief, electrical shop · 6 May</span></li>
+      <li>Viktor Lopatyuk <span>electrician · 17 May</span></li>
+      <li>Aleksandr Novyk <span>turbine equipment inspector · 26 July</span></li>
+      <li>Ivan Orlov <span>Chernobylenergozashita · 13 May</span></li>
+      <li>Kostyantyn Perchuk <span>senior turbine engineer · 20 May</span></li>
+      <li>Valery Perevozchenko <span>reactor section foreman · 13 June</span></li>
+      <li>Georgi Popov <span>Turboatom (contractor) · 13 June</span></li>
+      <li>Viktor Proskuryakov <span>trainee reactor control engineer · 17 May</span></li>
+      <li>Vladimir Savenkov <span>Turboatom (contractor) · 21 May</span></li>
+      <li>Anatoliy Shapovalov <span>electrician · 19 May</span></li>
+      <li>Vladimir Shashenok <span>Atomenergonaladka (contractor) · 26 April</span></li>
+      <li>Anatoly Sitnikov <span>deputy chief operational engineer · 30 May</span></li>
+      <li>Leonid Toptunov <span>senior reactor control engineer (СИУР) · 14 May</span></li>
+      <li>Yuriy Vershynin <span>turbine equipment inspector · 21 July</span></li>
+    </ul>
+    <p class="small">Firefighters</p>
+    <ul class="names">
+      <li>Vasily Ignatenko <span>firefighter · 13 May</span></li>
+      <li>Viktor Kibenok <span>lieutenant, shift leader · 11 May</span></li>
+      <li>Volodymyr Pravyk <span>lieutenant, shift leader · 11 May</span></li>
+      <li>Vladimir Tishura <span>firefighter · 10 May</span></li>
+      <li>Mykola Tytenok <span>firefighter · 16 May</span></li>
+      <li>Nikolai Vashchuk <span>firefighter · 14 May</span></li>
+    </ul>
+    <p class="small">Security guards</p>
+    <ul class="names">
+      <li>Yekaterina Ivanenko <span>26 May</span></li>
+      <li>Klavdia Luzganova <span>31 July</span></li>
+    </ul>
+    <p class="small">The official roster lists 31 names. It includes Major Leonid Telyatnikov, who led the plant's fire brigade that night and died in 2004. Sources: UNSCEAR; WHO (2005); IARC (2006); UNSCEAR (2018) via the Canadian Nuclear Safety Commission; <a href="https://en.wikipedia.org/wiki/Deaths_due_to_the_Chernobyl_disaster" target="_blank" rel="noopener">Wikipedia: Deaths due to the Chernobyl disaster</a>.</p>
+    <div class="row" style="margin-top:14px">
+      <button class="btn" id="endRestart">Restart scenario</button>
+      <button class="btn" id="endStay">Read the printouts</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Generated from references/rbmk4_cps_map.csv and references/fuel_lattice_inferred.csv. Do not edit by hand.
+// cps rows: [channel, x, y, type, arGroup, depth0039cm, depth012230cm (Karpan), depth012230cm (INSAG), reads7cm flag]; x,y in 25 cm lattice units from core centre
+const CORE_DATA = {"cps":[["66-31",-6,-22,"RR/LAR/AZ","",7,7,0,1],["66-35",-2,-22,"RR/LAR/AZ","",0,0,0,0],["66-41",2,-22,"RR/LAR/AZ","",0,0,0,0],["66-45",6,-22,"RR/LAR/AZ","",0,0,0,0],["64-23",-12,-20,"RR/LAR/AZ","",0,0,0,0],["64-27",-8,-20,"RR/LAR/AZ","",0,0,0,0],["64-33",-4,-20,"USP","",200,86,86,0],["64-37",0,-20,"RR/LAR/AZ","",7,7,0,1],["64-43",4,-20,"USP","",80,20,20,0],["64-47",8,-20,"RR/LAR/AZ","",0,0,0,0],["64-53",12,-20,"RR/LAR/AZ","",0,0,0,0],["62-21",-14,-18,"RR/LAR/AZ","",0,0,0,0],["62-25",-10,-18,"RR/LAR/AZ","",0,0,0,0],["62-31",-6,-18,"RR/LAR/AZ","",330,244,240,0],["62-35",-2,-18,"RR/LAR/AZ","",0,0,0,0],["62-41",2,-18,"RR/LAR/AZ","",0,0,0,0],["62-45",6,-18,"RR/LAR/AZ","",200,0,0,0],["62-51",10,-18,"RR/LAR/AZ","",20,20,0,0],["62-55",14,-18,"RR/LAR/AZ","",0,0,0,0],["60-17",-16,-16,"RR/LAR/AZ","",0,0,0,0],["60-23",-12,-16,"RR/LAR/AZ","",0,0,0,0],["60-27",-8,-16,"DET","",null,null,null,0],["60-33",-4,-16,"RR/LAR/AZ","",0,0,0,0],["60-37",0,-16,"RR/LAR/AZ","",106,106,110,0],["60-43",4,-16,"RR/LAR/AZ","",0,0,0,0],["60-47",8,-16,"DET","",null,null,null,0],["60-53",12,-16,"RR/LAR/AZ","",0,0,0,0],["60-57",16,-16,"RR/LAR/AZ","",0,0,0,0],["56-15",-18,-14,"RR/LAR/AZ","",0,0,0,0],["56-21",-14,-14,"RR/LAR/AZ","",0,0,0,0],["56-25",-10,-14,"RR/LAR/AZ","",0,0,0,0],["56-31",-6,-14,"RR/LAR/AZ","",0,0,0,0],["56-35",-2,-14,"RR/LAR/AZ","",0,0,0,0],["56-41",2,-14,"RR/LAR/AZ","",0,13,0,0],["56-45",6,-14,"RR/LAR/AZ","",80,0,0,0],["56-51",10,-14,"RR/LAR/AZ","",0,0,0,0],["56-55",14,-14,"RR/LAR/AZ","",7,7,0,1],["56-61",18,-14,"RR/LAR/AZ","",0,0,0,0],["54-13",-20,-12,"RR/LAR/AZ","",0,0,0,0],["54-17",-16,-12,"RR/LAR/AZ","",0,0,0,0],["54-23",-12,-12,"USP","",180,0,0,0],["54-27",-8,-12,"RR/LAR/AZ","",200,26,30,0],["54-33",-4,-12,"USP","",180,0,0,0],["54-37",0,-12,"AR","AR-b",10,139,140,0],["54-43",4,-12,"USP","",90,0,0,0],["54-47",8,-12,"RR/LAR/AZ","",7,7,0,1],["54-53",12,-12,"USP","",120,13,0,0],["54-57",16,-12,"RR/LAR/AZ","",0,0,0,0],["54-63",20,-12,"RR/LAR/AZ","",0,0,0,0],["52-15",-18,-10,"RR/LAR/AZ","",0,0,0,0],["52-21",-14,-10,"RR/LAR/AZ","",13,13,0,0],["52-25",-10,-10,"RR/LAR/AZ","",0,0,0,0],["52-31",-6,-10,"RR/LAR/AZ","",0,0,0,0],["52-35",-2,-10,"RR/LAR/AZ","",7,7,0,1],["52-41",2,-10,"RR/LAR/AZ","",0,0,0,0],["52-45",6,-10,"RR/LAR/AZ","",0,125,120,0],["52-51",10,-10,"RR/LAR/AZ","",7,7,0,1],["52-55",14,-10,"RR/LAR/AZ","",0,0,0,0],["52-61",18,-10,"RR/LAR/AZ","",0,80,0,0],["50-13",-20,-8,"RR/LAR/AZ","",0,0,0,0],["50-17",-16,-8,"DET","",null,null,null,0],["50-23",-12,-8,"RR/LAR/AZ","",30,66,70,0],["50-27",-8,-8,"AR","AR-a",200,158,160,0],["50-33",-4,-8,"RR/LAR/AZ","",0,0,0,0],["50-37",0,-8,"DET","",null,null,null,0],["50-43",4,-8,"RR/LAR/AZ","",7,7,0,1],["50-47",8,-8,"AR","AR-a",200,158,160,0],["50-53",12,-8,"RR/LAR/AZ","",26,26,30,0],["50-57",16,-8,"DET","",null,null,null,0],["50-63",20,-8,"RR/LAR/AZ","",7,7,0,1],["46-11",-22,-6,"RR/LAR/AZ","",0,0,0,0],["46-15",-18,-6,"RR/LAR/AZ","",80,0,0,0],["46-21",-14,-6,"RR/LAR/AZ","",210,126,120,0],["46-25",-10,-6,"RR/LAR/AZ","",7,7,0,1],["46-31",-6,-6,"RR/LAR/AZ","",0,0,0,0],["46-35",-2,-6,"RR/LAR/AZ","",200,99,100,0],["46-41",2,-6,"RR/LAR/AZ","",0,0,0,0],["46-45",6,-6,"RR/LAR/AZ","",50,33,30,0],["46-51",10,-6,"RR/LAR/AZ","",0,0,0,0],["46-55",14,-6,"RR/LAR/AZ","",0,20,20,0],["46-61",18,-6,"RR/LAR/AZ","",250,139,140,0],["46-65",22,-6,"RR/LAR/AZ","",7,7,0,1],["44-13",-20,-4,"USP","",200,0,0,0],["44-17",-16,-4,"RR/LAR/AZ","",140,0,0,0],["44-23",-12,-4,"USP","",180,7,0,0],["44-27",-8,-4,"RR/LAR/AZ","",0,0,0,0],["44-33",-4,-4,"USP","",140,0,0,0],["44-37",0,-4,"AR","AR-c",10,20,20,0],["44-43",4,-4,"USP","",120,0,0,0],["44-47",8,-4,"RR/LAR/AZ","",250,79,80,0],["44-53",12,-4,"USP","",290,119,120,0],["44-57",16,-4,"RR/LAR/AZ","",7,7,0,1],["44-63",20,-4,"USP","",310,192,190,0],["42-11",-22,-2,"RR/LAR/AZ","",0,0,0,0],["42-15",-18,-2,"RR/LAR/AZ","",0,0,0,0],["42-21",-14,-2,"RR/LAR/AZ","",0,0,0,0],["42-25",-10,-2,"RR/LAR/AZ","",0,0,0,0],["42-31",-6,-2,"RR/LAR/AZ","",20,20,20,0],["42-35",-2,-2,"RR/LAR/AZ","",0,0,0,0],["42-41",2,-2,"RR/LAR/AZ","",7,7,0,1],["42-45",6,-2,"RR/LAR/AZ","",0,0,0,0],["42-51",10,-2,"RR/LAR/AZ","",140,143,140,0],["42-55",14,-2,"RR/LAR/AZ","",0,0,0,0],["42-61",18,-2,"RR/LAR/AZ","",0,0,0,0],["42-65",22,-2,"RR/LAR/AZ","",178,178,180,0],["40-13",-20,0,"RR/LAR/AZ","",0,0,0,0],["40-17",-16,0,"RR/LAR/AZ","",0,0,0,0],["40-23",-12,0,"AR","AR-b",10,139,140,0],["40-27",-8,0,"DET","",null,null,null,0],["40-33",-4,0,"AR","AR-c",10,20,20,0],["40-37",0,0,"RR/LAR/AZ","",7,7,0,1],["40-43",4,0,"AR","AR-c",10,20,20,0],["40-47",8,0,"DET","",null,null,null,0],["40-53",12,0,"AR","AR-b",10,139,140,0],["40-57",16,0,"RR/LAR/AZ","",0,0,0,0],["40-63",20,0,"RR/LAR/AZ","",0,60,0,0],["36-11",-22,2,"RR/LAR/AZ","",0,0,0,0],["36-15",-18,2,"RR/LAR/AZ","",0,0,0,0],["36-21",-14,2,"RR/LAR/AZ","",0,0,0,0],["36-25",-10,2,"RR/LAR/AZ","",7,7,0,1],["36-31",-6,2,"RR/LAR/AZ","",0,0,0,0],["36-35",-2,2,"RR/LAR/AZ","",0,0,0,0],["36-41",2,2,"RR/LAR/AZ","",150,86,90,0],["36-45",6,2,"RR/LAR/AZ","",90,0,0,0],["36-51",10,2,"RR/LAR/AZ","",0,0,0,0],["36-55",14,2,"RR/LAR/AZ","",0,0,0,0],["36-61",18,2,"RR/LAR/AZ","",0,0,0,0],["36-65",22,2,"RR/LAR/AZ","",0,70,0,0],["34-13",-20,4,"USP","",176,176,180,0],["34-17",-16,4,"RR/LAR/AZ","",7,7,0,1],["34-23",-12,4,"USP","",120,7,0,0],["34-27",-8,4,"RR/LAR/AZ","",7,7,0,1],["34-33",-4,4,"USP","",130,0,0,0],["34-37",0,4,"AR","AR-c",10,20,20,0],["34-43",4,4,"USP","",300,20,20,0],["34-47",8,4,"RR/LAR/AZ","",150,0,0,0],["34-53",12,4,"USP","",99,99,100,0],["34-57",16,4,"RR/LAR/AZ","",163,163,170,0],["34-63",20,4,"USP","",180,7,0,0],["32-11",-22,6,"RR/LAR/AZ","",20,20,20,0],["32-15",-18,6,"RR/LAR/AZ","",200,125,120,0],["32-21",-14,6,"RR/LAR/AZ","",280,0,0,0],["32-25",-10,6,"RR/LAR/AZ","",0,0,0,0],["32-31",-6,6,"RR/LAR/AZ","",20,20,20,0],["32-35",-2,6,"RR/LAR/AZ","",270,264,260,0],["32-41",2,6,"RR/LAR/AZ","",7,7,0,1],["32-45",6,6,"RR/LAR/AZ","",23,13,0,0],["32-51",10,6,"RR/LAR/AZ","",0,40,40,0],["32-55",14,6,"RR/LAR/AZ","",100,0,0,0],["32-61",18,6,"RR/LAR/AZ","",270,20,20,0],["32-65",22,6,"RR/LAR/AZ","",0,0,0,0],["30-13",-20,8,"RR/LAR/AZ","",0,0,0,0],["30-17",-16,8,"DET","",null,null,null,0],["30-23",-12,8,"RR/LAR/AZ","",0,0,0,0],["30-27",-8,8,"AR","AR-a",200,158,160,0],["30-33",-4,8,"RR/LAR/AZ","",0,0,0,0],["30-37",0,8,"DET","",null,null,null,0],["30-43",4,8,"RR/LAR/AZ","",0,0,0,0],["30-47",8,8,"AR","AR-a",200,158,160,0],["30-53",12,8,"RR/LAR/AZ","",0,0,0,0],["30-57",16,8,"DET","",null,null,null,0],["30-63",20,8,"RR/LAR/AZ","",0,0,0,0],["26-15",-18,10,"RR/LAR/AZ","",0,0,0,0],["26-21",-14,10,"RR/LAR/AZ","",0,0,0,0],["26-25",-10,10,"RR/LAR/AZ","",150,0,0,0],["26-31",-6,10,"RR/LAR/AZ","",7,7,0,1],["26-35",-2,10,"RR/LAR/AZ","",150,33,0,0],["26-41",2,10,"RR/LAR/AZ","",0,0,0,0],["26-45",6,10,"RR/LAR/AZ","",0,60,0,0],["26-51",10,10,"RR/LAR/AZ","",0,0,0,0],["26-55",14,10,"RR/LAR/AZ","",26,26,30,0],["26-61",18,10,"RR/LAR/AZ","",0,0,0,0],["26-65",22,10,"RR/LAR/AZ","",0,0,0,0],["24-13",-20,12,"RR/LAR/AZ","",0,0,0,0],["24-17",-16,12,"RR/LAR/AZ","",20,20,20,0],["24-23",-12,12,"USP","",180,0,0,0],["24-27",-8,12,"RR/LAR/AZ","",0,0,0,0],["24-33",-4,12,"USP","",180,0,0,0],["24-37",0,12,"AR","AR-b",10,139,140,0],["24-43",4,12,"USP","",120,7,0,0],["24-47",8,12,"RR/LAR/AZ","",0,0,0,0],["24-53",12,12,"USP","",100,0,0,0],["24-57",16,12,"RR/LAR/AZ","",7,7,0,1],["24-63",20,12,"RR/LAR/AZ","",0,7,0,1],["22-15",-18,14,"RR/LAR/AZ","",0,0,0,0],["22-21",-14,14,"RR/LAR/AZ","",0,0,0,0],["22-25",-10,14,"RR/LAR/AZ","",0,0,0,0],["22-31",-6,14,"RR/LAR/AZ","",7,7,0,1],["22-35",-2,14,"RR/LAR/AZ","",0,0,0,0],["22-41",2,14,"RR/LAR/AZ","",0,0,0,0],["22-45",6,14,"RR/LAR/AZ","",70,0,0,0],["22-51",10,14,"RR/LAR/AZ","",120,79,80,0],["22-55",14,14,"RR/LAR/AZ","",0,0,0,0],["22-61",18,14,"RR/LAR/AZ","",0,0,0,0],["20-17",-16,16,"RR/LAR/AZ","",0,0,0,0],["20-23",-12,16,"RR/LAR/AZ","",0,0,0,0],["20-27",-8,16,"DET","",null,null,null,0],["20-33",-4,16,"RR/LAR/AZ","",7,7,0,1],["20-37",0,16,"RR/LAR/AZ","",150,20,20,0],["20-43",4,16,"RR/LAR/AZ","",0,0,0,0],["20-47",8,16,"DET","",null,null,null,0],["20-53",12,16,"RR/LAR/AZ","",0,0,0,0],["20-57",16,16,"RR/LAR/AZ","",0,0,0,0],["16-21",-14,18,"RR/LAR/AZ","",7,7,0,1],["16-25",-10,18,"RR/LAR/AZ","",0,0,0,0],["16-31",-6,18,"RR/LAR/AZ","",260,0,0,0],["16-35",-2,18,"RR/LAR/AZ","",0,0,0,0],["16-41",2,18,"RR/LAR/AZ","",0,0,0,0],["16-45",6,18,"RR/LAR/AZ","",170,33,30,0],["16-51",10,18,"RR/LAR/AZ","",0,0,0,0],["16-55",14,18,"RR/LAR/AZ","",0,0,0,0],["14-23",-12,20,"RR/LAR/AZ","",7,7,0,1],["14-27",-8,20,"RR/LAR/AZ","",0,0,0,0],["14-33",-4,20,"USP","",13,13,0,0],["14-37",0,20,"RR/LAR/AZ","",0,0,0,0],["14-43",4,20,"USP","",200,0,0,0],["14-47",8,20,"RR/LAR/AZ","",0,0,0,0],["14-53",12,20,"RR/LAR/AZ","",0,0,0,0],["12-31",-6,22,"RR/LAR/AZ","",0,0,0,0],["12-35",-2,22,"RR/LAR/AZ","",0,0,0,0],["12-41",2,22,"RR/LAR/AZ","",0,0,0,0],["12-45",6,22,"RR/LAR/AZ","",0,0,0,0],["12-51",10,22,"RR/LAR/AZ","",0,0,0,0]],"fuel":[[-4,-24],[-3,-24],[-2,-24],[-1,-24],[0,-24],[1,-24],[2,-24],[3,-24],[4,-24],[-8,-23],[-7,-23],[-6,-23],[-5,-23],[-4,-23],[-3,-23],[-2,-23],[-1,-23],[0,-23],[1,-23],[2,-23],[3,-23],[4,-23],[5,-23],[6,-23],[7,-23],[8,-23],[-10,-22],[-9,-22],[-8,-22],[-7,-22],[-5,-22],[-4,-22],[-3,-22],[-1,-22],[0,-22],[1,-22],[3,-22],[4,-22],[5,-22],[7,-22],[8,-22],[9,-22],[10,-22],[-12,-21],[-11,-21],[-10,-21],[-9,-21],[-8,-21],[-7,-21],[-6,-21],[-5,-21],[-4,-21],[-3,-21],[-2,-21],[-1,-21],[0,-21],[1,-21],[2,-21],[3,-21],[4,-21],[5,-21],[6,-21],[7,-21],[8,-21],[9,-21],[10,-21],[11,-21],[12,-21],[-14,-20],[-13,-20],[-11,-20],[-10,-20],[-9,-20],[-7,-20],[-6,-20],[-5,-20],[-3,-20],[-2,-20],[-1,-20],[1,-20],[2,-20],[3,-20],[5,-20],[6,-20],[7,-20],[9,-20],[10,-20],[11,-20],[13,-20],[14,-20],[-15,-19],[-14,-19],[-13,-19],[-12,-19],[-11,-19],[-10,-19],[-9,-19],[-8,-19],[-7,-19],[-6,-19],[-5,-19],[-4,-19],[-3,-19],[-2,-19],[-1,-19],[0,-19],[1,-19],[2,-19],[3,-19],[4,-19],[5,-19],[6,-19],[7,-19],[8,-19],[9,-19],[10,-19],[11,-19],[12,-19],[13,-19],[14,-19],[15,-19],[-16,-18],[-15,-18],[-13,-18],[-12,-18],[-11,-18],[-9,-18],[-8,-18],[-7,-18],[-5,-18],[-4,-18],[-3,-18],[-1,-18],[0,-18],[1,-18],[3,-18],[4,-18],[5,-18],[7,-18],[8,-18],[9,-18],[11,-18],[12,-18],[13,-18],[15,-18],[16,-18],[-17,-17],[-16,-17],[-15,-17],[-14,-17],[-13,-17],[-12,-17],[-11,-17],[-10,-17],[-9,-17],[-8,-17],[-7,-17],[-6,-17],[-5,-17],[-4,-17],[-3,-17],[-2,-17],[-1,-17],[0,-17],[1,-17],[2,-17],[3,-17],[4,-17],[5,-17],[6,-17],[7,-17],[8,-17],[9,-17],[10,-17],[11,-17],[12,-17],[13,-17],[14,-17],[15,-17],[16,-17],[17,-17],[-18,-16],[-17,-16],[-15,-16],[-14,-16],[-13,-16],[-11,-16],[-10,-16],[-9,-16],[-7,-16],[-6,-16],[-5,-16],[-3,-16],[-2,-16],[-1,-16],[1,-16],[2,-16],[3,-16],[5,-16],[6,-16],[7,-16],[9,-16],[10,-16],[11,-16],[13,-16],[14,-16],[15,-16],[17,-16],[18,-16],[-19,-15],[-18,-15],[-17,-15],[-16,-15],[-15,-15],[-14,-15],[-13,-15],[-12,-15],[-11,-15],[-10,-15],[-9,-15],[-8,-15],[-7,-15],[-6,-15],[-5,-15],[-4,-15],[-3,-15],[-2,-15],[-1,-15],[0,-15],[1,-15],[2,-15],[3,-15],[4,-15],[5,-15],[6,-15],[7,-15],[8,-15],[9,-15],[10,-15],[11,-15],[12,-15],[13,-15],[14,-15],[15,-15],[16,-15],[17,-15],[18,-15],[19,-15],[-20,-14],[-19,-14],[-17,-14],[-16,-14],[-15,-14],[-13,-14],[-12,-14],[-11,-14],[-9,-14],[-8,-14],[-7,-14],[-5,-14],[-4,-14],[-3,-14],[-1,-14],[0,-14],[1,-14],[3,-14],[4,-14],[5,-14],[7,-14],[8,-14],[9,-14],[11,-14],[12,-14],[13,-14],[15,-14],[16,-14],[17,-14],[19,-14],[20,-14],[-20,-13],[-19,-13],[-18,-13],[-17,-13],[-16,-13],[-15,-13],[-14,-13],[-13,-13],[-12,-13],[-11,-13],[-10,-13],[-9,-13],[-8,-13],[-7,-13],[-6,-13],[-5,-13],[-4,-13],[-3,-13],[-2,-13],[-1,-13],[0,-13],[1,-13],[2,-13],[3,-13],[4,-13],[5,-13],[6,-13],[7,-13],[8,-13],[9,-13],[10,-13],[11,-13],[12,-13],[13,-13],[14,-13],[15,-13],[16,-13],[17,-13],[18,-13],[19,-13],[20,-13],[-21,-12],[-19,-12],[-18,-12],[-17,-12],[-15,-12],[-14,-12],[-13,-12],[-11,-12],[-10,-12],[-9,-12],[-7,-12],[-6,-12],[-5,-12],[-3,-12],[-2,-12],[-1,-12],[1,-12],[2,-12],[3,-12],[5,-12],[6,-12],[7,-12],[9,-12],[10,-12],[11,-12],[13,-12],[14,-12],[15,-12],[17,-12],[18,-12],[19,-12],[21,-12],[-21,-11],[-20,-11],[-19,-11],[-18,-11],[-17,-11],[-16,-11],[-15,-11],[-14,-11],[-13,-11],[-12,-11],[-11,-11],[-10,-11],[-9,-11],[-8,-11],[-7,-11],[-6,-11],[-5,-11],[-4,-11],[-3,-11],[-2,-11],[-1,-11],[0,-11],[1,-11],[2,-11],[3,-11],[4,-11],[5,-11],[6,-11],[7,-11],[8,-11],[9,-11],[10,-11],[11,-11],[12,-11],[13,-11],[14,-11],[15,-11],[16,-11],[17,-11],[18,-11],[19,-11],[20,-11],[21,-11],[-22,-10],[-21,-10],[-20,-10],[-19,-10],[-17,-10],[-16,-10],[-15,-10],[-13,-10],[-12,-10],[-11,-10],[-9,-10],[-8,-10],[-7,-10],[-5,-10],[-4,-10],[-3,-10],[-1,-10],[0,-10],[1,-10],[3,-10],[4,-10],[5,-10],[7,-10],[8,-10],[9,-10],[11,-10],[12,-10],[13,-10],[15,-10],[16,-10],[17,-10],[19,-10],[20,-10],[21,-10],[22,-10],[-22,-9],[-21,-9],[-20,-9],[-19,-9],[-18,-9],[-17,-9],[-16,-9],[-15,-9],[-14,-9],[-13,-9],[-12,-9],[-11,-9],[-10,-9],[-9,-9],[-8,-9],[-7,-9],[-6,-9],[-5,-9],[-4,-9],[-3,-9],[-2,-9],[-1,-9],[0,-9],[1,-9],[2,-9],[3,-9],[4,-9],[5,-9],[6,-9],[7,-9],[8,-9],[9,-9],[10,-9],[11,-9],[12,-9],[13,-9],[14,-9],[15,-9],[16,-9],[17,-9],[18,-9],[19,-9],[20,-9],[21,-9],[22,-9],[-23,-8],[-22,-8],[-21,-8],[-19,-8],[-18,-8],[-17,-8],[-15,-8],[-14,-8],[-13,-8],[-11,-8],[-10,-8],[-9,-8],[-7,-8],[-6,-8],[-5,-8],[-3,-8],[-2,-8],[-1,-8],[1,-8],[2,-8],[3,-8],[5,-8],[6,-8],[7,-8],[9,-8],[10,-8],[11,-8],[13,-8],[14,-8],[15,-8],[17,-8],[18,-8],[19,-8],[21,-8],[22,-8],[23,-8],[-23,-7],[-22,-7],[-21,-7],[-20,-7],[-19,-7],[-18,-7],[-17,-7],[-16,-7],[-15,-7],[-14,-7],[-13,-7],[-12,-7],[-11,-7],[-10,-7],[-9,-7],[-8,-7],[-7,-7],[-6,-7],[-5,-7],[-4,-7],[-3,-7],[-2,-7],[-1,-7],[0,-7],[1,-7],[2,-7],[3,-7],[4,-7],[5,-7],[6,-7],[7,-7],[8,-7],[9,-7],[10,-7],[11,-7],[12,-7],[13,-7],[14,-7],[15,-7],[16,-7],[17,-7],[18,-7],[19,-7],[20,-7],[21,-7],[22,-7],[23,-7],[-23,-6],[-21,-6],[-20,-6],[-19,-6],[-17,-6],[-16,-6],[-15,-6],[-13,-6],[-12,-6],[-11,-6],[-9,-6],[-8,-6],[-7,-6],[-5,-6],[-4,-6],[-3,-6],[-1,-6],[0,-6],[1,-6],[3,-6],[4,-6],[5,-6],[7,-6],[8,-6],[9,-6],[11,-6],[12,-6],[13,-6],[15,-6],[16,-6],[17,-6],[19,-6],[20,-6],[21,-6],[23,-6],[-23,-5],[-22,-5],[-21,-5],[-20,-5],[-19,-5],[-18,-5],[-17,-5],[-16,-5],[-15,-5],[-14,-5],[-13,-5],[-12,-5],[-11,-5],[-10,-5],[-9,-5],[-8,-5],[-7,-5],[-6,-5],[-5,-5],[-4,-5],[-3,-5],[-2,-5],[-1,-5],[0,-5],[1,-5],[2,-5],[3,-5],[4,-5],[5,-5],[6,-5],[7,-5],[8,-5],[9,-5],[10,-5],[11,-5],[12,-5],[13,-5],[14,-5],[15,-5],[16,-5],[17,-5],[18,-5],[19,-5],[20,-5],[21,-5],[22,-5],[23,-5],[-24,-4],[-23,-4],[-22,-4],[-21,-4],[-19,-4],[-18,-4],[-17,-4],[-15,-4],[-14,-4],[-13,-4],[-11,-4],[-10,-4],[-9,-4],[-7,-4],[-6,-4],[-5,-4],[-3,-4],[-2,-4],[-1,-4],[1,-4],[2,-4],[3,-4],[5,-4],[6,-4],[7,-4],[9,-4],[10,-4],[11,-4],[13,-4],[14,-4],[15,-4],[17,-4],[18,-4],[19,-4],[21,-4],[22,-4],[23,-4],[24,-4],[-24,-3],[-23,-3],[-22,-3],[-21,-3],[-20,-3],[-19,-3],[-18,-3],[-17,-3],[-16,-3],[-15,-3],[-14,-3],[-13,-3],[-12,-3],[-11,-3],[-10,-3],[-9,-3],[-8,-3],[-7,-3],[-6,-3],[-5,-3],[-4,-3],[-3,-3],[-2,-3],[-1,-3],[0,-3],[1,-3],[2,-3],[3,-3],[4,-3],[5,-3],[6,-3],[7,-3],[8,-3],[9,-3],[10,-3],[11,-3],[12,-3],[13,-3],[14,-3],[15,-3],[16,-3],[17,-3],[18,-3],[19,-3],[20,-3],[21,-3],[22,-3],[23,-3],[24,-3],[-24,-2],[-23,-2],[-21,-2],[-20,-2],[-19,-2],[-17,-2],[-16,-2],[-15,-2],[-13,-2],[-12,-2],[-11,-2],[-9,-2],[-8,-2],[-7,-2],[-5,-2],[-4,-2],[-3,-2],[-1,-2],[0,-2],[1,-2],[3,-2],[4,-2],[5,-2],[7,-2],[8,-2],[9,-2],[11,-2],[12,-2],[13,-2],[15,-2],[16,-2],[17,-2],[19,-2],[20,-2],[21,-2],[23,-2],[24,-2],[-24,-1],[-23,-1],[-22,-1],[-21,-1],[-20,-1],[-19,-1],[-18,-1],[-17,-1],[-16,-1],[-15,-1],[-14,-1],[-13,-1],[-12,-1],[-11,-1],[-10,-1],[-9,-1],[-8,-1],[-7,-1],[-6,-1],[-5,-1],[-4,-1],[-3,-1],[-2,-1],[-1,-1],[0,-1],[1,-1],[2,-1],[3,-1],[4,-1],[5,-1],[6,-1],[7,-1],[8,-1],[9,-1],[10,-1],[11,-1],[12,-1],[13,-1],[14,-1],[15,-1],[16,-1],[17,-1],[18,-1],[19,-1],[20,-1],[21,-1],[22,-1],[23,-1],[24,-1],[-24,0],[-23,0],[-22,0],[-21,0],[-19,0],[-18,0],[-17,0],[-15,0],[-14,0],[-13,0],[-11,0],[-10,0],[-9,0],[-7,0],[-6,0],[-5,0],[-3,0],[-2,0],[-1,0],[1,0],[2,0],[3,0],[5,0],[6,0],[7,0],[9,0],[10,0],[11,0],[13,0],[14,0],[15,0],[17,0],[18,0],[19,0],[21,0],[22,0],[23,0],[24,0],[-24,1],[-23,1],[-22,1],[-21,1],[-20,1],[-19,1],[-18,1],[-17,1],[-16,1],[-15,1],[-14,1],[-13,1],[-12,1],[-11,1],[-10,1],[-9,1],[-8,1],[-7,1],[-6,1],[-5,1],[-4,1],[-3,1],[-2,1],[-1,1],[0,1],[1,1],[2,1],[3,1],[4,1],[5,1],[6,1],[7,1],[8,1],[9,1],[10,1],[11,1],[12,1],[13,1],[14,1],[15,1],[16,1],[17,1],[18,1],[19,1],[20,1],[21,1],[22,1],[23,1],[24,1],[-24,2],[-23,2],[-21,2],[-20,2],[-19,2],[-17,2],[-16,2],[-15,2],[-13,2],[-12,2],[-11,2],[-9,2],[-8,2],[-7,2],[-5,2],[-4,2],[-3,2],[-1,2],[0,2],[1,2],[3,2],[4,2],[5,2],[7,2],[8,2],[9,2],[11,2],[12,2],[13,2],[15,2],[16,2],[17,2],[19,2],[20,2],[21,2],[23,2],[24,2],[-24,3],[-23,3],[-22,3],[-21,3],[-20,3],[-19,3],[-18,3],[-17,3],[-16,3],[-15,3],[-14,3],[-13,3],[-12,3],[-11,3],[-10,3],[-9,3],[-8,3],[-7,3],[-6,3],[-5,3],[-4,3],[-3,3],[-2,3],[-1,3],[0,3],[1,3],[2,3],[3,3],[4,3],[5,3],[6,3],[7,3],[8,3],[9,3],[10,3],[11,3],[12,3],[13,3],[14,3],[15,3],[16,3],[17,3],[18,3],[19,3],[20,3],[21,3],[22,3],[23,3],[24,3],[-24,4],[-23,4],[-22,4],[-21,4],[-19,4],[-18,4],[-17,4],[-15,4],[-14,4],[-13,4],[-11,4],[-10,4],[-9,4],[-7,4],[-6,4],[-5,4],[-3,4],[-2,4],[-1,4],[1,4],[2,4],[3,4],[5,4],[6,4],[7,4],[9,4],[10,4],[11,4],[13,4],[14,4],[15,4],[17,4],[18,4],[19,4],[21,4],[22,4],[23,4],[24,4],[-23,5],[-22,5],[-21,5],[-20,5],[-19,5],[-18,5],[-17,5],[-16,5],[-15,5],[-14,5],[-13,5],[-12,5],[-11,5],[-10,5],[-9,5],[-8,5],[-7,5],[-6,5],[-5,5],[-4,5],[-3,5],[-2,5],[-1,5],[0,5],[1,5],[2,5],[3,5],[4,5],[5,5],[6,5],[7,5],[8,5],[9,5],[10,5],[11,5],[12,5],[13,5],[14,5],[15,5],[16,5],[17,5],[18,5],[19,5],[20,5],[21,5],[22,5],[23,5],[-23,6],[-21,6],[-20,6],[-19,6],[-17,6],[-16,6],[-15,6],[-13,6],[-12,6],[-11,6],[-9,6],[-8,6],[-7,6],[-5,6],[-4,6],[-3,6],[-1,6],[0,6],[1,6],[3,6],[4,6],[5,6],[7,6],[8,6],[9,6],[11,6],[12,6],[13,6],[15,6],[16,6],[17,6],[19,6],[20,6],[21,6],[23,6],[-23,7],[-22,7],[-21,7],[-20,7],[-19,7],[-18,7],[-17,7],[-16,7],[-15,7],[-14,7],[-13,7],[-12,7],[-11,7],[-10,7],[-9,7],[-8,7],[-7,7],[-6,7],[-5,7],[-4,7],[-3,7],[-2,7],[-1,7],[0,7],[1,7],[2,7],[3,7],[4,7],[5,7],[6,7],[7,7],[8,7],[9,7],[10,7],[11,7],[12,7],[13,7],[14,7],[15,7],[16,7],[17,7],[18,7],[19,7],[20,7],[21,7],[22,7],[23,7],[-23,8],[-22,8],[-21,8],[-19,8],[-18,8],[-17,8],[-15,8],[-14,8],[-13,8],[-11,8],[-10,8],[-9,8],[-7,8],[-6,8],[-5,8],[-3,8],[-2,8],[-1,8],[1,8],[2,8],[3,8],[5,8],[6,8],[7,8],[9,8],[10,8],[11,8],[13,8],[14,8],[15,8],[17,8],[18,8],[19,8],[21,8],[22,8],[23,8],[-22,9],[-21,9],[-20,9],[-19,9],[-18,9],[-17,9],[-16,9],[-15,9],[-14,9],[-13,9],[-12,9],[-11,9],[-10,9],[-9,9],[-8,9],[-7,9],[-6,9],[-5,9],[-4,9],[-3,9],[-2,9],[-1,9],[0,9],[1,9],[2,9],[3,9],[4,9],[5,9],[6,9],[7,9],[8,9],[9,9],[10,9],[11,9],[12,9],[13,9],[14,9],[15,9],[16,9],[17,9],[18,9],[19,9],[20,9],[21,9],[22,9],[-22,10],[-21,10],[-20,10],[-19,10],[-17,10],[-16,10],[-15,10],[-13,10],[-12,10],[-11,10],[-9,10],[-8,10],[-7,10],[-5,10],[-4,10],[-3,10],[-1,10],[0,10],[1,10],[3,10],[4,10],[5,10],[7,10],[8,10],[9,10],[11,10],[12,10],[13,10],[15,10],[16,10],[17,10],[19,10],[20,10],[21,10],[-21,11],[-20,11],[-19,11],[-18,11],[-17,11],[-16,11],[-15,11],[-14,11],[-13,11],[-12,11],[-11,11],[-10,11],[-9,11],[-8,11],[-7,11],[-6,11],[-5,11],[-4,11],[-3,11],[-2,11],[-1,11],[0,11],[1,11],[2,11],[3,11],[4,11],[5,11],[6,11],[7,11],[8,11],[9,11],[10,11],[11,11],[12,11],[13,11],[14,11],[15,11],[16,11],[17,11],[18,11],[19,11],[20,11],[21,11],[-21,12],[-19,12],[-18,12],[-17,12],[-15,12],[-14,12],[-13,12],[-11,12],[-10,12],[-9,12],[-7,12],[-6,12],[-5,12],[-3,12],[-2,12],[-1,12],[1,12],[2,12],[3,12],[5,12],[6,12],[7,12],[9,12],[10,12],[11,12],[13,12],[14,12],[15,12],[17,12],[18,12],[19,12],[21,12],[-20,13],[-19,13],[-18,13],[-17,13],[-16,13],[-15,13],[-14,13],[-13,13],[-12,13],[-11,13],[-10,13],[-9,13],[-8,13],[-7,13],[-6,13],[-5,13],[-4,13],[-3,13],[-2,13],[-1,13],[0,13],[1,13],[2,13],[3,13],[4,13],[5,13],[6,13],[7,13],[8,13],[9,13],[10,13],[11,13],[12,13],[13,13],[14,13],[15,13],[16,13],[17,13],[18,13],[19,13],[20,13],[-19,14],[-17,14],[-16,14],[-15,14],[-13,14],[-12,14],[-11,14],[-9,14],[-8,14],[-7,14],[-5,14],[-4,14],[-3,14],[-1,14],[0,14],[1,14],[3,14],[4,14],[5,14],[7,14],[8,14],[9,14],[11,14],[12,14],[13,14],[15,14],[16,14],[17,14],[19,14],[20,14],[-19,15],[-18,15],[-17,15],[-16,15],[-15,15],[-14,15],[-13,15],[-12,15],[-11,15],[-10,15],[-9,15],[-8,15],[-7,15],[-6,15],[-5,15],[-4,15],[-3,15],[-2,15],[-1,15],[0,15],[1,15],[2,15],[3,15],[4,15],[5,15],[6,15],[7,15],[8,15],[9,15],[10,15],[11,15],[12,15],[13,15],[14,15],[15,15],[16,15],[17,15],[18,15],[19,15],[-18,16],[-17,16],[-15,16],[-14,16],[-13,16],[-11,16],[-10,16],[-9,16],[-7,16],[-6,16],[-5,16],[-3,16],[-2,16],[-1,16],[1,16],[2,16],[3,16],[5,16],[6,16],[7,16],[9,16],[10,16],[11,16],[13,16],[14,16],[15,16],[17,16],[18,16],[-17,17],[-16,17],[-15,17],[-14,17],[-13,17],[-12,17],[-11,17],[-10,17],[-9,17],[-8,17],[-7,17],[-6,17],[-5,17],[-4,17],[-3,17],[-2,17],[-1,17],[0,17],[1,17],[2,17],[3,17],[4,17],[5,17],[6,17],[7,17],[8,17],[9,17],[10,17],[11,17],[12,17],[13,17],[14,17],[15,17],[16,17],[17,17],[-16,18],[-15,18],[-13,18],[-12,18],[-11,18],[-9,18],[-8,18],[-7,18],[-5,18],[-4,18],[-3,18],[-1,18],[0,18],[1,18],[3,18],[4,18],[5,18],[7,18],[8,18],[9,18],[11,18],[12,18],[13,18],[15,18],[16,18],[-15,19],[-14,19],[-13,19],[-12,19],[-11,19],[-10,19],[-9,19],[-8,19],[-7,19],[-6,19],[-5,19],[-4,19],[-3,19],[-2,19],[-1,19],[0,19],[1,19],[2,19],[3,19],[4,19],[5,19],[6,19],[7,19],[8,19],[9,19],[10,19],[11,19],[12,19],[13,19],[14,19],[15,19],[-14,20],[-13,20],[-11,20],[-10,20],[-9,20],[-7,20],[-6,20],[-5,20],[-3,20],[-2,20],[-1,20],[1,20],[2,20],[3,20],[5,20],[6,20],[7,20],[9,20],[10,20],[11,20],[13,20],[14,20],[-12,21],[-11,21],[-10,21],[-9,21],[-8,21],[-7,21],[-6,21],[-5,21],[-4,21],[-3,21],[-2,21],[-1,21],[0,21],[1,21],[2,21],[3,21],[4,21],[5,21],[6,21],[7,21],[8,21],[9,21],[10,21],[11,21],[12,21],[-10,22],[-9,22],[-8,22],[-7,22],[-5,22],[-4,22],[-3,22],[-1,22],[0,22],[1,22],[3,22],[4,22],[5,22],[7,22],[8,22],[9,22],[-8,23],[-7,23],[-6,23],[-5,23],[-4,23],[-3,23],[-2,23],[-1,23],[0,23],[1,23],[2,23],[3,23],[4,23],[5,23],[6,23],[7,23],[8,23],[-4,24],[-3,24],[-2,24],[-1,24],[0,24],[1,24],[2,24],[3,24],[4,24]]};
+if (typeof module !== 'undefined') module.exports = CORE_DATA;
+
+</script>
+<script>
+// Glossary for the hover bubbles. One entry per term:
+//   m: the spellings to look for on the page (Russian and English), t: the term's title,
+//   d: a short plain-language definition, a: [link label, URL] for further reading (optional).
+// The same definitions are used, shortened, as hover titles in README.md.
+const GLOSSARY = (() => {
+const W = 'https://en.wikipedia.org/wiki/';
+const INSAG = ['INSAG-7 (IAEA, English)', 'https://www-pub.iaea.org/MTCD/publications/PDF/Pub913e_web.pdf'];
+return [
+  { k: 'skala', m: ['СКАЛА', 'SKALA'], t: 'SKALA (СКАЛА)', d: 'The process computer of each RBMK-1000 unit. It read thousands of sensors, calculated the state of the core and logged events, but it did not control the reactor. The name stands for “Leningrad NPP reactor monitoring system”.', a: ['Hackaday: Inside SKALA', 'https://hackaday.com/2026/03/03/inside-skala-how-chernobyls-reactor-was-actually-controlled/'] },
+  { k: 'rbmk', m: ['РБМК-1000', 'RBMK-1000', 'РБМК', 'RBMK'], t: 'RBMK-1000', d: 'The Soviet reactor type at Chernobyl: a large graphite block pierced by 1661 water-cooled fuel channels and 211 control-rod channels, producing 3200 MW of heat. Its design flaws were central to the accident.', a: ['Wikipedia: RBMK', W + 'RBMK'] },
+  { k: 'orm', m: ['ОЗР', 'ORM'], t: 'ORM · operating reactivity margin (ОЗР)', d: 'How much control-rod absorber is in the core, counted as the equivalent number of fully inserted manual rods. The rules required at least 15. At 01:22:30 on 26 April it was about 6–8, and nothing on the desk showed it continuously.', a: INSAG },
+  { k: 'az5', m: ['АЗ-5', 'AZ-5'], t: 'AZ-5 (АЗ-5)', d: 'Emergency protection, level 5: the full shutdown. It drives the control rods into the core at about 0.4 m/s. Pressed at 01:23:40, it raised power in the lower core for the first seconds because of the rods’ graphite displacers.', a: ['Wikipedia: Chernobyl disaster', W + 'Chernobyl_disaster'] },
+  { k: 'azm', m: ['АЗМ', 'AZM'], t: 'АЗМ · overpower trip', d: 'Emergency protection triggered when power exceeds its setpoint. On 26 April it fired about 3 seconds after AZ-5.' },
+  { k: 'azsr', m: ['АЗСР', 'AZSR'], t: 'АЗСР · short-period trip', d: 'Emergency protection triggered when the reactor period becomes too short, meaning power is rising too fast. Set at 20 seconds here.' },
+  { k: 'azrods', m: ['АЗ'], t: 'АЗ rods', d: 'Emergency-protection rods: 24 of the 211 rods, held at the top until a scram. The surviving maps do not say which channels they occupied.' },
+  { k: 'ar', m: ['АР', 'AR'], t: 'АР · automatic regulator', d: 'Twelve rods in three banks of four, moved automatically to hold power at the operator’s setpoint. They had no graphite displacers.' },
+  { k: 'lar', m: ['ЛАР', 'LAR'], t: 'ЛАР · local automatic regulator', d: 'Rods that regulate power zone by zone at higher power. At 00:28 on 26 April control passed from ЛАР to АР and power fell to about 30 MW.' },
+  { k: 'rr', m: ['РР'], t: 'РР · manual control rods', d: 'The main body of control rods, moved by the operator. Each had a 6.2 m absorber with a 4.5 m graphite displacer below it.' },
+  { k: 'usp', m: ['УСП', 'USP'], t: 'УСП · shortened absorber rods', d: '24 rods inserted from below the core to shape the power at the bottom. Few were in at 01:22:30, which left the lower core exposed to the tip effect.' },
+  { k: 'displacer', m: ['graphite displacers', 'graphite displacer', 'displacers', 'displacer'], t: 'Graphite displacer', d: 'A 4.5 m graphite section below each rod’s absorber, meant to push water out of the channel when the rod is withdrawn. When a fully withdrawn rod starts to drop, the displacer first pushes water out of the bottom of the core, adding reactivity there: the “tip effect”.', a: ['Wikipedia: Chernobyl disaster', W + 'Chernobyl_disaster'] },
+  { k: 'tip', m: ['tip effect', 'positive scram'], t: 'Tip effect (positive scram)', d: 'In the first seconds of AZ-5, rods starting from the top displaced water at the bottom of the core with graphite, which absorbs fewer neutrons. Power rose in the lower core before the absorber arrived.', a: ['Wikipedia: Chernobyl disaster', W + 'Chernobyl_disaster'] },
+  { k: 'dreg', m: ['ДРЕГ', 'DREG'], t: 'DREG (ДРЕГ) · diagnostic recorder', d: 'SKALA’s low-priority logging program. Every 2–4 seconds it wrote discrete signals and selected parameters to magnetic tape. Its printout is the main second-by-second record of the accident.', a: ['DREG transcript (archive.org)', 'https://archive.org/details/dreg-protocol-last-40-seconds-of-chernobyl'] },
+  { k: 'prizma', m: ['ПРИЗМА', 'PRIZMA'], t: 'PRIZMA (ПРИЗМА)', d: 'SKALA’s core-calculation program. About every 5 minutes it computed the power in each fuel channel and the operating margin (ORM). A printout went to the control room every two hours.', a: INSAG },
+  { k: 'siur', m: ['СИУР', 'SIUR'], t: 'СИУР · senior reactor control engineer', d: 'The operator at the reactor desk who drove the rods and queried SKALA. On the night of 26 April this was Leonid Toptunov.', a: ['Wikipedia: Leonid Toptunov', W + 'Leonid_Toptunov'] },
+  { k: 'sdivt', m: ['СДИВТ'], t: 'СДИВТ · SKALA duty engineer', d: 'The engineer on shift in the computer room who ran SKALA, loaded programs from punched tape and printed PRIZMA every two hours.' },
+  { k: 'bshu', m: ['БЩУ'], t: 'БЩУ · unit control room', d: 'The main control room of a reactor unit, and its control board.' },
+  { k: 'gcn', m: ['ГЦН'], t: 'ГЦН · main circulation pump', d: 'Eight large pumps (11–14 left, 21–24 right) pushing water through the fuel channels. In the test, four of them were powered by the coasting turbine-generator, so their flow fell as it slowed.' },
+  { k: 'bs', m: ['БС'], t: 'БС · steam drum separator', d: 'Large horizontal drums where steam from the core is separated from water before going to the turbines. Their pressure and water level are key plant readings.', a: ['Wikipedia: Steam drum', W + 'Steam_drum'] },
+  { k: 'dkev', m: ['ДКЭВ'], t: 'ДКЭВ · height power detectors', d: 'Detectors in 12 channels that measure how power is distributed along the height of the core. The seven bars show power in seven 1 m slices.' },
+  { k: 'sfkre', m: ['СФКРЭ'], t: 'СФКРЭ', d: 'The in-core system that monitored how power is distributed through the core, using its detectors.' },
+  { k: 'kz', m: ['Kz', 'KZ'], t: 'Kz · axial peaking factor', d: 'Peak power along the core’s height divided by the average. 1.0 is perfectly even; higher values mean a bulge.' },
+  { k: 'kr', m: ['Kr', 'KR'], t: 'Kr · radial peaking factor', d: 'Power in the hottest fuel channel divided by the average channel power.' },
+  { k: 'period', m: ['Период', 'reactor period', 'period'], t: 'Reactor period', d: 'The time it takes power to grow by a factor of e (about 2.7). Long or infinite means steady power; a few seconds means a dangerous excursion.' },
+  { k: 'dollar', m: ['dollars', 'dollar'], t: 'Reactivity in dollars ($)', d: 'A unit of reactivity. Above +1 $ the chain reaction sustains itself on prompt neutrons alone and power rises in fractions of a second.', a: ['Wikipedia: Dollar (reactivity)', W + 'Dollar_(reactivity)'] },
+  { k: 'xenon', m: ['xenon', 'ксенон'], t: 'Xenon poisoning', d: 'Xenon-135, a fission product, absorbs neutrons very strongly. It builds up for hours after power is reduced, forcing operators to withdraw rods to keep the reactor running.', a: ['Wikipedia: Iodine pit', W + 'Iodine_pit'] },
+  { k: 'void', m: ['steam void', 'void'], t: 'Steam void', d: 'The fraction of steam in the cooling water. In the RBMK more steam meant more reactivity (a positive void coefficient), so boiling could feed a power rise.', a: ['Wikipedia: Void coefficient', W + 'Void_coefficient'] },
+  { k: 'doppler', m: ['Doppler'], t: 'Doppler feedback', d: 'As fuel heats up, uranium-238 absorbs more neutrons, which slows a power rise. It is a stabilising effect, but too weak to stop the excursion of 26 April.', a: ['Wikipedia: Doppler broadening', W + 'Doppler_broadening'] },
+  { k: 'flux', m: ['neutron flux', 'flux'], t: 'Neutron flux', d: 'How many neutrons pass through a region each second. Power is roughly proportional to it, so the flux shape is the power shape.', a: ['Wikipedia: Neutron flux', W + 'Neutron_flux'] },
+  { k: 'subcool', m: ['subcooling', 'Недогрев'], t: 'Inlet subcooling', d: 'How far below boiling the water entering the core is. When it shrinks to almost nothing, water starts boiling low in the channels and steam void grows quickly.', a: ['Wikipedia: Subcooling', W + 'Subcooling'] },
+  { k: 'rundown', m: ['run-down test', 'rundown test', 'run-down'], t: 'Turbine run-down test', d: 'The test of 26 April: could a coasting turbine-generator power the pumps for the seconds until diesel generators took over? It began at 01:23:04 when turbine 8’s stop valves closed.', a: ['Wikipedia: Chernobyl disaster', W + 'Chernobyl_disaster'] },
+  { k: 'tg8', m: ['ТГ-8'], t: 'ТГ-8 · turbine-generator 8', d: 'The turbine-generator used for the run-down test.' },
+  { k: 'srk', m: ['СРК'], t: 'СРК · turbine stop valves', d: 'Stop-and-control valves that admit steam to a turbine. Closing them started the test.' },
+  { k: 'pk', m: ['ПК-ВВЕРХ', 'ПК-ВНИЗ'], t: 'ПК · overcompensation signal', d: 'DREG signal that the automatic-regulator rods are near the end of their travel and running out of room to correct power.' },
+  { k: 'vfd', m: ['VFD'], t: 'VFD · vacuum fluorescent display', d: 'Glowing green or blue-green digit tubes common on Soviet equipment of the period. Each digit is a small vacuum tube with a heated filament.', a: ['Wikipedia: Vacuum fluorescent display', W + 'Vacuum_fluorescent_display'] },
+  { k: 'rta', m: ['РТА-80', 'RTA-80'], t: 'RTA-80 (РТА-80) teletype', d: 'A Soviet roll-paper teleprinter. SKALA printed urgent messages on two of them at 7 characters per second.', a: ['Wikipedia: Teleprinter', W + 'Teleprinter'] },
+  { k: 'atspu', m: ['АЦПУ', 'drum printer'], t: 'АЦПУ · line printer', d: 'An alphanumeric drum line printer that printed whole lines at once on fanfold paper. Used for PRIZMA reports and DREG listings.', a: ['Wikipedia: Line printer', W + 'Line_printer'] },
+  { k: 'fanfold', m: ['fanfold'], t: 'Fanfold paper', d: 'Continuous paper with tractor holes on both edges and green bars to guide the eye along wide printouts.', a: ['Wikipedia: Continuous stationery', W + 'Continuous_stationery'] },
+  { k: 'v3m', m: ['В-3М', 'V-3M'], t: 'V-3M (В-3М)', d: 'The Soviet process-control computers SKALA ran on. Two worked together in “paired” mode.' },
+  { k: 'selsyn', m: ['selsyn'], t: 'Selsyn', d: 'An electrical angle-transmitter that turns a rod’s position into a needle angle on the control-room dial.', a: ['Wikipedia: Synchro', W + 'Synchro'] },
+  { k: 'tape', m: ['punched tape'], t: 'Punched tape', d: 'Paper tape with holes encoding data. SKALA’s programs were loaded from it, which took minutes.', a: ['Wikipedia: Punched tape', W + 'Punched_tape'] },
+  { k: 'octal', m: ['octal'], t: 'Octal', d: 'Counting in base 8, with digits 0–7. Common on computers of the period.', a: ['Wikipedia: Octal', W + 'Octal'] },
+  { k: 'insag', m: ['INSAG-7'], t: 'INSAG-7', d: 'The 1992 report of the IAEA’s International Nuclear Safety Advisory Group, which revised the first Soviet account and gave weight to the reactor’s design flaws.', a: INSAG },
+  { k: 'karpan', m: ['Karpan', 'Карпан'], t: 'Nikolai Karpan', d: 'Nuclear physicist who worked at the Chernobyl plant. His book «Чернобыль. Месть мирного атома» (2005) reproduces the rod maps, logs and recorder data this simulator is built on.', a: ['Karpan, Part IV (online, Russian)', 'http://accidont.ru/memo/Karpan_03.html'] },
+  { k: 'family', m: ['Chornobyl Family'], t: 'Chornobyl Family', d: 'A YouTube channel that has restored and rebuilt SKALA hardware and documented how it worked.', a: ['YouTube: Exploring SKALA', 'https://www.youtube.com/watch?v=ZbaptQh2AM4'] },
+  // ----- unit control board readings (whole labels, attached in ui.js) -----
+  { k: 'g_th', m: [], t: 'N тепл. · thermal power', d: 'Heat produced by the core, in megawatts. Full power is 3200 MW; at 01:22:30 the reactor was at about 200 MW. The amber frame comes on at 90 % of the overpower-trip setting, the red one above it.' },
+  { k: 'g_nn', m: [], t: 'N нейтр. · neutron power', d: 'Power measured by neutron detectors around the core, as a percentage of full power (3200 MW = 100 %). It responds almost instantly, so in a surge it runs ahead of thermal power.' },
+  { k: 'g_per', m: [], t: 'Период · reactor period', d: 'Seconds for power to grow by a factor of about 2.7. Dashes mean power is steady or falling. Amber below 60 s; below 20 s the АЗСР protection scrams the reactor.' },
+  { k: 'g_pbs', m: [], t: 'P БС · steam-drum pressure', d: 'Pressure in the steam drums, in kgf/cm² (1 kgf/cm² is about 0.98 bar). The fast steam dump (БРУ-К) opens at 71.5 and the main safety valves at 75. Rising pressure means more steam is being made than taken away.', a: ['Wikipedia: Steam drum', 'https://en.wikipedia.org/wiki/Steam_drum'] },
+  { k: 'g_lbs', m: [], t: 'Уровень БС · steam-drum water level', d: 'Water level in the steam drums, in mm above or below normal. Amber when it is more than 100 mm off; below −600 mm SKALA logs an emergency level deviation.' },
+  { k: 'g_gcn', m: [], t: 'Расход · coolant flow', d: 'Total water flow through the core from the running main circulation pumps, in thousands of m³/h. It was about 56 000 m³/h before the test and fell to about 51 000 as four pumps slowed with the coasting turbine.' },
+  { k: 'g_gpv', m: [], t: 'Пит. вода · feedwater flow', d: 'Water returned from the turbine condensers to the steam drums, in tonnes per hour, replacing the steam produced. Low feedwater leaves the water entering the core warmer, closer to boiling.' },
+  { k: 'g_tin', m: [], t: 'T вход · core inlet temperature', d: 'Temperature of the water entering the bottom of the fuel channels, in °C. At drum pressure it boils at about 284 °C. Amber within 3 °C of boiling, when steam can form low in the channels and add reactivity.', a: ['Wikipedia: Subcooling', 'https://en.wikipedia.org/wiki/Subcooling'] },
+  // ----- SKALA mnemonic (system status) lamps -----
+  { k: 'l_v3m', m: [], t: 'В-3М А / Б · the two computers', d: 'SKALA’s two V-3M machines. In paired mode (ПАРНЫЙ ВАРИАНТ) they ran together. Green: running. Blinking amber: restarting from punched tape.' },
+  { k: 'l_pwr', m: [], t: 'ПИТАНИЕ · power supply', d: 'Electrical supply to the SKALA complex. On 26 April it failed seconds after the explosion: the teletypes stopped mid-message and DREG recorded nothing from 01:23:48 to 01:40:35. Red blinking: no power.' },
+  { k: 'l_dreg', m: [], t: 'ДРЕГ · diagnostic recorder program', d: 'The DREG logging program, writing a numbered cycle every 2–4 s. Amber flash: a cycle being written. Blinking: recording stopped (tape reload or restart).', a: ['DREG transcript (archive.org)', 'https://archive.org/details/dreg-protocol-last-40-seconds-of-chernobyl'] },
+  { k: 'l_tape', m: [], t: 'ЛЕНТА · DREG magnetic tape', d: 'The magnetic tape DREG writes to. Amber while writing; blinking while the tape is reloaded (code 410). The printed DREG listing was made from this tape afterwards.' },
+  { k: 'l_prizma', m: [], t: 'ПРИЗМА · core calculation', d: 'The PRIZMA program, recalculating channel powers and the operating margin about every 5 minutes. Blinking amber: a printout is queued for the end of the cycle. Dark: not running during a restart.' },
+  { k: 'l_krv', m: [], t: 'КРВ', d: 'A SKALA subsystem named in the sources used here, which do not describe its function. Shown for completeness; it is not simulated.' },
+  { k: 'l_tty', m: [], t: 'РТА-80 №1 / №2 · teletypes', d: 'The two roll-paper teleprinters that printed urgent messages such as АВАР ЗАЩИТА 5, at 7 characters per second. Amber while printing.', a: ['Wikipedia: Teleprinter', 'https://en.wikipedia.org/wiki/Teleprinter'] },
+  { k: 'l_lpt', m: [], t: 'АЦПУ · drum line printer', d: 'The line printer for long reports: PRIZMA, rod cartograms and DREG listings, on fanfold paper. Amber while printing.', a: ['Wikipedia: Line printer', 'https://en.wikipedia.org/wiki/Line_printer'] },
+  { k: 'l_ptape', m: [], t: 'ПЕРФОЛЕНТА · punched-tape reader', d: 'Reads SKALA’s programs from punched tape. Lit only during a restart, which took minutes. Loading the test program on 25–26 April needed a full SKALA restart (Karpan p.350).', a: ['Wikipedia: Punched tape', 'https://en.wikipedia.org/wiki/Punched_tape'] },
+  { k: 'l_sens', m: [], t: 'ДАТЧИКИ · sensor inputs', d: 'The thousands of analog and on/off signals SKALA scanned from the plant. Red blinking: the signals are lost, as after the reactor was destroyed.' },
+];
+})();
+if (typeof module !== 'undefined') module.exports = GLOSSARY;
+
+</script>
+<script>
+// ===== SKALA simulator v2: RBMK-1000 unit 4 on the real CPS map, axial one-group diffusion =====
+// Reactivity in Δk unless noted; dollars = Δk / BETA. Power in MW(th). Lengths in m. z measured from the TOP of the core.
+// Core map: references/rbmk4_cps_map.csv (Karpan 2005, INSAG-7). Physics parameters: see PARAMS and README.
+const SIM = (() => {
+  const DATA = (typeof CORE_DATA !== 'undefined') ? CORE_DATA : require('./data.js');
+
+  // ---------------- parameters ----------------
+  const P = {
+    H: 7.0, N: 28, PNOM: 3200, PITCH: 0.25,
+    BETA: 0.005, LAMBDA: 0.0009, LAMBDA_D: 0.08,       // βeff, prompt generation time (s), 1-group precursor decay (1/s)
+    M2: 0.025, DELTA: 0.5,                               // axial migration area (m²), extrapolation distance (m)
+    A_ROD: 5.0e-4,                                       // Δk of one average rod fully inserted (≈0.1 β, INSAG-7 Table II-I: 139 RR = 7.5 %)
+    WR: 0.30,                                            // water column absorption relative to B4C absorber (tuned)
+    ALPHA_V: 2.6e-4,                                     // Δk per % steam void (design value 2.0e-4; ~+5 β total at low ORM)
+    ALPHA_D: -1.2e-5,                                    // Δk per °C fuel temperature (INSAG-7 Table II-I)
+    XE_W: 0.026,                                         // Δk of full-power equilibrium xenon
+    BURN: 0.065,                                        // axial burnup dip: ends less burned than mid-height (tuned to Kz≈1.2-1.4 at power)
+    R_FUEL: 0.13, TAU_FUEL: 2.0, TAU_VOID: 0.5, DIRECT: 0.05,
+    ABS_LEN: 6.2, WATER_TOP: 1.25, DISP_LEN: 4.5, USP_MAX: 3.05, ROD_SPEED: 0.4,
+    CP: 5.4, HFG: 1505, TSAT: 284, PUMP_M3H: 7000, KG_PER_M3: 0.2056,
+    AR_KP: 5, AR_KD: 20, AR_DEAD: 0.02,
+    PUMP_TRIP_M3H: 5000,
+    KR_EST: 1.45, W_CRIT: 3.2, RUPTURE_VOID_RATE: 60,   // hottest-channel factor; channel critical power (MW); steam ingress after rupture (% void per s)
+  };
+  const { H, N, PNOM, BETA } = P;
+  const h = H / N;
+  const LAM_I = 2.87e-5, LAM_X = 2.09e-5, SIGPHI = 5 * LAM_X, G_X = 0.0357;
+
+  // ---------------- core layout ----------------
+  const RAD_EXT = 6.8;                                       // extrapolated radius (m)
+  function j0(x) { // Bessel J0 (Abramowitz-Stegun polynomial, |x|<=3)
+    const y = (x / 3) ** 2;
+    return 1 - 2.2499997 * y + 1.2656208 * y ** 2 - 0.3163866 * y ** 3 + 0.0444479 * y ** 4 - 0.0039444 * y ** 5 + 0.00021 * y ** 6;
+  }
+  function buildCore() {
+    const rods = [], dets = [];
+    for (const [ch, x, y, type, arg, d39, d1, dI, r7] of DATA.cps) {
+      const rm = Math.hypot(x, y) * P.PITCH;
+      const cell = { ch, x, y, rm, nx: x / 26, ny: y / 26, d0039: d39, d012230: d1, dInsag: dI };
+      if (type === 'DET') { dets.push(cell); continue; }
+      const t = type === 'RR/LAR/AZ' ? 'RR' : type;     // РР, ЛАР and АЗ rods are not distinguished in the sources
+      Object.assign(cell, { type: t, reads7: !!r7, bank: arg ? 'abc'.indexOf(arg.slice(-1)) : -1, d: 0, v: 0, jam: false });
+      cell.wr = j0(2.405 * rm / RAD_EXT) ** 2;
+      rods.push(cell);
+    }
+    const mean = rods.reduce((a, r) => a + r.wr, 0) / rods.length;
+    rods.forEach((r, i) => { r.wr /= mean; r.id = i; r.ang = (Math.atan2(r.y, r.x) + 2 * Math.PI) % (2 * Math.PI); });
+    // manual-drive sectors (simulator convenience, not a plant grouping)
+    rods.filter(r => r.type === 'RR').forEach(r => r.group = Math.floor(r.ang / (2 * Math.PI) * 8) % 8);
+    const fuel = DATA.fuel.map(([x, y]) => ({ x, y, nx: x / 26, ny: y / 26, rm: Math.hypot(x, y) * P.PITCH }));
+    return { rods, dets, fuel };
+  }
+
+  // ---------------- rod geometry per axial node ----------------
+  const ov = (a, b, k) => Math.max(0, Math.min(b, (k + 1) * h) - Math.max(a, k * h)) / h;
+  function rodNodes(r, absOut, watOut) {   // fills absorber and water fractions for each node
+    const d = r.d;
+    for (let k = 0; k < N; k++) {
+      let a = 0, w = 0;
+      if (r.type === 'USP') { a = ov(H - d, H, k); w = ov(0, H - d, k); }
+      else if (r.type === 'AR') { a = ov(d - P.ABS_LEN, d, k); w = 1 - a; }
+      else { a = ov(d - P.ABS_LEN, d, k); w = ov(0, d - P.ABS_LEN, k) + ov(d, d + P.WATER_TOP, k) + ov(d + P.WATER_TOP + P.DISP_LEN, H, k); }
+      absOut[k] = a; watOut[k] = w;
+    }
+  }
+  const tmpA = new Float64Array(N), tmpW = new Float64Array(N);
+  function rodDk(S) {          // per-node Δk∞ from all CPS channels; also absorber map for ORM (cached per rod)
+    const dk = S.dkRod; dk.fill(0); S.absW.fill(0);
+    for (const r of S.rods) {
+      if (!r.cA) { r.cA = new Float64Array(N); r.cW = new Float64Array(N); r.cD = NaN; }
+      if (r.cD !== r.d) { rodNodes(r, r.cA, r.cW); r.cD = r.d; }
+      const cA = r.cA, cW = r.cW, w = P.A_ROD * r.wr;
+      for (let k = 0; k < N; k++) {
+        dk[k] -= w * (cA[k] + P.WR * cW[k]);
+        S.absW[k] += r.wr * cA[k];
+      }
+    }
+  }
+
+  // ---------------- axial eigenvalue problem: -M² φ'' + φ = λ k∞ φ ----------------
+  const cOff = P.M2 / (h * h), cEdge = P.M2 / (h * (h / 2 + P.DELTA));
+  const dia = new Float64Array(N);
+  for (let k = 0; k < N; k++) dia[k] = 1 + (k === 0 || k === N - 1 ? cOff + cEdge : 2 * cOff);
+  const tA = new Float64Array(N), tB = new Float64Array(N), tC = new Float64Array(N), tR = new Float64Array(N), cp = new Float64Array(N), dp = new Float64Array(N);
+  function solveTri(a, b, c, r, x) {   // a sub, b diag, c super
+    cp[0] = c[0] / b[0]; dp[0] = r[0] / b[0];
+    for (let i = 1; i < N; i++) { const m = b[i] - a[i] * cp[i - 1]; cp[i] = c[i] / m; dp[i] = (r[i] - a[i] * dp[i - 1]) / m; }
+    x[N - 1] = dp[N - 1];
+    for (let i = N - 2; i >= 0; i--) x[i] = dp[i] - cp[i] * x[i + 1];
+  }
+  const psi = new Float64Array(N);
+  function eigen(S, iters = 12) {
+    const kinf = S.kinf, phi = S.phi;
+    let lam = S.lam;
+    for (let it = 0; it < iters; it++) {
+      const sig = lam - 0.004;
+      for (let k = 0; k < N; k++) { tA[k] = -cOff; tC[k] = -cOff; tB[k] = dia[k] - sig * kinf[k]; tR[k] = kinf[k] * phi[k]; }
+      solveTri(tA, tB, tC, tR, psi);
+      let nrm = 0; for (let k = 0; k < N; k++) nrm += psi[k];
+      if (!isFinite(nrm) || nrm === 0) { psi.fill(1); nrm = N; }
+      let dmax = 0;
+      for (let k = 0; k < N; k++) { const v = Math.max(1e-9, psi[k] * N / nrm); dmax = Math.max(dmax, Math.abs(v - phi[k])); phi[k] = v; }
+      // Rayleigh quotient λ = <φ,Tφ>/<φ,Kφ>
+      let num = 0, den = 0;
+      for (let k = 0; k < N; k++) {
+        const tp = dia[k] * phi[k] - (k > 0 ? cOff * phi[k - 1] : 0) - (k < N - 1 ? cOff * phi[k + 1] : 0);
+        num += phi[k] * tp; den += phi[k] * kinf[k] * phi[k];
+      }
+      lam = num / den; if (dmax < 1e-7) break;
+    }
+    S.lam = lam;
+    return lam;
+  }
+
+  // ---------------- local k∞ assembly ----------------
+  const burnShape = new Float64Array(N);
+  (() => { let m = 0; for (let k = 0; k < N; k++) { burnShape[k] = Math.sin(Math.PI * ((k + 0.5) * h + P.DELTA) / (H + 2 * P.DELTA)); m += burnShape[k]; } m /= N; for (let k = 0; k < N; k++) burnShape[k] -= m; })();
+  function buildKinf(S) {
+    rodDk(S);
+    for (let k = 0; k < N; k++) {
+      S.kinf[k] = 1 + S.c0 - P.BURN * burnShape[k] + S.dkRod[k]
+        + P.ALPHA_V * S.vd[k] + P.ALPHA_D * (S.tf[k] - P.TSAT) - P.XE_W * S.xe[k];
+    }
+  }
+
+  // ---------------- thermal hydraulics ----------------
+  const alphaQ = (x, p) => { const r = 0.049 * p / 68, Sl = 1.6; return x <= 0 ? 0 : x / (x + (1 - x) * r * Sl); };
+  const tfw = q => 140 + 50 * Math.min(1, q / PNOM);
+  function hydro(S, G) {          // per-node void from enthalpy rise, coolant flows upward (bottom node = N-1)
+    const qTot = S.q.reduce((a, b) => a + b, 0) + P.DIRECT * S.n * PNOM;
+    const dTsub = Math.max(0, S.Gfw / G * (P.TSAT - tfw(qTot)));
+    const sub = P.CP * dTsub;
+    let hcum = 0, zb = null;
+    for (let k = N - 1; k >= 0; k--) {
+      const qk = S.q[k] + P.DIRECT * S.n * PNOM / N;
+      const hin = hcum; hcum += qk * 1000 / G;
+      const hmid = (hin + hcum) / 2;
+      const x = Math.max(0, (hmid - sub) / P.HFG);
+      S.vdT[k] = 100 * alphaQ(x, S.p);
+      if (zb === null && hcum > sub) zb = k;
+    }
+    const Gs = Math.max(0, (qTot * 1000 - G * sub) / P.HFG);
+    return { dTsub, Gs, qTot, zb };
+  }
+
+  // ---------------- state ----------------
+  function create() {
+    const core = buildCore();
+    return {
+      ...core, t: 0, clock0: 0, date: '', n: 1, C: 1, lam: 1, c0: 0, rho: 0, lnRate: 0, period: Infinity,
+      phi: new Float64Array(N).fill(1), kinf: new Float64Array(N), dkRod: new Float64Array(N), absW: new Float64Array(N),
+      tf: new Float64Array(N).fill(P.TSAT), q: new Float64Array(N), vd: new Float64Array(N), vdT: new Float64Array(N),
+      xe: new Float64Array(N), io: new Float64Array(N),
+      p: 65, L: 0, Gfw: 1500, GsF: 1500, hy: null,
+      pumps: [11, 12, 13, 14, 21, 22, 23, 24].map((id, k) => ({ id, side: k < 4 ? 'Л' : 'П', on: true, w: 1, coast: false, tripped: false })),
+      drk: 1, ar: { on: true, set: 3100, bank: 0, pk: '' }, groupMove: {}, singleMove: null, scram: false, scramT: null,
+      destroyed: false, destroyT: null, powerOffT: null, azmSet: 3520, prot: true, tripLatched: {},
+      events: [], dregPending: [], dregOnline: true, dregOfflineUntil: 0, dregNextPoll: 2.5, dregCycle: 1, dregRodNext: 60,
+      testStarted: false, prizmaNext: 300, skalaMode: 'ПАРНЫЙ', signals: {},
+    };
+  }
+
+  // ---------------- signals (DREG on/off with "=0" clearing) ----------------
+  function ev(S, ru, en, opts = {}) {
+    if (opts.tty) S.events.push({ t: S.t, kind: 'tty', ru: opts.ttyRu || ru, en: opts.ttyEn || en });
+    if (opts.ttyOnly) return;
+    S.dregPending.push({ t: S.t, ru, en, code: opts.code });
+  }
+  function signal(S, key, on, ru, en) {           // level signal: logs on rise, "=0 …" on fall
+    if (!!S.signals[key] === on) return;
+    S.signals[key] = on;
+    if (on) ev(S, ru, en); else ev(S, '=0 ' + ru, 'Cleared: ' + en);
+  }
+
+  // ---------------- AZ-5 ----------------
+  function scram(S, cause) {
+    if (S.destroyed) return;
+    if (!S.scram) {
+      S.scram = true; S.scramT = S.t; S.ar.on = false;
+      for (const r of S.rods) if (!r.jam) r.v = r.type === 'USP' ? -P.ROD_SPEED : P.ROD_SPEED;   // USP were not part of AZ in 1986 (Karpan p.370): they stay
+      for (const r of S.rods) if (r.type === 'USP') r.v = 0;
+      S.groupMove = {}; S.singleMove = null;
+      ev(S, 'АЗ-5 СУЗ', 'AZ-5 command to the control and protection system', { tty: true, ttyRu: 'АВАР ЗАЩИТА 5', ttyEn: 'EMERGENCY PROTECTION 5' });
+      ev(S, 'СТЕРЖНИ СОШЛИ С ВК', 'Rods left their upper limit switches');
+      ev(S, 'НЕГОТОВНОСТЬ АЗ', 'Emergency protection not ready (AZ rods off upper limits)');
+      ev(S, 'ОТКЛЮЧЕНИЕ АР ПО НЕИСПРАВНОСТИ', 'Automatic regulator disconnected');
+      ev(S, 'РАЗГРУЗКА ТГ ПРИ АЗ-5', 'Turbine-generator unloading on AZ-5');
+    }
+    if (cause) ev(S, cause.ru, cause.en);
+  }
+
+  // ---------------- one step ----------------
+  function step(S, dt) {
+    if (S.destroyed) { afterDestroy(S, dt); S.t += dt; return; }
+    // pumps: coasting units slow with the turbine (≈20 % in 36 s), DRK valves close after AZ-5 at low power
+    if (S.scram && S.n < 0.2) S.drk = Math.max(0.85, S.drk - 0.05 * dt);
+    for (const pm of S.pumps) {
+      if (pm.tripped) pm.w = Math.max(0, pm.w - 0.018 * dt);            // run-down after trip: ≈500 m³/h per s over 4 pumps (Karpan p.337)
+      else if (pm.coast) pm.w = Math.max(0, pm.w - 0.0055 * dt);        // turbine run-down: total flow 56 800 → 51 000 m³/h in 35 s (DREG)
+      else if (pm.on) pm.w += (1 - pm.w) / 8 * dt; else pm.w += -pm.w / 12 * dt;
+      const m3h = pm.w * S.drk * P.PUMP_M3H;
+      if (pm.on && !pm.tripped && pm.w > 0.3 && m3h < P.PUMP_TRIP_M3H && (pm.coast || S.drk < 1)) {
+        pm.tripped = true; pm.on = false;
+        ev(S, `ОТКЛЮЧЕНИЕ ГЦН-${pm.id} ПО РАСХОДУ`, `MCP-${pm.id} tripped on low flow (<5000 m³/h)`);
+        const side = S.pumps.filter(q => q.side === pm.side && q.tripped).length;
+        if (side >= 2 && !S.tripLatched['az1' + pm.side]) { S.tripLatched['az1' + pm.side] = true; S.events.push({ t: S.t, kind: 'tty', ru: 'АВАР ЗАЩИТА 1', en: 'EMERGENCY PROTECTION 1 (2 of 4 pumps tripped on one side)' }); }
+      }
+    }
+    const G = Math.max(150, flowKg(S));
+    // rods
+    if (S.ar.on && !S.scram) arControl(S, dt);
+    if (S.assist && S.ar.on && !S.scram) siurAssist(S);
+    for (const r of S.rods) {
+      if (r.jam) continue;
+      let v = 0;
+      if (S.scram) v = r.v;
+      else if (r.type === 'AR') continue;
+      else if (S.singleMove && S.singleMove.id === r.id) v = S.singleMove.dir * P.ROD_SPEED;
+      else if (S.assistMove && S.assistMove.ids.includes(r.id)) v = S.assistMove.dir * P.ROD_SPEED * 0.5;
+      else { const g = r.type === 'RR' ? 'RR' + r.group : r.type; if (S.groupMove[g]) v = S.groupMove[g] * P.ROD_SPEED; }
+      const max = r.type === 'USP' ? P.USP_MAX : H;
+      r.d = Math.max(0, Math.min(max, r.d + v * dt));
+    }
+    // neutronics: shape (adiabatic) + amplitude (point kinetics)
+    buildKinf(S);
+    const lam = eigen(S, S.scram ? 16 : 8);
+    const rho = (1 - lam) / BETA;                         // dollars
+    S.rho = rho;
+    const K = BETA / P.LAMBDA;
+    let left = dt; const n0 = S.n;
+    while (left > 1e-12) {
+      const hs = Math.min(left, 0.05 / (K * Math.abs(rho - 1) + 1));
+      S.n = (S.n + hs * K * S.C + hs * 1e-10) / (1 - hs * K * (rho - 1));
+      S.C = (S.C + hs * P.LAMBDA_D * S.n) / (1 + hs * P.LAMBDA_D);
+      left -= hs;
+    }
+    S.n = Math.max(1e-9, S.n);
+    const lr = Math.log(S.n / n0) / dt; S.lnRate += (lr - S.lnRate) * Math.min(1, dt / 0.5);
+    S.period = S.lnRate > 1e-4 ? 1 / S.lnRate : Infinity;
+    // fuel temperature per node
+    const Pf = S.n * PNOM, cf = P.TAU_FUEL / (P.R_FUEL * N);
+    for (let k = 0; k < N; k++) {
+      const pk = (1 - P.DIRECT) * Pf * S.phi[k] / N;
+      S.q[k] = (S.tf[k] - P.TSAT) / (P.R_FUEL * N);
+      S.tf[k] += (pk - S.q[k]) / cf * dt;
+    }
+    // void, feedwater, drum level and pressure
+    const hy = hydro(S, G); S.hy = hy;
+    for (let k = 0; k < N; k++) S.vd[k] += (S.vdT[k] - S.vd[k]) * Math.min(1, dt / P.TAU_VOID);
+    S.Gfw += (Math.max(0, hy.Gs - 0.6 * S.L) - S.Gfw) * Math.min(1, dt / 12);
+    S.L += (S.Gfw - hy.Gs) / 40 * dt;
+    S.GsF += (hy.Gs - S.GsF) * Math.min(1, dt / 5);
+    const Gout = Math.max(0, Math.min(2000, S.GsF + 40 * (S.p - 65)));
+    S.p += (hy.Gs - Gout) / 300 * dt;
+    // xenon / iodine per node
+    for (let k = 0; k < N; k++) {
+      const pp = S.n * S.phi[k];
+      S.io[k] += LAM_I * (pp - S.io[k]) * dt;
+      S.xe[k] += ((LAM_X + SIGPHI) * (G_X * pp + (1 - G_X) * S.io[k]) - (LAM_X + SIGPHI * pp) * S.xe[k]) * dt;
+    }
+    if (S.prot) protections(S, Pf);
+    // boiling crisis in the hottest channel -> fuel channels rupture, rods jam, steam floods the core (labelled model, not a code)
+    const wtk = Pf / 1661 * P.KR_EST, wcrit = P.W_CRIT * Math.pow(Math.max(0.2, G / (48000 * P.KG_PER_M3)), 0.4);
+    S.wtk = wtk;
+    if (!S.crisis && wtk > wcrit) {
+      S.crisis = true; S.crisisT = S.t;
+      for (const r of S.rods) { r.jam = true; r.v = 0; }
+    }
+    if (S.crisis) for (let k = 0; k < N; k++) S.vd[k] = Math.min(95, S.vd[k] + P.RUPTURE_VOID_RATE * Math.min(1, S.n * S.phi[k] / 2) * dt);
+    if (Pf > 32000 || (S.crisis && S.t - S.crisisT > 2.0)) destroy(S);   // reactor-space overpressure lifts the upper plate
+    skalaTick(S, dt);
+    S.t += dt;
+  }
+
+  function flowKg(S) { return S.pumps.reduce((a, pm) => a + pm.w * S.drk * P.PUMP_M3H * P.KG_PER_M3, 0); }
+
+  function arControl(S, dt) {
+    const bank = b => S.rods.filter(r => r.type === 'AR' && r.bank === b);
+    const Pn = S.n * PNOM;
+    const u = P.AR_KP * (Pn - S.ar.set) / S.ar.set + P.AR_KD * S.lnRate;
+    let b = S.ar.bank, rods = bank(b);
+    const dAvg = rods.reduce((a, r) => a + r.d, 0) / rods.length;
+    signal(S, 'pkup', dAvg < 1.4, `${b + 1} ПК-ВВЕРХ`, `Overcompensation ${b + 1}: AR rods near upper limit`);
+    signal(S, 'pkdn', dAvg > 5.6, `${b + 1} ПК-ВНИЗ`, `Overcompensation ${b + 1}: AR rods near lower limit`);
+    if (Math.abs(u) < P.AR_DEAD) return;
+    const v = Math.max(-1, Math.min(1, u)) * P.ROD_SPEED;
+    const atTop = rods.every(r => r.d <= 0.001), atBot = rods.every(r => r.d >= H - 0.001);
+    if ((v < 0 && atTop) || (v > 0 && atBot)) {
+      ev(S, `${b + 1}АР НА ${v < 0 ? 'ВК' : 'НК'}`, `${b + 1}AR bank at ${v < 0 ? 'upper' : 'lower'} limit switch`);
+      const next = [0, 1, 2].find(k => k !== b && bank(k).some(r => v < 0 ? r.d > 0.001 : r.d < H - 0.001));
+      if (next === undefined) { S.ar.on = false; ev(S, 'ОТКЛЮЧЕНИЕ АР ПО НЕИСПРАВНОСТИ', 'Automatic regulator disconnected (out of range)'); return; }
+      S.ar.bank = next; ev(S, `${next + 1}АР В РЕЖИМЕ АВТ.`, `${next + 1}AR bank switched to automatic`); rods = bank(next);
+    }
+    for (const r of rods) r.d = Math.max(0, Math.min(H, r.d + v * dt));
+  }
+
+  // Simulator convenience: re-compensate with manual rods so the AR stays mid-range (the SIUR did this by hand).
+  function siurAssist(S) {
+    const ar = S.rods.filter(r => r.type === 'AR' && r.bank === S.ar.bank);
+    const dAvg = ar.reduce((a, r) => a + r.d, 0) / ar.length;
+    const cur = S.assistMove;
+    if (cur) {
+      const maxOf = id => S.rods[id].type === 'USP' ? P.USP_MAX : H;
+      const atEnd = cur.ids.every(id => { const r = S.rods[id]; return cur.dir < 0 ? r.d <= 0 : r.d >= maxOf(id); });
+      const done = atEnd || (cur.shape ? (S.assistT = (S.assistT || 0) + 1) > 24 : ((cur.dir < 0 && dAvg > 3.0) || (cur.dir > 0 && dAvg < 4.0)));
+      if (done) S.assistT = 0;
+      if (done) S.assistMove = null;
+      return;
+    }
+    // axial offset: (upper half - lower half) / total
+    let up = 0, lo = 0; for (let k = 0; k < N; k++) { if (k < N / 2) up += S.phi[k]; else lo += S.phi[k]; }
+    const ao = (up - lo) / (up + lo);
+    const rr = S.rods.filter(r => r.type === 'RR'), usp = S.rods.filter(r => r.type === 'USP');
+    let pick = null, dir = 0;
+    if (dAvg < 1.5) {           // regulator nearly out: add reactivity
+      dir = -1;
+      const u = usp.filter(r => r.d > 0.01), m = rr.filter(r => r.d > 0.01);
+      pick = (ao > 0.05 && u.length) ? u.sort((a, b) => b.d - a.d) : m.sort((a, b) => b.d * b.wr - a.d * a.wr);
+    } else if (dAvg > 5.5) {    // regulator nearly in: remove reactivity
+      dir = 1;
+      const u = usp.filter(r => r.d < P.USP_MAX - 0.01), m = rr.filter(r => r.d < H - 0.01);
+      pick = (ao < -0.05 && u.length) ? u.sort((a, b) => a.d - b.d) : m.sort((a, b) => a.d - b.d || b.wr - a.wr);
+    }
+    if (pick && pick.length) {
+      const ids = pick.slice(0, 3).map(r => r.id);
+      S.assistMove = { ids, dir, shape: dAvg >= 1.0 && dAvg <= 6.0 };
+      const kind = S.rods[ids[0]].type === 'USP' ? 'УСП' : 'РР';
+      ev(S, `${dir < 0 ? 'ВЫВОД' : 'ВВОД'} ${kind} ${ids.map(i => S.rods[i].ch).join(' ')} (СИУР)`, `SIUR assist: ${dir < 0 ? 'withdrawing' : 'inserting'} three ${kind === 'УСП' ? 'shortened (bottom)' : 'manual'} rods`);
+    }
+  }
+
+  function protections(S, Pf) {
+    const L = S.tripLatched;
+    if (Pf > S.azmSet && !L.azm) {
+      L.azm = true; S.events.push({ t: S.t, kind: 'tty', ru: 'АВАР ЗАЩИТА 5', en: 'EMERGENCY PROTECTION 5 (overpower AZM)' });
+      scram(S, { ru: 'АЗМ (ПРЕВ. МОЩН. В ОСНОВН. ДИАПАЗОНЕ)', en: 'AZM: power above setpoint, main range' });
+      ['2УЗМ-1', '2УЗМ-2', '2УЗМ-3', '2УЗМ-4', '1УЗМ-1', '1УЗМ-2', '1УЗМ-3', '1УЗМ-4'].forEach((c, i) => ev(S, `ПРЕВЫШЕНИЕ N АВАРИЙНЫЙ В ${c}`, i ? '' : 'Emergency power excess on each of the eight power-protection channels'));
+    }
+    if (S.period < 20 && Pf > 30 && !L.azs) { L.azs = true; scram(S, { ru: 'АЗСР (СНИЖ. ПЕРИОДА В ОСНОВН. ДИАПАЗОНЕ)', en: 'AZSR: reactor period below 20 s, main range' }); }
+    if (S.p > 75 && !L.pbs) { L.pbs = true; ev(S, 'ПРЕВЫШЕНИЕ ДАВЛЕНИЯ В БС ПРАВ.', 'Drum separator pressure high, right'); ev(S, 'ПРЕВЫШЕНИЕ ДАВЛЕНИЯ В БС ЛЕВ.', 'Drum separator pressure high, left'); }
+    if (S.p > 71.5 && !L.bruk) { L.bruk = true; ev(S, 'СРАБАТЫВАНИЕ БРУ-К1', 'Fast steam dump to condenser 1 opened'); }
+    signal(S, 'lvl', S.L < -600, 'АВАРИЙНОЕ ОТКЛОНЕНИЕ УРОВНЯ В БС', 'Emergency deviation of drum separator level');
+  }
+
+  function destroy(S) {
+    S.destroyed = true; S.destroyT = S.t; S.powerOffT = S.t + 3.6;
+    for (const r of S.rods) { r.jam = true; r.v = 0; }
+    S.pumps.forEach(pm => { pm.on = false; });
+    S.pendingDestroy = [
+      [1.5, () => { ev(S, 'НЕИСПРАВН. ИЗМЕРИТЕЛ. ЧАСТИ АР-1', 'AR-1 measuring channel fault'); ev(S, 'НЕИСПРАВН. ИЗМЕРИТЕЛ. ЧАСТИ АР-2', 'AR-2 measuring channel fault'); ev(S, 'АВАРИЙНОЕ ОТКЛОНЕНИЕ УРОВНЯ В БС', 'Emergency deviation of drum separator level'); ev(S, 'ПРЕВЫШЕНИЕ ДАВЛЕНИЯ В БС ПРАВ.', 'Drum separator pressure high, right'); ev(S, 'ПРЕВЫШЕНИЕ ДАВЛЕНИЯ В БС ЛЕВ.', 'Drum separator pressure high, left'); }],
+      [2.5, () => { ev(S, 'СРАБАТЫВАНИЕ БРУ-К1', 'Fast steam dump to condenser 1 opened'); }],
+      [3.5, () => { ev(S, 'РОСТ ДАВЛЕНИЯ В РП', 'Pressure rise in reactor space: fuel channels ruptured', { code: 'К06L005 =1' }); ev(S, 'НЕТ НАПРЯЖЕНИЯ 48В 1СШ', 'No 48 V on bus 1SSh: rod clutch power lost'); ev(S, 'НЕИСПРАВН. ИСПОЛНИТ. ЧАСТИ 1АР', '1AR actuator fault'); ev(S, 'НЕИСПРАВН. ИСПОЛНИТ. ЧАСТИ 2АР', '2AR actuator fault'); }],
+    ];
+  }
+  function afterDestroy(S, dt) {
+    S.n *= Math.exp(-dt / 0.6); S.p += 6 * dt;
+    const el = S.t - S.destroyT;
+    while (S.pendingDestroy.length && el >= S.pendingDestroy[0][0]) S.pendingDestroy.shift()[1]();
+    if (S.t >= S.powerOffT && !S.powerLost) {
+      S.powerLost = true; flushDreg(S);
+      S.events.push({ t: S.t, kind: 'poweroff' });
+      return;
+    }
+    if (!S.powerLost && S.t >= S.dregNextPoll) flushDreg(S);
+  }
+
+  // ---------------- SKALA programs ----------------
+  function flushDreg(S) {
+    const span = S.t - (S.lastPoll ?? S.t - 2);
+    S.lastPoll = S.t;
+    S.dregNextPoll = S.t + 2 + Math.random() * 2;     // DREG is low priority: 2-4 s cycles
+    if (!S.dregOnline) { S.dregPending.length = 0; return; }
+    if (!S.dregPending.length) { S.dregCycle++; return; }
+    S.events.push({ t: S.t, kind: 'dreg', cycle: S.dregCycle++, span, lines: S.dregPending.splice(0) });
+  }
+  const ROD_LOG = ['44-37', '50-27', '54-37', '40-23', '46-35', '32-31', '44-53', '34-13', '62-31'];   // 9 logged rods: one per AR bank, plain rods and two УСП; which 9 were logged is not documented
+  function skalaTick(S, dt) {
+    if (S.dregOfflineUntil && S.t >= S.dregOfflineUntil) {
+      S.dregOfflineUntil = 0; S.dregOnline = true;
+      S.events.push({ t: S.t, kind: 'sys', ru: 'ДРЕГ: ЗАПИСЬ ВОЗОБНОВЛЕНА', en: 'DREG recording resumed' });
+      if (S.restarting) {
+        S.restarting = false; S.skalaMode = 'ПАРНЫЙ';
+        const [d, m, y] = S.date.split('.');
+        S.events.push({ t: S.t, kind: 'tty', ru: `ДАТА ${+d}.${+m}.${y} ПАРН`, en: 'SKALA restarted in paired mode (banner as on the 01:36 tape)' });
+      }
+    }
+    if (S.t >= S.dregNextPoll) flushDreg(S);
+    if (S.t >= S.dregRodNext) {
+      S.dregRodNext = S.t + 60;
+      if (S.dregOnline) {
+        const m = Object.fromEntries(S.rods.map(r => [r.ch, r]));
+        const cells = ROD_LOG.filter(c => m[c]).map(c => `${c}:${m[c].d.toFixed(1).replace('.', ',')}`);
+        S.dregPending.push({ t: S.t, ru: 'ПОЛОЖЕНИЕ СТЕРЖНЕЙ, М', en: '' });
+        for (let i = 0; i < cells.length; i += 3)       // three rods per printed line, so the listing fits the page width
+          S.dregPending.push({ t: S.t, ru: cells.slice(i, i + 3).join(' '), en: i + 3 >= cells.length ? 'Positions of the 9 logged rods in metres, channel:depth (1-minute cycle)' : '' });
+      }
+    }
+  }
+
+  // ---------------- derived quantities ----------------
+  function ormPrizma(S) {     // flux-weighted equivalent fully inserted rods (PRIZMA definition), AZ excluded
+    let num = 0, den = 0;
+    for (let k = 0; k < N; k++) { const w = S.phi[k] ** 2; num += S.absW[k] * w; den += w; }
+    return num / den;
+  }
+  function ormQuick(S) {      // simple count from rod positions: inserted absorber length / core height
+    let o = 0;
+    for (const r of S.rods) {
+      rodNodes(r, tmpA, tmpW); let a = 0; for (let k = 0; k < N; k++) a += tmpA[k]; o += a / N;
+    }
+    return o;
+  }
+  const thermal = S => S.q.reduce((a, b) => a + b, 0) + P.DIRECT * S.n * PNOM;
+  const flowM3 = S => S.pumps.reduce((a, pm) => a + pm.w * S.drk * P.PUMP_M3H, 0);
+  function sevenPoint(S) {     // 7 axial sections of 1 m (like the ДКЭВ height detectors), top first, relative to mean
+    const out = []; for (let s = 0; s < 7; s++) { let a = 0; for (let k = s * 4; k < s * 4 + 4; k++) a += S.phi[k]; out.push(a / 4); }
+    return out;
+  }
+  const kz = S => Math.max(...S.phi);
+  function channelPower(S) {   // illustrative radial map: J0 shape depressed by nearby inserted absorber (not a 2D solution)
+    const w = Array.from(S.phi, v => v * v), ws = w.reduce((a, b) => a + b, 0);
+    const imp = S.rods.map(r => { rodNodes(r, tmpA, tmpW); let a = 0; for (let k = 0; k < N; k++) a += tmpA[k] * w[k]; return a / ws; });
+    const vals = S.fuel.map(f => {
+      let v = Math.max(0.05, j0(2.405 * f.rm / RAD_EXT));
+      for (let i = 0; i < S.rods.length; i++) {
+        const r = S.rods[i]; if (imp[i] < 0.01) continue;
+        const d2 = ((f.x - r.x) ** 2 + (f.y - r.y) ** 2) * P.PITCH ** 2;
+        v *= 1 - 0.55 * imp[i] * Math.exp(-d2 / (2 * 0.55 ** 2));
+      }
+      return v;
+    });
+    const m = vals.reduce((a, b) => a + b, 0) / vals.length;
+    return vals.map(v => v / m);
+  }
+
+  // ---------------- initialisation ----------------
+  function equilibriumXe(S, nrel) {
+    for (let k = 0; k < N; k++) {
+      const pp = nrel * S.phi[k]; S.io[k] = pp;
+      S.xe[k] = (LAM_X + SIGPHI) * pp / (LAM_X + SIGPHI * pp);
+    }
+  }
+  function settleThermal(S, Pth) {
+    S.n = S.C = Pth / PNOM;
+    for (let k = 0; k < N; k++) { S.q[k] = (1 - P.DIRECT) * Pth * S.phi[k] / N; S.tf[k] = P.TSAT + P.R_FUEL * N * S.q[k]; }
+    const G = flowKg(S);
+    for (let it = 0; it < 40; it++) { const hy = hydro(S, G); S.Gfw = hy.Gs; }
+    const hy = hydro(S, G); S.hy = hy; S.GsF = hy.Gs; S.vd.set(S.vdT); S.L = 0;
+  }
+  function solveC0(S, opts) {   // find c0 (or xenon scale) so the state is exactly critical, iterating shape/feedback
+    for (let outer = 0; outer < 30; outer++) {
+      settleThermal(S, opts.P);
+      if (opts.xeEq) equilibriumXe(S, opts.P / PNOM);
+      // secant on the free parameter
+      const f = v => { opts.set(S, v); buildKinf(S); return eigen(S, 400) - 1; };
+      let a = opts.guess, b = opts.guess + 0.002, fa = f(a), fb = f(b);
+      for (let i = 0; i < 30 && Math.abs(fb) > 1e-10; i++) { const c = b - fb * (b - a) / (fb - fa); a = b; fa = fb; b = c; fb = f(b); }
+      opts.guess = b;
+    }
+  }
+  // INSAG-7 Fig. II-5 curve 4: relative flux vs height from the BOTTOM (m), before the accident
+  const FIG_II5_C4 = [[0, 0.5], [0.3, 0.56], [0.5, 0.62], [1, 0.85], [1.5, 1.0], [2, 1.05], [3, 1.05], [4, 1.07], [4.5, 1.2], [5, 1.33], [5.5, 1.37], [6, 1.25], [6.5, 1.0], [7, 0.66]];
+  function targetPhi(curve) {
+    const out = new Float64Array(N);
+    for (let k = 0; k < N; k++) {
+      const hgt = H - (k + 0.5) * h;
+      let i = 0; while (i < curve.length - 2 && curve[i + 1][0] < hgt) i++;
+      const [x0, y0] = curve[i], [x1, y1] = curve[i + 1];
+      out[k] = y0 + (y1 - y0) * (hgt - x0) / (x1 - x0);
+    }
+    for (let pass = 0; pass < 6; pass++) {          // smooth the hand-digitised curve so its corners do not become spikes
+      const c = out.slice();
+      for (let k = 1; k < N - 1; k++) out[k] = 0.25 * c[k - 1] + 0.5 * c[k] + 0.25 * c[k + 1];
+    }
+    const m = out.reduce((a, b) => a + b, 0) / N; for (let k = 0; k < N; k++) out[k] /= m;
+    return out;
+  }
+  function inferXenon(S, curve, Pth) {
+    const T = targetPhi(curve);
+    S.phi.set(T);
+    for (let it = 0; it < 6; it++) {
+      settleThermal(S, Pth);
+      S.xe.fill(0); buildKinf(S);                        // k∞ with zero xenon
+      for (let k = 0; k < N; k++) {
+        const tp = dia[k] * T[k] - (k > 0 ? cOff * T[k - 1] : 0) - (k < N - 1 ? cOff * T[k + 1] : 0);
+        const kreq = tp / T[k];                           // local k∞ needed for T to be the critical shape (λ = 1)
+        S.xe[k] = Math.max(0, (S.kinf[k] - kreq) / P.XE_W);
+      }
+    }
+    for (let pass = 0; pass < 3; pass++) { const c = S.xe.slice(); for (let k = 1; k < N - 1; k++) S.xe[k] = 0.25 * c[k - 1] + 0.5 * c[k] + 0.25 * c[k + 1]; }
+    const mx = S.xe.reduce((a, b) => a + b, 0) / N;
+    for (let k = 0; k < N; k++) S.io[k] = 0.45 * S.xe[k] / mx;
+    buildKinf(S); S.lam = 1; eigen(S, 400);
+    return S.xe.slice();
+  }
+  let C0 = null;
+  function nominalRods(S) {      // constructed full-power configuration (ORM ≈ 31), not a documented map
+    const depth = [2.2, 1.9, 1.6, 1.3, 1.0, 0.8, 0.5, 0.3];
+    for (const r of S.rods) {
+      if (r.reads7) r.d = 0.07;           // the 24 rods that read 7 cm in both recorded maps stay withdrawn
+      else if (r.type === 'USP') r.d = 2.6;
+      else if (r.type === 'AR') r.d = 3.5;
+      else r.d = depth[r.group] + (r.d0039 > 100 ? 0.8 : 0);
+    }
+  }
+  function calibrate() {
+    const S = create(); nominalRods(S);
+    S.pumps.forEach(pm => { const res = pm.id === 14 || pm.id === 24; pm.on = !res; pm.w = res ? 0 : 1; });
+    S.lam = 1;
+    solveC0(S, { P: 3100, xeEq: true, guess: 0.05, set: (S, v) => { S.c0 = v; } });
+    return S.c0;
+  }
+  function scenario(name) {
+    if (C0 === null) C0 = calibrate();
+    const S = create(); S.c0 = C0; S.name = name;
+    if (name === 'nominal') {
+      S.date = '25.04.86'; S.clock0 = 1 * 3600 + 5 * 60;
+      nominalRods(S);
+      S.pumps.forEach(pm => { const res = pm.id === 14 || pm.id === 24; pm.on = !res; pm.w = res ? 0 : 1; });
+      solveC0(S, { P: 3100, xeEq: true, guess: C0, set: (S, v) => { S.c0 = v; } });
+      S.ar.set = 3100; S.azmSet = 3520; S.ar.bank = 0; S.assist = true;
+    } else {
+      const which = name === 'apr26_0039' ? 'd0039' : 'd012230';
+      S.date = '26.04.86'; S.clock0 = 1 * 3600 + 22 * 60 + 30;
+      for (const r of S.rods) r.d = (r[which] || 0) / 100;
+      S.pumps.forEach(pm => { pm.on = true; pm.w = 1; });
+      S.p = 64; S.azmSet = 530;
+      // active AR bank: the deepest group (Karpan: AR-1 reached its lower limit by 01:23:30)
+      const banks = [0, 1, 2].map(b => S.rods.filter(r => r.type === 'AR' && r.bank === b).reduce((a, r) => a + r.d, 0));
+      S.ar.bank = banks.indexOf(Math.max(...banks));
+      // The axial xenon distribution at 01:22:30 was never measured (INSAG-7 p.81). The flux shape was:
+      // INSAG-7 Fig. II-5 curve 4 (in-core height detectors). Solve for the xenon profile that reproduces it.
+      const xenonRef = inferXenon(S, FIG_II5_C4, 200);
+      // what-if 00:39 rods use the same xenon field; in both cases a small uniform shift makes the state exactly critical
+      solveC0(S, { P: 200, xeEq: false, guess: 0, set: (S, v) => { for (let k = 0; k < N; k++) S.xe[k] = Math.max(0, xenonRef[k] + v); } });
+      S.ar.set = 200;
+      S.dregCycle = 112;           // so that 01:23:39-43 falls near the historical cycle №135Д
+      S.prizmaLast = '01:00';
+    }
+    S.lam = 1; S.events.push({ t: 0, kind: 'start' });
+    return S;
+  }
+
+  function clockStr(S, t = S.t, sep = ':', lead = true) {
+    let s = Math.floor(S.clock0 + t); s = ((s % 86400) + 86400) % 86400;
+    const hh = Math.floor(s / 3600), mm = String(Math.floor(s % 3600 / 60)).padStart(2, '0'), ss = String(s % 60).padStart(2, '0');
+    return `${lead ? String(hh).padStart(2, '0') : hh}${sep}${mm}${sep}${ss}`;
+  }
+
+  const fig5 = () => targetPhi(FIG_II5_C4);
+  return { P, fig5, scenario, step, scram, ev, signal, ormPrizma, ormQuick, thermal, flowM3, sevenPoint, kz, channelPower, clockStr, rodNodes, eigen, buildKinf, flushDreg };
+})();
+if (typeof module !== 'undefined') module.exports = SIM;
+
+</script>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const P = SIM.P, H = P.H;
+  let S, speed = 1, last = 0, evIdx = 0, trend = [], ended = false, endShown = false;
+  let sel = { kind: 'group', key: 'RR0' }, az5Armed = 0, noticeT = 0, hpT = 0, fuelT = 0, fuelPow = null;
+  let prizmaReq = null, lastClockHour = null;
+  const marks = {}, firsts = {};
+
+  // ---------- helpers ----------
+  const fmt = (v, d = 0) => (v === null || v === undefined || !isFinite(v)) ? '—' : v.toFixed(d);
+  const ru = (v, d) => fmt(v, d).replace('.', ',');
+  const keep = s => esc(s).replace(/\S*[-–]\S*/g, w => `<span class="nb">${w}</span>`);   // never break a line inside '44-37:1,4' or a time span
+  const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+  const clk = (t, sep = ':') => SIM.clockStr(S, t, sep);
+  const ttyClock = t => SIM.clockStr(S, t, '.', false);
+  const inletT = () => S.hy ? P.TSAT - S.hy.dTsub : P.TSAT;
+  // ---------- VFD indicator tubes (7 segments + decimal point per glass envelope) ----------
+  const SEGS = (() => {
+    const h = (x1, x2, y) => `M${x1} ${y}l2.2 -2.2H${x2 - 2.2}l2.2 2.2l-2.2 2.2H${x1 + 2.2}z`;
+    const v = (x, y1, y2) => `M${x} ${y1}l2.2 2.2V${y2 - 2.2}l-2.2 2.2l-2.2 -2.2V${y1 + 2.2}z`;
+    return [h(9, 27, 7), v(27.6, 7.6, 30), v(27.6, 30, 52.4), h(9, 27, 53), v(8.4, 30, 52.4), v(8.4, 7.6, 30), h(9, 27, 30)];
+  })();
+  const GLYPH = { '0': 'abcdef', '1': 'bc', '2': 'abdeg', '3': 'abcdg', '4': 'bcfg', '5': 'acdfg', '6': 'acdefg', '7': 'abc', '8': 'abcdefg', '9': 'abcdfg',
+    '-': 'g', '—': 'g', ' ': '', '_': 'd', 'E': 'adefg', 'Е': 'adefg', 'r': 'eg', 'P': 'abefg', 'Р': 'abefg', 'C': 'adef', 'С': 'adef', 'H': 'bcefg', 'Н': 'bcefg',
+    'L': 'def', 'П': 'abcef', 'Г': 'aef', 'U': 'bcdef', 'b': 'cdefg', 'Ь': 'cdefg', 'd': 'bcdeg', 'A': 'abcefg', 'А': 'abcefg', 'n': 'ceg', 't': 'defg', 'o': 'cdeg', 'О': 'abcdef' };
+  const tubeSvg = () => `<svg viewBox="0 0 36 60" aria-hidden="true"><g class="gh">${SEGS.map(d => `<path d="${d}"/>`).join('')}<circle cx="32.5" cy="54" r="2"/></g><g class="lt">${SEGS.map(d => `<path d="${d}"/>`).join('')}<circle cx="32.5" cy="54" r="2"/></g></svg>`;
+  function vfd(el, n) {            // returns {set(text, state)}; text is right-aligned, '.' or ',' or ':' lights the previous tube's point
+    el.innerHTML = '<span class="vfdscrew l"></span>' + Array.from({ length: n }, () => `<span class="tube">${tubeSvg()}</span>`).join('') + '<span class="vfdscrew r"></span>';
+    const tubes = [...el.querySelectorAll('.tube .lt')].map(g => [...g.children]);
+    let last = null, lastState = '';
+    return {
+      set(text, state = '') {
+        text = String(text);
+        if (state !== lastState) { el.classList.remove('warn', 'alarm', 'dark'); if (state) el.classList.add(state); lastState = state; }
+        el.setAttribute('aria-label', text.trim() || 'blank');
+        if (text === last) return; last = text;
+        const cells = [];
+        for (const ch of text) { if ((ch === '.' || ch === ',' || ch === ':') && cells.length) cells[cells.length - 1].dp = true; else cells.push({ ch, dp: false }); }
+        const out = cells.length > n ? Array.from({ length: n }, () => ({ ch: '-', dp: false })) : Array(n - cells.length).fill({ ch: ' ', dp: false }).concat(cells);
+        out.forEach((c, i) => { const g = GLYPH[c.ch] ?? GLYPH[String(c.ch).toUpperCase()] ?? ''; tubes[i].forEach((p, k) => p.classList.toggle('on', k < 7 ? g.includes('abcdefg'[k]) : c.dp)); });
+      },
+    };
+  }
+
+  function notice(msg) { $('notice').textContent = msg; noticeT = performance.now() + 7000; }
+  function flash(dev) { marks[dev] = performance.now() + 400; }
+
+  // ---------- paper ----------
+  const papers = { tty: $('p-tty'), dreg: $('p-dreg'), lpt: $('p-lpt'), arc: $('p-arc') };
+  const sheet = k => papers[k].querySelector('.sheet');
+  let activeTab = 'tty';
+  function stickBottom(k, fn) {
+    const el = papers[k], near = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+    fn();
+    if (near || k !== activeTab) el.scrollTop = el.scrollHeight;
+    if (k !== activeTab) { const tab = $('tab-' + k); if (!tab.querySelector('.dot')) tab.insertAdjacentHTML('beforeend', '<span class="dot" aria-label="new output"></span>'); }
+  }
+  function block(k, lines, cls = '') {
+    stickBottom(k, () => {
+      const sh = sheet(k), ph = sh.querySelector('.empty'); if (ph) ph.remove();
+      const b = document.createElement('div'); b.className = 'pblock ' + cls;
+      b.innerHTML = lines.map(l => {
+        if (l.cut) return '<div class="cut"></div>';
+        if (l.html) return l.html;
+        return `<div class="pl">${l.t ? `<span class="t">${esc(l.t)}</span>` : ''}${keep(l.ru)}${l.cyc ? `<span class="cyc">${esc(l.cyc)}</span>` : ''}</div>` + (l.en ? `<div class="gl">${esc(l.en)}</div>` : '');
+      }).join('');
+      sh.appendChild(b);
+    });
+  }
+  document.querySelectorAll('.tab').forEach(tb => tb.addEventListener('click', () => {
+    activeTab = tb.dataset.tab;
+    document.querySelectorAll('.tab').forEach(x => x.setAttribute('aria-selected', String(x === tb)));
+    Object.entries(papers).forEach(([k, el]) => el.hidden = k !== activeTab);
+    const d = tb.querySelector('.dot'); if (d) d.remove();
+    if (activeTab !== 'arc') papers[activeTab].scrollTop = papers[activeTab].scrollHeight;
+  }));
+  $('enToggle').addEventListener('change', e => Object.values(papers).forEach(p => p.classList.toggle('noen', !e.target.checked)));
+
+  // ---------- teletype: 7 characters per second, one 64-column line per message (Karpan p.360) ----------
+  const TTY_CPS = 7, TTY_COLS = 64;
+  let tty = [], ttyOff = null;
+  function ttyQueue(t, text, en, cls) {
+    const prev = tty[tty.length - 1];
+    const start = Math.max(t, prev ? prev.start + TTY_COLS / TTY_CPS : t);
+    const el = document.createElement('div'); el.className = 'pblock ' + (cls || '');
+    el.innerHTML = `<div class="pl"></div>${en ? `<div class="gl" hidden>${esc(en)}</div>` : ''}`;
+    tty.push({ start, text, el, shown: -1, done: false });
+  }
+  function ttyRender() {
+    const now = ttyOff !== null ? Math.min(S.t, ttyOff) : S.t;
+    for (const l of tty) {
+      if (l.done) continue;
+      if (now < l.start) break;
+      if (!l.el.isConnected) stickBottom('tty', () => sheet('tty').appendChild(l.el));
+      const n = Math.min(l.text.length, Math.floor((now - l.start) * TTY_CPS));
+      if (n !== l.shown) {
+        l.shown = n;
+        const pl = l.el.querySelector('.pl');
+        pl.innerHTML = esc(l.text.slice(0, n)) + (n < l.text.length && ttyOff === null ? '<span class="cursor"></span>' : '');
+        if (n > 0) flash('tty');
+      }
+      if (n >= l.text.length) { l.done = true; const g = l.el.querySelector('.gl'); if (g) g.hidden = false; }
+      else if (ttyOff !== null && S.t >= ttyOff) {
+        l.done = true;
+        l.el.insertAdjacentHTML('beforeend', '<div class="cutoff">Power to the teletypes fails here; the line is never finished.</div>');
+      }
+    }
+  }
+
+  // ---------- archive (static, from the record) ----------
+  function buildArchive() {
+    const A = sheet('arc'); A.innerHTML = '';
+    A.insertAdjacentHTML('beforeend', `<div class="srcnote">What survives of SKALA's own record for unit 4 on 26 April 1986. Teletype lines follow the tape photo in Karpan (p.359). DREG wording follows Karpan as quoted in the composite timeline, the Sturm–Plaskov transcript (<a href="https://archive.org/details/dreg-protocol-last-40-seconds-of-chernobyl" target="_blank" rel="noopener">CC BY-NC 4.0</a>) and INSAG-7. Cycle numbers are given only where a source states them.</div>`);
+    block('arc', [{ ru: 'ДРЕГ НЕ РАБОТАЛ: 00.39.32–00.43.35' }, { ru: '                 00.52.35–00.59.54' }, { ru: '                 01.12.10–01.18.49', en: 'DREG gaps: tape preparation, a SKALA restart, and the tape reload for the run-down test (INSAG-7; Karpan p.334).' }], 'sys');
+    const D = [
+      ['01:19:39', null, [['1 ПК-ВВЕРХ', 'Overcompensation group 1 up: AR rods near their upper limits (until 01:23:30).']]],
+      ['01:23:04', null, [['СТОПОРНЫЕ КЛАПАНЫ ЗАКРЫТЫ', 'Stop valves of turbine 8 closed: the run-down test begins. The Sturm transcript logs it at 01:23:08 as "…КРАНЫ ЗАКРЫТЫ".']]],
+      ['01:23:11', null, [['СНЯТИЕ СИГНАЛА ПО НЕИСПРАВНОСТИ АР', 'AR fault signal cleared.']]],
+      ['01:23:23', null, [['СНИЖ. ДАВЛ. ВОДЫ ВПРЫС. В КНД 1', 'Injection water pressure low, low-pressure condenser 1.']]],
+      ['01:23:30', null, [['=0 1 ПК-ВВЕРХ', 'Overcompensation signal clears after 3 min 33 s: the AR rods are now moving down hard.']]],
+      ['01:23:40', null, [['АЗ-5 СУЗ', 'AZ-5 to the control and protection system.'], ['СТЕРЖНИ СОШЛИ С ВК', 'Rods leave their upper limit switches.'], ['НЕГОТОВНОСТЬ АЗ', 'Emergency protection not ready.'], ['=0 НЕИСПРАВНОСТЬ ИЗМЕРИТЕЛ. ЧАСТИ 2АР', 'AR-2 measuring fault clears.'], ['РЕГУЛЯТОР П2-1332 ПОДКЛЮЧЕН ПРИ АЗ', 'Regulator P2-1332 engaged on AZ.'], ['РЕГУЛЯТОР П1-1332 ПОДКЛЮЧЕН ПРИ АЗ', 'Regulator P1-1332 engaged on AZ.'], ['РЕГУЛЯТОР П2-1332 В РЕЖИМЕ АВТ.', 'Regulator P2-1332 in automatic.'], ['ОТКЛЮЧЕНИЕ АР ПО НЕИСПРАВНОСТИ', 'Automatic regulator disconnected.'], ['РАЗГРУЗКА ТГ ПРИ АЗ-5', 'Turbine-generator unloading on AZ-5.']]],
+      ['01:23:43', '№135Д', [['АЗСР (СНИЖ. ПЕРИОДА В ОСНОВН. ДИАПАЗОНЕ)', 'Period protection, main range. Cycle 135Д covers seconds 39–43.'], ['АЗМ (ПРЕВ. МОЩН. В ОСНОВН. ДИАПАЗОНЕ)', 'Overpower protection, setting about 530 MW.'], ['ПРЕВЫШЕНИЕ N АВАРИЙНЫЙ В 2УЗМ-1…4, 1УЗМ-1…4', 'Emergency power excess on all eight power-protection channels.']]],
+      ['01:23:44', null, [['НЕИСПРАВН. 1УЗМ-1…4, 2УЗМ-1…4', 'Power-protection channel faults.']]],
+      ['01:23:47', '№137Д', [['НЕИСПРАВН. ИЗМЕРИТ. ЧАСТИ АР-1, АР-2', 'AR measuring channel faults.'], ['АВАРИЙНОЕ ОТКЛОНЕНИЕ УРОВНЯ В БС', 'Emergency deviation of drum separator level.'], ['ПРЕВЫШЕНИЕ ДАВЛЕНИЯ В БС ПРАВ. / ЛЕВ.', 'Drum separator pressure high: 88.2 right, 75.2 left kgf/cm² in cycle 137Д (45–47 s). Main safety valves open at 75.']]],
+      ['01:23:48', null, [['=0 РАЗГРУЗКА ТГ ПРИ АЗ-5', 'Turbine unloading signal clears.'], ['СРАБАТЫВАНИЕ БРУ-К1', 'Fast steam dump to condenser 1 opens (setpoint 71.5).']]],
+      ['01:23:49', '№138Д', [['РОСТ ДАВЛЕНИЯ В РП   К06L005 =1', 'Pressure rise in the reactor space to 0.15 kgf/cm²: fuel channels have ruptured. The only raw DREG signal code in the sources.'], ['НЕТ НАПРЯЖЕНИЯ 48В 1СШ', 'No 48 V on bus 1SSh: rod clutch power lost.'], ['НЕИСПРАВН. ИСПОЛНИТ. ЧАСТИ 1АР, 2АР', 'AR actuator faults. This is the last DREG cycle SKALA recorded.']]],
+    ];
+    for (const [t, cyc, ls] of D) block('arc', ls.map((l, i) => ({ t: i === 0 ? t + '  ' : '          ', ru: l[0], cyc: i === 0 && cyc ? '   ' + cyc : '', en: l[1] })));
+    block('arc', [{ html: '<div class="pl" style="margin-top:6px"><span class="t">РТА-80</span></div>' },
+      { ru: '1.23.39 АВАР ЗАЩИТА 5', en: 'First teletype message. Both teletypes printed it.' },
+      { ru: '1.23.41 АВАР З', en: 'Second message, cut off after 15 characters when the teletypes lost power at about 01:23:49 (79 characters at 7 per second, Karpan p.360).' },
+      { ru: '1.36 ДАТА 26.4.86 ПАРН…', en: 'SKALA restarted in paired mode on emergency power (partly legible on the tape photo).' }], 'alarm');
+    A.insertAdjacentHTML('beforeend', `<div class="srcnote">The SIUR's log at 01:24 records heavy shocks and rods stopped short of their lower limit switches. DREG was off from 01:23:48 to 01:40:35 for lack of power (Karpan p.338).</div>`);
+    papers.arc.scrollTop = 0;
+  }
+
+  // ---------- codes ----------
+  const CODES = [
+    { c: '101', ru: 'Тепловая мощность', en: 'Thermal power', u: 'МВТ', f: () => fmt(SIM.thermal(S)) },
+    { c: '102', ru: 'Нейтронная мощность', en: 'Neutron power, % of nominal', u: '%', f: () => fmt(S.n * 100, 1) },
+    { c: '103', ru: 'Давление в БС', en: 'Drum separator pressure', u: 'КГС/СМ²', f: () => ru(S.p, 1) },
+    { c: '104', ru: 'Уровень в БС', en: 'Drum separator level', u: 'ММ', f: () => fmt(S.L) },
+    { c: '105', ru: 'Расход через реактор', en: 'Coolant flow, all pumps', u: 'М³/Ч', f: () => fmt(SIM.flowM3(S)) },
+    { c: '106', ru: 'Расход питательной воды', en: 'Feedwater flow', u: 'Т/Ч', f: () => fmt(S.Gfw * 3.6) },
+    { c: '107', ru: 'Температура на входе', en: 'Coolant inlet temperature', u: '°C', f: () => ru(inletT(), 1) },
+    { c: '111', ru: 'Недогрев на входе', en: 'Inlet subcooling', u: '°C', f: () => ru(S.hy ? S.hy.dTsub : 0, 1) },
+    { c: '110', ru: 'Положение активной группы АР', en: 'Depth of the active AR bank', u: 'М', f: () => { const r = S.rods.find(r => r.type === 'AR' && r.bank === S.ar.bank); return ru(r.d, 2); } },
+    { c: '120', ru: 'ОЗР по положению стержней', en: 'ORM, simple count from rod positions (what the display gave without PRIZMA)', u: 'СТ.РР', f: () => ru(SIM.ormQuick(S), 1) },
+    { c: '130', ru: 'Kz по СФКРЭ', en: 'Axial peaking factor from the height detectors', u: '', f: () => ru(SIM.kz(S), 2) },
+    { c: '300', ru: 'Расчёт ПРИЗМА', en: 'Request PRIZMA: printed at the end of the next 5-minute SKALA cycle', act: requestPrizma },
+    { c: '310', ru: 'Картограмма СУЗ', en: 'Rod depth cartogram (cm) to the drum printer', act: printCartogram },
+    { c: '400', ru: 'Срез параметров в ДРЕГ', en: 'Write a parameter snapshot into DREG', act: dregSnap },
+    { c: '410', ru: 'Перезарядка ленты ДРЕГ', en: 'Reload the DREG tape: recording stops 60 s', act: dregReload },
+    { c: '420', ru: 'Перезапуск СКАЛЫ', en: 'Restart SKALA from punched tape, as done twice that night: DREG off 6 min 39 s', act: skalaRestart },
+  ];
+  function buildDir() {
+    const grp = (title, list) => `<div class="dirhead">${title}</div><ul class="dir">${list.map(k => `<li><button data-code="${k.c}"><code>${k.c}</code><span>${esc(k.ru)}<em>${esc(k.en)}</em></span></button></li>`).join('')}</ul>`;
+    $('dir').innerHTML = grp('Вызов параметра · read a value', CODES.filter(k => !k.act)) + grp('Программы · run a program', CODES.filter(k => k.act));
+    $('dir').addEventListener('click', e => { const b = e.target.closest('button[data-code]'); if (!b) return; enterCode(b.dataset.code); });
+  }
+
+  // ---------- request device ----------
+  // Code entry follows the photographed SKALA console: one key column per digit position, keys 0-7.
+  const vu = { digs: [null, null, null], code: null, msg: '', val: '', unit: '', lamp: '', readyAt: 0 };
+  const TABLO = [['ПРИНЯТ', ''], ['ЖДИТЕ', ''], ['ЗАНЯТО', ''], ['ПЕЧАТЬ', ''], ['ДРЕГ ВЫКЛ', ''], ['ОШИБКА', 'err'], ['НЕТ СИГНАЛА', 'err'], ['ГОТОВ', '']];
+  const TABLO_SHORT = { 'НЕТ СИГНАЛА': 'НЕТ СИГН.' };
+  let vCode, vVal;
+  const entryStr = () => vu.digs.map(d => d === null ? ' ' : d).join('');
+  function renderVU() {
+    let lamp = vu.lamp;
+    if (vu.code && !vu.code.act && vu.digs.every(d => d === null)) {
+      if (S.destroyed && S.powerLost) { vu.val = ''; vu.unit = ''; lamp = 'НЕТ СИГНАЛА'; }
+      else if (S.t < vu.readyAt) { vu.val = ''; vu.unit = ''; lamp = 'ЖДИТЕ'; }
+      else { vu.val = vu.code.f(); vu.unit = vu.code.u; lamp = 'ГОТОВ'; }
+    }
+    const showCode = vu.digs.some(d => d !== null) ? entryStr() : (vu.code ? vu.code.c : '');
+    vCode.set(showCode); vVal.set(vu.val);
+    $('vuUnit').textContent = vu.unit; $('vuWhat').textContent = vu.msg;
+    document.querySelectorAll('#tablo span').forEach(s => s.classList.toggle('on', s.dataset.l === lamp));
+    document.querySelectorAll('#keys .key').forEach(k => k.classList.toggle('on', vu.digs[+k.dataset.col] === +k.dataset.d));
+    $('vu').parentElement.classList.toggle('poweroff', !!S.powerLost);
+  }
+  function key(k) {
+    if (ended) return;
+    if (/^\d$/.test(k)) {
+      if (+k > 7) { vu.msg = 'The keys run 0–7 only.'; renderVU(); return; }
+      let i = vu.digs.indexOf(null); if (i < 0) { vu.digs = [null, null, null]; i = 0; }
+      vu.digs[i] = +k; vu.lamp = ''; vu.msg = vu.digs.includes(null) ? 'Next digit…' : 'Press ВВОД to request.';
+    } else if (/^c\d\d$/.test(k)) {             // a column key: c<column><digit>
+      vu.digs[+k[1]] = +k[2]; vu.lamp = ''; vu.msg = vu.digs.includes(null) ? 'Set the remaining columns.' : 'Press ВВОД to request.';
+    } else if (k === 'back') { const i = [0, 1, 2].filter(j => vu.digs[j] !== null).pop(); if (i !== undefined) vu.digs[i] = null; }
+    else if (k === 'clr') { vu.digs = [null, null, null]; vu.code = null; vu.val = ''; vu.unit = ''; vu.lamp = ''; vu.msg = 'Cleared.'; }
+    else if (k === 'ent') {
+      if (vu.digs.includes(null)) { vu.lamp = 'ОШИБКА'; vu.msg = 'A code has three digits.'; renderVU(); return; }
+      enterCode(vu.digs.join('')); return;
+    }
+    renderVU();
+  }
+  const LAMP_OF = { 'ОШ': 'ОШИБКА', 'ЗАНЯТО': 'ЗАНЯТО', 'ЖДИТЕ': 'ЖДИТЕ', 'ПРИНЯТ': 'ПРИНЯТ', 'ПЕЧАТЬ': 'ПЕЧАТЬ', 'ДРЕГ': 'ДРЕГ ВЫКЛ', 'ПУСК': 'ПРИНЯТ' };
+  function enterCode(code) {
+    const c = CODES.find(x => x.c === code);
+    vu.digs = [null, null, null];
+    if (!c) { vu.code = null; vu.val = 'Е'; vu.unit = ''; vu.lamp = 'ОШИБКА'; vu.msg = `No code ${code}. See the list below.`; renderVU(); return; }
+    vu.code = c; vu.msg = `${c.ru} · ${c.en}`; vu.readyAt = S.t + 1.5; vu.lamp = '';     // the value takes a moment to come up
+    if (c.act) { const r = c.act(); vu.val = ''; vu.unit = ''; vu.lamp = LAMP_OF[r[0]] || 'ПРИНЯТ'; if (r[2]) vu.msg += ' · ' + r[2]; }
+    renderVU();
+  }
+  function buildKeys() {
+    vCode = vfd($('vuCode'), 3); vVal = vfd($('vuVal'), 7);
+    $('tablo').innerHTML = TABLO.map(([l, c]) => `<span data-l="${l}" class="${c}" title="${l}">${TABLO_SHORT[l] || l}</span>`).join('');
+    $('keys').innerHTML = [0, 1, 2].map(i => `<div class="colcap">${i + 1}</div>`).join('') +
+      [0, 1, 2].map(i => `<div class="col">${[7, 6, 5, 4, 3, 2, 1, 0].map(d => `<button class="key" data-k="c${i}${d}" data-col="${i}" data-d="${d}" aria-label="Digit ${i + 1}: ${d}">${d}</button>`).join('')}</div>`).join('');
+    const press = e => { const b = e.target.closest('[data-k]'); if (b) key(b.dataset.k); };
+    $('keys').addEventListener('click', press);
+    document.querySelector('.fnkeys').addEventListener('click', press);
+    $('swBlank').addEventListener('click', e => { const on = e.currentTarget.getAttribute('aria-pressed') !== 'true'; e.currentTarget.setAttribute('aria-pressed', String(on)); $('vu').classList.toggle('blank', on); });
+    const test = on => $('vu').classList.toggle('lamptest', on);
+    $('swTest').addEventListener('pointerdown', () => test(true));
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => $('swTest').addEventListener(ev, () => test(false)));
+    $('swTest').addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') test(true); });
+    $('swTest').addEventListener('keyup', () => test(false));
+    document.addEventListener('keydown', e => {
+      if (e.target.closest('input,select,textarea')) return;
+      if (e.target.closest('button') && (e.key === 'Enter' || e.key === ' ')) return;
+      if (/^\d$/.test(e.key)) { key(e.key); e.preventDefault(); }
+      else if (e.key === 'Enter' && document.activeElement === document.body) { key('ent'); e.preventDefault(); }
+      else if (e.key === 'Backspace') { key('back'); e.preventDefault(); }
+      else if (e.key === 'Escape') key('clr');
+    });
+  }
+
+  // ---------- SKALA programs ----------
+  const clockSec = t => S.clock0 + t;
+  function requestPrizma() {
+    if (S.powerLost) return ['ОШ', '', 'SKALA has no power.'];
+    if (S.restarting) return ['ЗАНЯТО', '', 'SKALA is restarting.'];
+    if (prizmaReq) return ['ЖДИТЕ', '', `Already queued for ${clk(prizmaReq.at)}.`];
+    const at = Math.ceil((clockSec(S.t) + 1) / 300) * 300 - S.clock0;
+    prizmaReq = { at, by: 'СИУР' };
+    return ['ПРИНЯТ', '', `Printed when the current 5-minute cycle ends, at ${clk(at)}.`];
+  }
+  function zoneMap(pw, n) {
+    const cells = Array.from({ length: n * n }, () => [0, 0]);
+    S.fuel.forEach((f, i) => { const cx = Math.min(n - 1, Math.floor((f.x + 25) / 50 * n)), cy = Math.min(n - 1, Math.floor((f.y + 25) / 50 * n)); const c = cells[cy * n + cx]; c[0] += pw[i]; c[1]++; });
+    return cells.map(c => c[1] ? c[0] / c[1] : null);
+  }
+  function printPrizma(by) {
+    if (S.powerLost) return;
+    const pw = SIM.channelPower(S), kr = Math.max(...pw), th = SIM.thermal(S), orm = SIM.ormPrizma(S);
+    const z = zoneMap(pw, 10);
+    const L = [];
+    L.push({ ru: '======================== П Р И З М А ========================', en: by === 'СДИВТ' ? 'Scheduled printout, made every two hours on odd hours by the SKALA duty engineer and carried to the control room.' : 'PRIZMA printout requested from the control room.' });
+    L.push({ ru: `БЛОК 4   ${S.date}   РАСЧЕТ ${clk(S.t, '.')}   ${S.skalaMode === 'ПАРНЫЙ' ? 'ПАРН.' : 'ПОЛУТ.'}` });
+    L.push({ ru: `N ТЕПЛ  = ${fmt(th).padStart(6)} МВТ      N НЕЙТР = ${fmt(S.n * 100, 1).padStart(6)} %`, en: 'Thermal and neutron power.' });
+    L.push({ ru: `ОЗР     = ${ru(orm, 1).padStart(6)} СТ.РР`, en: 'Operating reactivity margin: inserted absorber weighted by the axial flux, in equivalent manual rods.' });
+    if (orm < 15) L.push({ ru: '***  ОЗР МЕНЕЕ 15 СТ.РР  ***', en: 'Below 15 rods: the regulations required an immediate shutdown.' });
+    else if (orm < 26) L.push({ ru: '***  ОЗР МЕНЕЕ 26 СТ.РР  ***', en: "Below 26 rods: operation only with the chief engineer's permission." });
+    L.push({ ru: `KR     = ${ru(kr, 2).padStart(6)}          KZ      = ${ru(SIM.kz(S), 2).padStart(6)}`, en: 'Radial and axial peaking factors.' });
+    L.push({ ru: `WТК MAX = ${ru(th / 1661 * kr, 2).padStart(6)} МВТ   G КМПЦ  = ${fmt(SIM.flowM3(S)).padStart(6)} М3/Ч`, en: 'Hottest channel power and total coolant flow.' });
+    L.push({ ru: `P БС    = ${ru(S.p, 1).padStart(6)}          T ВХ    = ${ru(inletT(), 1).padStart(6)} ГРАД`, en: 'Drum pressure and core inlet temperature.' });
+    L.push({ ru: 'ОТН. МОЩНОСТЬ ПО ЗОНАМ (10 X 10, ВЕРХ = РЯД 66)', en: 'Relative channel power by zone. Illustrative: an estimate from rod positions, not a 2D calculation.' });
+    for (let j = 0; j < 10; j++) L.push({ ru: '   ' + z.slice(j * 10, j * 10 + 10).map(v => v === null ? '    .' : ru(v, 2).padStart(5)).join('') });
+    L.push({ ru: '=========================== КОНЕЦ ===========================' }, { cut: true });
+    block('lpt', L); flash('lpt');
+    notice(`PRIZMA printout on the drum printer (${clk(S.t)}).`);
+  }
+  function printCartogram() {
+    if (S.powerLost) return ['ОШ', '', 'SKALA has no power.'];
+    const ROWS = [66, 64, 62, 60, 56, 54, 52, 50, 46, 44, 42, 40, 36, 34, 32, 30, 26, 24, 22, 20, 16, 14, 12];
+    const COLS = [11, 13, 15, 17, 21, 23, 25, 27, 31, 33, 35, 37, 41, 43, 45, 47, 51, 53, 55, 57, 61, 63, 65];
+    const cell = {};
+    S.rods.forEach(r => cell[r.ch] = String(Math.round(r.d * 100)));
+    S.dets.forEach(d => cell[d.ch] = 'Н');
+    const L = [{ ru: `КАРТОГРАММА ПОГРУЖЕНИЯ СТЕРЖНЕЙ СУЗ (СМ)   ${S.date} ${clk(S.t, '.')}`, en: 'Rod insertion depth in cm on the plant grid. Layout after the maps in Karpan (pp. 362–363). Н = height detector. УСП depths are measured from the bottom.' }];
+    L.push({ ru: '    ' + COLS.map(c => String(c).padStart(4)).join('') });
+    for (const r of ROWS) L.push({ ru: String(r).padStart(3) + ' ' + COLS.map(c => (cell[`${r}-${c}`] ?? '').padStart(4)).join('') + '  ' + r });
+    const top = S.rods.filter(r => r.type !== 'USP' && r.type !== 'AR' && r.d < 1.0).length;
+    L.push({ ru: `ВСЕГО ПОГРУЖЕНО ${ru(S.rods.reduce((a, r) => a + r.d, 0), 1)} М   СТЕРЖНЕЙ С ВЫТЕСНИТЕЛЕМ ВЫШЕ 1 М: ${top}`, en: 'Total inserted length, and how many displacer rods start from within 1 m of the top. Each of those pushes a water column out of the bottom of its channel in the first seconds of an AZ-5 (Karpan pp. 364–366).' }, { cut: true });
+    block('lpt', L); flash('lpt');
+    return ['ПЕЧАТЬ', '', 'Cartogram sent to the drum printer.'];
+  }
+  function dregSnap() {
+    if (S.powerLost) return ['ОШ', '', 'SKALA has no power.'];
+    if (!S.dregOnline) return ['ДРЕГ', 'ВЫКЛ', 'DREG is not recording.'];
+    S.dregPending.push({ t: S.t, ru: `СРЕЗ: G ПВ ${fmt(S.Gfw * 3.6)} Т/Ч  P БС ${ru(S.p, 1)}  Н БС ${fmt(S.L)} ММ  G ${fmt(SIM.flowM3(S))} М3/Ч`, en: 'Snapshot of directly measured parameters. DREG did not record power or reactivity (INSAG-7 p.77).' });
+    return ['ПРИНЯТ', '', 'Logged at the next DREG cycle.'];
+  }
+  function dregReload() {
+    if (!S.dregOnline) return ['ДРЕГ', 'ВЫКЛ', 'DREG is already off.'];
+    S.dregOnline = false; S.dregOfflineUntil = S.t + 60; S.dregPending.length = 0;
+    S.events.push({ t: S.t, kind: 'sys', ru: 'ДРЕГ: ЗАПИСЬ ОСТАНОВЛЕНА (ПЕРЕЗАРЯДКА ЛЕНТЫ)', en: 'DREG stopped while the tape is reloaded. Events in the next 60 s are lost, as at 01:12:10–01:18:49.' });
+    return ['ДРЕГ', 'ВЫКЛ', 'Recording stops for 60 s.'];
+  }
+  function skalaRestart() {
+    if (S.restarting || S.powerLost) return ['ЗАНЯТО', '', 'Not possible now.'];
+    S.restarting = true; S.skalaMode = 'ПЕРЕЗАПУСК'; S.dregOnline = false; S.dregOfflineUntil = S.t + 399; S.dregPending.length = 0; prizmaReq = null;
+    S.events.push({ t: S.t, kind: 'sys', ru: 'СКАЛА: ОСТАНОВ, ВВОД ПЕРФОЛЕНТЫ ИСПЫТАНИЙ', en: 'SKALA stopped to load the test punched tape left by the programmer (Karpan p.350). DREG is off until the restart completes.' });
+    return ['ПУСК', '', 'Restart takes 6 min 39 s of plant time.'];
+  }
+
+  // ---------- events → printers ----------
+  function drainEvents() {
+    while (evIdx < S.events.length) {
+      const e = S.events[evIdx++];
+      if (e.kind === 'start') {
+        block('tty', [{ ru: `СКАЛА  БЛОК 4  ${S.date}`, en: S.note }, { cut: true }], 'sys');
+        block('dreg', [{ ru: `ДРЕГ  БЛОК 4  ${S.date}  ${clk(0)}`, en: 'DREG writes to magnetic tape; a printout like this was made from the tape afterwards. Cycles are numbered; times are the end of each 2–4 s cycle.' }, { cut: true }], 'sys');
+      } else if (e.kind === 'tty') {
+        ttyQueue(e.t, `${ttyClock(e.t)} ${e.ru}`, e.en, 'alarm');
+        if (firsts.tty === undefined) firsts.tty = e.t;
+      } else if (e.kind === 'dreg') {
+        block('dreg', e.lines.map((l, i) => ({ t: i === 0 ? clk(e.t) + '  ' : '          ', ru: l.ru + (l.code ? '   ' + l.code : ''), cyc: i === 0 ? `   №${e.cycle}Д` : '', en: l.en })));
+        for (const l of e.lines) { if (/^АЗМ/.test(l.ru) && firsts.azm === undefined) firsts.azm = e.t; if (/РОСТ ДАВЛЕНИЯ В РП/.test(l.ru)) firsts.rp = e.t; }
+        flash('tape');
+      } else if (e.kind === 'sys') {
+        block('dreg', [{ t: clk(e.t) + '  ', ru: e.ru, en: e.en }], 'sys');
+      } else if (e.kind === 'poweroff') {
+        ttyOff = e.t; ended = true; setTimeout(showEnd, 2200);
+      }
+    }
+  }
+  function showEnd() {
+    if (endShown) return; endShown = true;
+    $('endTxt').textContent = `In this run the teletype began "АВАР ЗАЩИТА 5" at ${firsts.tty !== undefined ? clk(firsts.tty) : '—'}` +
+      (firsts.azm !== undefined ? `, DREG logged the overpower trip at ${clk(firsts.azm)}` : '') +
+      (firsts.rp !== undefined ? ` and reactor-space pressure at ${clk(firsts.rp)}` : '') +
+      `. SKALA lost power at ${clk(S.powerOffT)}.`;
+    $('endov').hidden = false; $('endov').querySelector('.card').scrollTop = 0; $('endRestart').focus({ preventScroll: true });
+  }
+  $('endRestart').addEventListener('click', () => { $('endov').hidden = true; init($('scenario').value); });
+  $('endStay').addEventListener('click', () => { $('endov').hidden = true; });
+
+  // ---------- desk controls ----------
+  const GROUPS = [...[0, 1, 2, 3, 4, 5, 6, 7].map(g => ['RR' + g, 'Сектор ' + (g + 1)]), ['ALL', 'Все РР'], ['USP', 'УСП']];
+  const groupRods = k => k === 'ALL' ? S.rods.filter(r => r.type === 'RR') : S.rods.filter(r => k.startsWith('RR') ? (r.type === 'RR' && r.group === +k.slice(2)) : r.type === k);
+  function selRods() { return sel.kind === 'rod' ? [S.rods[sel.id]] : groupRods(sel.key); }
+  function renderGroups() {
+    const chips = GROUPS.map(([k, l]) => `<button class="chip" data-g="${k}" aria-pressed="${sel.kind === 'group' && sel.key === k}">${l}</button>`);
+    if (sel.kind === 'rod') chips.unshift(`<button class="chip" aria-pressed="true" data-g="rod">Стержень ${S.rods[sel.id].ch}</button>`);
+    $('groups').innerHTML = chips.join('');
+  }
+  $('groups').addEventListener('click', e => { const b = e.target.closest('[data-g]'); if (!b || b.dataset.g === 'rod') return; sel = { kind: 'group', key: b.dataset.g }; renderGroups(); });
+  function move(dir) {
+    if (S.scram || S.destroyed) { notice('AZ-5 has the rods. Manual drive is locked out.'); return; }
+    S.singleMove = null; S.groupMove = {};
+    if (!dir) return;
+    if (sel.kind === 'rod') {
+      const r = S.rods[sel.id];
+      if (r.type === 'AR') { notice('AR rods are driven by the automatic regulator.'); return; }
+      S.singleMove = { id: sel.id, dir };
+      SIM.ev(S, `СТЕРЖЕНЬ ${r.ch} ${dir > 0 ? 'ВВОД' : 'ВЫВОД'}`, `${dir > 0 ? 'Inserting' : 'Withdrawing'} rod ${r.ch}`);
+    } else {
+      const keys = sel.key === 'ALL' ? [0, 1, 2, 3, 4, 5, 6, 7].map(g => 'RR' + g) : [sel.key];
+      keys.forEach(k => S.groupMove[k] = dir);
+      SIM.ev(S, `${GROUPS.find(g => g[0] === sel.key)[1].toUpperCase()} ${dir > 0 ? 'ВВОД' : 'ВЫВОД'}`, `${dir > 0 ? 'Inserting' : 'Withdrawing'} ${GROUPS.find(g => g[0] === sel.key)[1]}`);
+    }
+  }
+  $('mvOut').addEventListener('click', () => move(-1));
+  $('mvIn').addEventListener('click', () => move(1));
+  $('mvStop').addEventListener('click', () => move(0));
+  $('arOn').addEventListener('click', () => {
+    if (S.scram || S.destroyed) return;
+    S.ar.on = !S.ar.on;
+    SIM.ev(S, S.ar.on ? `${S.ar.bank + 1}АР В РЕЖИМЕ АВТ.` : 'АР ОТКЛЮЧЕН ОПЕРАТОРОМ', S.ar.on ? 'Automatic regulator switched on' : 'Automatic regulator switched off by the operator');
+  });
+  document.querySelectorAll('[data-ars]').forEach(b => b.addEventListener('click', () => { S.ar.set = Math.max(30, Math.min(3200, S.ar.set + +b.dataset.ars)); }));
+  $('assist').addEventListener('change', e => { S.assist = e.target.checked; });
+  function buildPumps() { $('pumps').innerHTML = S.pumps.map((p, i) => `<button class="pump" data-p="${i}">ГЦН-${p.id}<b></b></button>`).join(''); }
+  $('pumps').addEventListener('click', e => {
+    const b = e.target.closest('[data-p]'); if (!b || S.destroyed) return; const p = S.pumps[+b.dataset.p];
+    if (p.coast) { notice(`ГЦН-${p.id} is running down with the turbine.`); return; }
+    if (p.tripped) { notice(`ГЦН-${p.id} tripped on low flow.`); return; }
+    p.on = !p.on; SIM.ev(S, `${p.on ? 'ВКЛЮЧЕН' : 'ОТКЛЮЧЕН'} ГЦН-${p.id}`, `Main circulation pump ${p.id} ${p.on ? 'started' : 'stopped'}`);
+  });
+  $('testBtn').addEventListener('click', () => {
+    if (S.testStarted || S.destroyed) return;
+    S.testStarted = true; S.pumps.filter(p => [13, 14, 23, 24].includes(p.id)).forEach(p => { p.coast = true; p.on = true; });
+    SIM.ev(S, 'СТОПОРНЫЕ КЛАПАНЫ ЗАКРЫТЫ', 'Turbine 8 stop valves closed: run-down test begins');
+    notice('Run-down test started. Pumps 13, 14, 23 and 24 now follow the coasting turbine-generator.');
+  });
+  $('az5').addEventListener('click', () => {
+    const b = $('az5');
+    if (!b.classList.contains('armed')) { b.classList.add('armed'); az5Armed = performance.now() + 6000; return; }
+    if (!S.scram && !S.destroyed) { SIM.scram(S); notice('AZ-5 pressed.'); }
+  });
+
+  // ---------- gauges, axial display, mnemonic ----------
+  const GAUGES = [['th', 'N тепл.', 'МВт'], ['nn', 'N нейтр.', '%'], ['per', 'Период', 'с'], ['pbs', 'P БС', 'кгс/см²'], ['lbs', 'Уровень БС', 'мм'], ['gcn', 'Расход', 'тыс. м³/ч'], ['gpv', 'Пит. вода', 'т/ч'], ['tin', 'T вход', '°C']];
+  function buildGauges() {
+    $('gauges').innerHTML = GAUGES.map(([k, l, u]) => `<div class="g"><div class="lbl"><abbr class="term" data-k="g_${k}" tabindex="0">${l}</abbr></div><div class="vrow"><div class="vfd cyan sm" id="g-${k}"></div><span class="u">${u}</span></div></div>`).join('');
+    GAUGES.forEach(([k]) => { gv[k] = vfd($('g-' + k), 5); });
+    arV = vfd($('arSet'), 4); dateV = vfd($('date'), 6); timeV = vfd($('time'), 6);
+    $('axial7').innerHTML = [7, 6, 5, 4, 3, 2, 1].map((h, i) => `<div class="r"><span>${h}</span><div class="b"><i id="ax-${i}"></i></div></div>`).join('') + '<div class="cap">ДКЭВ · высота, м</div>';
+  }
+  const gv = {}; let arV, dateV, timeV;
+  function setG(k, v, state) { gv[k].set(v, state); }
+  const LAMPS = ['В-3М А', 'В-3М Б', 'ПИТАНИЕ', 'ДРЕГ', 'ЛЕНТА', 'ПРИЗМА', 'КРВ', 'РТА-80 №1', 'РТА-80 №2', 'АЦПУ', 'ПЕРФОЛЕНТА', 'ДАТЧИКИ'];
+  const LAMP_K = { 'В-3М А': 'l_v3m', 'В-3М Б': 'l_v3m', 'ПИТАНИЕ': 'l_pwr', 'ДРЕГ': 'l_dreg', 'ЛЕНТА': 'l_tape', 'ПРИЗМА': 'l_prizma', 'КРВ': 'l_krv', 'РТА-80 №1': 'l_tty', 'РТА-80 №2': 'l_tty', 'АЦПУ': 'l_lpt', 'ПЕРФОЛЕНТА': 'l_ptape', 'ДАТЧИКИ': 'l_sens' };
+  function buildMnemo() { $('mnemo').innerHTML = LAMPS.map((l, i) => `<div class="lamp" id="lamp-${i}"><abbr class="term" data-k="${LAMP_K[l]}" tabindex="0">${l}</abbr></div>`).join(''); }
+  function lamp(l, cls) { const el = $('lamp-' + LAMPS.indexOf(l)); if (el) el.className = 'lamp ' + cls; }
+  function renderMnemo() {
+    const now = performance.now(), dead = S.powerLost;
+    if (dead) { LAMPS.forEach(l => lamp(l, 'dark')); lamp('ПИТАНИЕ', 'fault blink'); $('mode').textContent = 'НЕТ ПИТАНИЯ · SKALA has no power'; return; }
+    lamp('В-3М А', 'on'); lamp('В-3М Б', S.restarting ? 'busy blink' : 'on'); lamp('ПИТАНИЕ', 'on'); lamp('КРВ', 'on');
+    lamp('ДРЕГ', S.dregOnline ? (marks.tape > now ? 'busy' : 'on') : 'busy blink');
+    lamp('ЛЕНТА', !S.dregOnline ? 'busy blink' : (marks.tape > now ? 'busy' : 'on'));
+    lamp('ПРИЗМА', S.restarting ? 'dark' : prizmaReq ? 'busy blink' : 'on');
+    lamp('РТА-80 №1', marks.tty > now ? 'busy' : 'on'); lamp('РТА-80 №2', marks.tty > now ? 'busy' : 'on');
+    lamp('АЦПУ', marks.lpt > now ? 'busy' : 'on');
+    lamp('ПЕРФОЛЕНТА', S.restarting ? 'busy blink' : 'dark');
+    lamp('ДАТЧИКИ', S.destroyed ? 'fault blink' : 'on');
+    const nextCyc = Math.ceil((clockSec(S.t) + 0.001) / 300) * 300 - S.clock0;
+    $('mode').textContent = `РЕЖИМ: ${S.skalaMode === 'ПАРНЫЙ' ? 'ПАРНЫЙ ВАРИАНТ' : S.skalaMode}  ·  РАСЧЕТ ЧЕРЕЗ ${fmt(nextCyc - S.t)} С  ·  ДРЕГ №${S.dregCycle}Д`;
+  }
+  function renderBanks() {
+    const ar = S.rods.filter(r => r.type === 'AR');
+    $('banks').innerHTML = [0, 1, 2].map(b => { const rs = ar.filter(r => r.bank === b), d = rs.reduce((a, r) => a + r.d, 0) / rs.length; return `<div class="bank ${S.ar.on && S.ar.bank === b ? 'act' : ''}"><div class="bar"><i style="height:${(d / H * 100).toFixed(1)}%"></i></div>${b + 1}АР<br><span style="font-family:var(--font-mono)">${ru(d, 1)}</span></div>`; }).join('');
+    $('arOn').setAttribute('aria-pressed', String(S.ar.on)); $('arOn').textContent = S.ar.on ? 'АР вкл.' : 'АР откл.';
+    arV.set(S.ar.set.toFixed(0));
+    $('assist').checked = !!S.assist;
+  }
+
+  // ---------- rod position panel ----------
+  const RING = { RR: '#3c4542', AR: '#d9b632', USP: '#3f78c8' };
+  const ROWS = [66, 64, 62, 60, 56, 54, 52, 50, 46, 44, 42, 40, 36, 34, 32, 30, 26, 24, 22, 20, 16, 14, 12];
+  const COLS = [11, 13, 15, 17, 21, 23, 25, 27, 31, 33, 35, 37, 41, 43, 45, 47, 51, 53, 55, 57, 61, 63, 65];
+  let geom = null, hover = null;
+  function heat(v) {   // relative power -> colour, cool green-grey to warm orange-red
+    const t = Math.max(0, Math.min(1, (v - 0.3) / 1.6));
+    const a = [140, 166, 150], b = [232, 196, 92], c = [214, 84, 52];
+    const m = t < 0.5 ? [a, b, t * 2] : [b, c, (t - 0.5) * 2];
+    return `rgb(${m[0].map((x, i) => Math.round(x + (m[1][i] - x) * m[2])).join(',')})`;
+  }
+  function drawCore() {
+    const cv = $('core'), dpr = window.devicePixelRatio || 1, W = cv.clientWidth;
+    if (!W) return;
+    if (cv.width !== Math.round(W * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(W * dpr); }
+    const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, W);
+    const showGrid = $('showGrid').checked, u = W / (showGrid ? 56 : 52), cx = W / 2, cy = W / 2 + (showGrid ? u * 0.6 : 0);
+    geom = { u, cx, cy };
+    // panel face
+    c.fillStyle = '#d6dbd2'; c.beginPath(); c.arc(cx, cy, 25.6 * u, 0, Math.PI * 2); c.fill();
+    c.lineWidth = Math.max(1, u * 0.3); c.strokeStyle = '#8d9a8a'; c.stroke();
+    if (S.destroyed) { c.fillStyle = 'rgba(160,40,30,0.18)'; c.fill(); }
+    // fuel channels
+    if ($('showFuel').checked) {
+      if (!fuelPow || performance.now() > fuelT) { fuelPow = SIM.channelPower(S); fuelT = performance.now() + 1000; }
+      const s = u * 0.82;
+      S.fuel.forEach((f, i) => { c.fillStyle = heat(fuelPow[i] * (S.n > 0.002 ? 1 : 0.3)); c.fillRect(cx + f.x * u - s / 2, cy + f.y * u - s / 2, s, s); });
+    } else {
+      c.fillStyle = '#b9c2b5'; S.fuel.forEach(f => { c.beginPath(); c.arc(cx + f.x * u, cy + f.y * u, u * 0.18, 0, Math.PI * 2); c.fill(); });
+    }
+    // grid labels
+    if (showGrid) {
+      c.fillStyle = '#485349'; c.font = `${Math.max(7, u * 0.95)}px "PT Mono", monospace`; c.textAlign = 'center'; c.textBaseline = 'middle';
+      COLS.forEach((col, i) => c.fillText(col, cx + (2 * i - 22) * u, cy - 26.6 * u));
+      c.textAlign = 'right'; ROWS.forEach((row, j) => c.fillText(row, cx - 25.2 * u, cy + (2 * j - 22) * u));
+      c.textAlign = 'left'; ROWS.forEach((row, j) => c.fillText(row, cx + 25.2 * u, cy + (2 * j - 22) * u));
+    }
+    // detectors
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    for (const d of S.dets) {
+      const x = cx + d.x * u, y = cy + d.y * u, s = u * 1.5;
+      c.fillStyle = '#23292a'; c.fillRect(x - s / 2, y - s / 2, s, s);
+      c.fillStyle = '#eef0e6'; c.font = `bold ${Math.max(7, u * 1.05)}px "PT Sans Narrow", sans-serif`; c.fillText('Н', x, y + u * 0.05);
+    }
+    // rod dials
+    const R = u * 1.12, srs = new Set(selRods().map(r => r.id));
+    for (const r of S.rods) {
+      const x = cx + r.x * u, y = cy + r.y * u, f = r.d / (r.type === 'USP' ? P.USP_MAX : H);
+      c.beginPath(); c.arc(x, y, R, 0, Math.PI * 2); c.fillStyle = '#f3efe0'; c.fill();
+      if (f > 0.003) { c.beginPath(); c.moveTo(x, y); c.arc(x, y, R * 0.92, -Math.PI / 2, -Math.PI / 2 + f * Math.PI * 2 * 0.92); c.closePath(); c.fillStyle = r.type === 'USP' ? 'rgba(63,120,200,0.32)' : 'rgba(60,69,66,0.22)'; c.fill(); }
+      c.lineWidth = Math.max(1.2, R * 0.26); c.strokeStyle = RING[r.type]; c.beginPath(); c.arc(x, y, R, 0, Math.PI * 2); c.stroke();
+      const ang = -Math.PI / 2 + f * Math.PI * 2 * 0.92;
+      c.beginPath(); c.moveTo(x, y); c.lineTo(x + Math.cos(ang) * R * 0.85, y + Math.sin(ang) * R * 0.85);
+      c.lineWidth = Math.max(1, R * 0.16); c.strokeStyle = r.jam ? '#c8352a' : '#151a17'; c.stroke();
+      if (r.type === 'AR' && S.ar.on && r.bank === S.ar.bank) { c.beginPath(); c.arc(x, y, R * 0.28, 0, Math.PI * 2); c.fillStyle = '#d9b632'; c.fill(); }
+      if (srs.has(r.id)) { c.beginPath(); c.arc(x, y, R + Math.max(2, R * 0.4), 0, Math.PI * 2); c.lineWidth = 2; c.strokeStyle = '#f0a232'; c.stroke(); }
+    }
+    const rs = selRods(), avg = rs.reduce((a, r) => a + r.d, 0) / rs.length;
+    const moving = sel.kind === 'rod' ? (S.singleMove && S.singleMove.id === sel.id) : Object.keys(S.groupMove).length > 0;
+    $('selInfo').textContent = (sel.kind === 'rod' ? `${rs[0].ch} · ${rs[0].type}` : `${GROUPS.find(g => g[0] === sel.key)[1]} · ${rs.length}`) + ` · ${ru(avg, 2)} м${moving ? ' · движение' : ''}`;
+  }
+  function rodAt(ev) {
+    if (!geom) return null;
+    const b = $('core').getBoundingClientRect(), mx = ev.clientX - b.left, my = ev.clientY - b.top;
+    let best = null, bd = 1.6 * geom.u;
+    for (const r of S.rods) { const d = Math.hypot(geom.cx + r.x * geom.u - mx, geom.cy + r.y * geom.u - my); if (d < bd) { bd = d; best = r; } }
+    return best ? { r: best, mx, my } : null;
+  }
+  const TYPE_RU = { RR: 'РР/ЛАР/АЗ', AR: 'АР', USP: 'УСП' };
+  $('core').addEventListener('mousemove', ev => {
+    const h = rodAt(ev), tip = $('coretip');
+    if (!h) { tip.hidden = true; return; }
+    tip.hidden = false; tip.style.left = h.mx + 'px'; tip.style.top = h.my + 'px';
+    tip.textContent = `${h.r.ch} · ${TYPE_RU[h.r.type]}${h.r.type === 'AR' ? ' ' + (h.r.bank + 1) : ''} · ${ru(h.r.d, 2)} м${h.r.type === 'USP' ? ' снизу' : ''}`;
+  });
+  $('core').addEventListener('mouseleave', () => { $('coretip').hidden = true; });
+  $('core').addEventListener('click', ev => { const h = rodAt(ev); if (!h) return; sel = { kind: 'rod', id: h.r.id }; renderGroups(); });
+  ['showFuel', 'showGrid'].forEach(id => $(id).addEventListener('change', () => { fuelT = 0; }));
+
+  // ---------- trend ----------
+  function drawTrend() {
+    const cv = $('trend'), dpr = window.devicePixelRatio || 1, W = cv.clientWidth, Hh = cv.clientHeight;
+    if (!W) return;
+    if (cv.width !== Math.round(W * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(Hh * dpr); }
+    const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, Hh);
+    if (trend.length < 2) return;
+    const t0 = trend[0].t, t1 = trend[trend.length - 1].t, span = Math.max(1, t1 - t0);
+    let mx = Math.max(...trend.map(p => p.P)), mn = Math.min(...trend.map(p => p.P));
+    const pad = Math.max(10, (mx - mn) * 0.15); mx += pad; mn = Math.max(0, mn - pad);
+    c.strokeStyle = 'rgba(255,138,58,0.14)'; c.lineWidth = 1;
+    for (let k = 1; k < 4; k++) { const y = Hh * k / 4; c.beginPath(); c.moveTo(0, y); c.lineTo(W, y); c.stroke(); }
+    c.beginPath(); trend.forEach((p, i) => { const x = (p.t - t0) / span * (W - 6) + 3, y = Hh - 8 - (p.P - mn) / (mx - mn) * (Hh - 18); i ? c.lineTo(x, y) : c.moveTo(x, y); });
+    c.strokeStyle = '#ff8a3a'; c.lineWidth = 1.8; c.stroke();
+    const lp = trend[trend.length - 1], y = Hh - 8 - (lp.P - mn) / (mx - mn) * (Hh - 18);
+    c.beginPath(); c.arc(W - 3, y, 3, 0, Math.PI * 2); c.fillStyle = '#ffb27a'; c.fill();
+    c.fillStyle = '#c06a2c'; c.font = '11px "PT Mono", monospace'; c.fillText(mx.toFixed(0), 5, 12); c.fillText(mn.toFixed(0), 5, Hh - 4);
+    $('trendInfo').textContent = `Thermal power, MW · last ${span < 120 ? span.toFixed(0) + ' s' : (span / 60).toFixed(1) + ' min'} of plant time`;
+  }
+
+  // ---------- hidden physics ----------
+  function renderHidden() {
+    if (!$('hidden').open) return;
+    const N = P.N, w = Array.from(S.phi, v => v * v), ws = w.reduce((a, b) => a + b, 0);
+    const avg = f => { let a = 0; for (let k = 0; k < N; k++) a += w[k] * f(k); return a / ws / P.BETA; };
+    const rods = avg(k => S.dkRod[k]), vd = avg(k => P.ALPHA_V * S.vd[k]), dop = avg(k => P.ALPHA_D * (S.tf[k] - P.TSAT)), xe = avg(k => -P.XE_W * S.xe[k]);
+    const sg = v => (v >= 0 ? '+' : '') + fmt(v, 2) + ' $';
+    const row = (a, b) => `<tr><td>${a}</td><td>${b}</td></tr>`;
+    const vAvg = S.vd.reduce((a, b) => a + b, 0) / N;
+    $('rhoTable').innerHTML =
+      row('<b>Reactivity</b>', `<b>${sg(S.rho)}</b>`) +
+      row('Control rods (absorber, displacers, water)', sg(rods)) + row(`Steam void (core average ${fmt(vAvg, 1)} %)`, sg(vd)) +
+      row('Fuel temperature (Doppler)', sg(dop)) + row('Xenon-135', sg(xe)) +
+      row('ORM, PRIZMA (flux-weighted) / simple count', `${ru(SIM.ormPrizma(S), 1)} / ${ru(SIM.ormQuick(S), 1)}`) +
+      row('Hottest channel power / crisis limit', `${ru(S.wtk || 0, 2)} / ${ru(P.W_CRIT, 1)} MW`) +
+      row('Reactor period', S.period === Infinity ? '∞' : fmt(S.period, 1) + ' s') +
+      row('Channels ruptured', S.crisis ? `yes, at ${clk(S.crisisT)}` : 'no');
+    const cv = $('axial'), dpr = window.devicePixelRatio || 1, W = cv.clientWidth, Hh = cv.clientHeight;
+    if (!W) return;
+    if (cv.width !== Math.round(W * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(Hh * dpr); }
+    const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, Hh);
+    const L = 40, Rm = 12, T = 14, B = 26, yOf = k => T + (k + 0.5) / N * (Hh - T - B);
+    c.strokeStyle = '#b6bfb3'; c.lineWidth = 1;
+    for (let hgt = 0; hgt <= 7; hgt++) { const y = T + (7 - hgt) / 7 * (Hh - T - B); c.beginPath(); c.moveTo(L, y); c.lineTo(W - Rm, y); c.stroke(); c.fillStyle = '#485349'; c.font = '11px "PT Mono", monospace'; c.textAlign = 'right'; c.fillText(hgt + ' м', L - 6, y + 4); }
+    const xOf = (v, max) => L + v / max * (W - L - Rm);
+    const line = (vals, max, col, wdt, dash) => { c.beginPath(); vals.forEach((v, k) => { const x = xOf(v, max), y = yOf(k); k ? c.lineTo(x, y) : c.moveTo(x, y); }); c.strokeStyle = col; c.lineWidth = wdt; c.setLineDash(dash || []); c.stroke(); c.setLineDash([]); };
+    if (S.name !== 'nominal') line(Array.from(SIM.fig5()), 3, '#7a857a', 1.4, [5, 4]);
+    line(Array.from(S.vd, v => v / 100 * 3), 3, '#3f78c8', 1.6);
+    line(Array.from(S.xe), 3, '#8a5bb0', 1.4);
+    line(Array.from(S.phi), 3, '#c8352a', 2.4);
+    c.textAlign = 'left'; c.font = '11px "PT Sans", sans-serif';
+    const lg = [['#c8352a', 'flux (mean = 1)'], ['#3f78c8', 'steam void, 0–100 %'], ['#8a5bb0', 'xenon (full-power eq. = 1)']];
+    lg.forEach(([col, t], i) => { c.fillStyle = col; c.fillRect(L + 6 + i * ((W - L) / 3), Hh - 14, 10, 3); c.fillStyle = '#485349'; c.fillText(t, L + 20 + i * ((W - L) / 3), Hh - 9); });
+    c.fillStyle = '#485349'; c.textAlign = 'right'; c.fillText('0', L + 4, T - 3); c.fillText('3', W - Rm, T - 3);
+  }
+
+  // ---------- frame ----------
+  function render() {
+    dateV.set(S.date.replace(/\./g, '.')); timeV.set(clk(S.t, '.'));
+    const th = SIM.thermal(S), per = S.period, dead = S.powerLost;
+    if (dead) GAUGES.forEach(([k]) => setG(k, '-----', 'alarm'));
+    else {
+      setG('th', fmt(th), th > S.azmSet ? 'alarm' : (th > S.azmSet * 0.9 ? 'warn' : ''));
+      setG('nn', fmt(S.n * 100, 1), S.n * P.PNOM > S.azmSet ? 'alarm' : '');
+      setG('per', per === Infinity || per > 999 ? '---' : fmt(per, 1), per < 20 ? 'alarm' : per < 60 ? 'warn' : '');
+      setG('pbs', ru(S.p, 1), S.p > 75 ? 'alarm' : S.p > 70 ? 'warn' : '');
+      setG('lbs', fmt(S.L), S.L < -600 ? 'alarm' : Math.abs(S.L) > 100 ? 'warn' : '');
+      setG('gcn', ru(SIM.flowM3(S) / 1000, 1), '');
+      setG('gpv', fmt(S.Gfw * 3.6), '');
+      setG('tin', ru(inletT(), 1), S.hy && S.hy.dTsub < 3 ? 'warn' : '');
+    }
+    const ax = SIM.sevenPoint(S);
+    ax.forEach((v, i) => { const el = $('ax-' + i); if (el) el.style.width = (dead ? 0 : Math.min(100, v / 2.5 * 100)).toFixed(1) + '%'; });
+    document.querySelectorAll('#pumps .pump').forEach((b, i) => {
+      const p = S.pumps[i]; b.className = 'pump' + (p.tripped ? ' trip' : p.coast ? ' coast' : p.on ? ' on' : '');
+      b.querySelector('b').textContent = p.tripped ? 'ОТКЛ ' + fmt(p.w * S.drk * P.PUMP_M3H) : fmt(p.w * S.drk * P.PUMP_M3H) + (p.coast ? ' выбег' : '');
+    });
+    $('testBtn').disabled = S.testStarted || S.destroyed;
+    if (az5Armed && performance.now() > az5Armed && !S.scram) { $('az5').classList.remove('armed'); az5Armed = 0; }
+    renderBanks(); drawCore(); drawTrend(); renderMnemo(); renderVU(); ttyRender();
+    if (performance.now() > hpT) { renderHidden(); hpT = performance.now() + 250; }
+    if (noticeT && performance.now() > noticeT) { $('notice').textContent = ''; noticeT = 0; }
+  }
+  const transient = () => S.scram || S.crisis || Math.abs(S.lnRate) > 0.02 || S.rho > 0.08;
+  function frame(now) {
+    const wall = Math.min(0.1, (now - last) / 1000); last = now;
+    if (!ended && speed > 0) {
+      let eff = speed;
+      if (speed > 1 && transient()) { setSpeed(1); eff = 1; notice('Fast transient: speed held at ×1.'); }
+      let simDt = wall * eff; const h = eff >= 600 ? 0.25 : eff >= 60 ? 0.1 : 0.05; let n = 0;
+      while (simDt > 1e-9 && n < 3000 && !ended) {
+        const d = Math.min(h, simDt); SIM.step(S, d); simDt -= d; n++;
+        if (h > 0.05 && transient()) break;
+        if (S.events.length > evIdx) drainEvents();
+      }
+      // SKALA calculation cycle: PRIZMA on request, and the duty engineer's printout on odd hours
+      if (prizmaReq && S.t >= prizmaReq.at) { prizmaReq = null; printPrizma('СИУР'); }
+      const hr = Math.floor(clockSec(S.t) / 3600);
+      if (lastClockHour !== null && hr !== lastClockHour && (hr % 24) % 2 === 1 && !S.restarting) printPrizma('СДИВТ');
+      lastClockHour = hr;
+      drainEvents();
+      if (sel.kind === 'rod' && S.singleMove) { const r = S.rods[S.singleMove.id], max = r.type === 'USP' ? P.USP_MAX : H; if (S.singleMove.dir > 0 ? r.d >= max : r.d <= 0) S.singleMove = null; }
+      for (const k of Object.keys(S.groupMove)) { const v = S.groupMove[k], rs = groupRods(k), max = k === 'USP' ? P.USP_MAX : H; if (S.assistMove) continue; if (rs.every(r => v > 0 ? r.d >= max - 1e-6 : r.d <= 1e-6)) delete S.groupMove[k]; }
+      if (!S.powerLost) { trend.push({ t: S.t, P: SIM.thermal(S) }); if (trend.length > 900) trend.shift(); }
+    }
+    render();
+    requestAnimationFrame(frame);
+  }
+  function setSpeed(v) { speed = v; document.querySelectorAll('#speed button').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.s === v))); }
+  $('speed').addEventListener('click', e => { const b = e.target.closest('[data-s]'); if (b) setSpeed(+b.dataset.s); });
+
+  const NOTES = {
+    apr26: 'Unit 4 at 200 MW thermal at 01:22:30 with every rod where Karpan and INSAG-7 record it (about 48 m of rod in the core in total, an operating margin of 6–8 rods), all eight pumps running, xenon high. Start the run-down test, then decide when to press AZ-5. The real AZ-5 came 36 s after the test began.',
+    apr26_0039: 'What-if: the same plant state, but the rods are where they were at 00:39, when ORM was 16.5. More rods sit deep in the core and 23 УСП cover the bottom. Try the same sequence.',
+    nominal: 'Unit 4 at 3100 MW as the unloading began on 25 April. Lower the AR setpoint in steps, run at ×600 and watch xenon eat the margin. The SIUR aid keeps the AR centred; the axial field will still drift unless you level it with УСП and manual rods.',
+  };
+  function init(name) {
+    S = SIM.scenario(name); S.note = NOTES[name];
+    evIdx = 0; trend = []; ended = false; endShown = false; prizmaReq = null; tty = []; ttyOff = null; fuelT = 0; lastClockHour = null;
+    Object.keys(firsts).forEach(k => delete firsts[k]);
+    ['tty', 'dreg', 'lpt'].forEach(k => sheet(k).innerHTML = '');
+    sheet('lpt').innerHTML = name === 'nominal'
+      ? '<div class="pl empty">The drum printer is idle. Code 300 requests PRIZMA; the duty engineer also prints it every two hours on odd hours.</div>'
+      : '<div class="pl empty">The last PRIZMA printout was carried to the control room at about 01:00 (ORM 17–19 by testimony, Karpan p.351). PRIZMA was not run again before the test. Code 300 requests one; it prints when the current 5-minute cycle ends.</div>';
+    sel = { kind: 'group', key: 'RR0' }; renderGroups();
+    $('az5').classList.remove('armed'); az5Armed = 0;
+    vu.digs = [null, null, null]; vu.code = null; vu.val = ''; vu.unit = ''; vu.lamp = ''; vu.msg = 'Set a code in the three columns and press ВВОД. The request codes below list what you can ask for; 120 gives the simple ORM count.';
+    buildPumps(); setSpeed(1); notice(NOTES[name]);
+    drainEvents(); render();
+  }
+  $('scenario').addEventListener('change', e => init(e.target.value));
+
+  // ---------- glossary bubbles ----------
+  // Wraps the first mention of each glossary term inside each labelled area in <abbr class="term">,
+  // then shows a definition bubble on hover, keyboard focus or tap.
+  const GL = Object.fromEntries(GLOSSARY.map(g => [g.k, g]));
+  const PK = Object.fromEntries(GLOSSARY.flatMap(g => g.m.map(s => [s, g.k])));
+  const reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const GRE = new RegExp('(?<![\\p{L}\\p{N}])(' + Object.keys(PK).sort((a, b) => b.length - a.length).map(reEsc).join('|') + ')(?![\\p{L}\\p{N}])', 'gu');
+  const GSKIP = 'button:not(#dir button), select, option, input, textarea, label, .vfd, .paper, abbr, a, script, style, canvas, .tablo, #selInfo, #mode, #vuWhat, #notice, .coretip, #rhoTable, .tag';
+  function glossify(root) {
+    const used = new Set(), nodes = [];
+    const tw = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: n => n.parentElement.closest(GSKIP) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT });
+    while (tw.nextNode()) nodes.push(tw.currentNode);
+    for (const n of nodes) {
+      const s = n.nodeValue; let m, last = 0, frag = null; GRE.lastIndex = 0;
+      while ((m = GRE.exec(s))) {
+        const k = PK[m[1]];
+        if (!k || used.has(k) || (k === 'azrods' && s[m.index + m[1].length] === '-')) continue;
+        used.add(k); frag = frag || document.createDocumentFragment();
+        frag.append(s.slice(last, m.index));
+        const ab = document.createElement('abbr'); ab.className = 'term'; ab.dataset.k = k; ab.tabIndex = 0; ab.textContent = m[1];
+        frag.append(ab); last = m.index + m[1].length;
+      }
+      if (frag) { frag.append(s.slice(last)); n.replaceWith(frag); }
+    }
+  }
+  function glossifyPage() {
+    const roots = [...document.querySelectorAll('.brand p, .plate > header h2, .legend, .note, .lbl, .cap, #dir, #mnemo .lamp, #hidden, #aboutBox, .endov .card, footer.thanks')];
+    roots.filter(r => !roots.some(o => o !== r && o.contains(r))).forEach(glossify);
+  }
+  const bub = document.createElement('div'); bub.className = 'gbub'; bub.id = 'gbub'; bub.setAttribute('role', 'tooltip'); bub.hidden = true; document.body.appendChild(bub);
+  let bubFor = null, bubShowT = 0, bubHideT = 0;
+  function showBub(el) {
+    clearTimeout(bubHideT); const g = GL[el.dataset.k]; if (!g) return;
+    bub.innerHTML = `<b>${esc(g.t)}</b><span>${esc(g.d)}</span>` + (g.a ? `<a href="${g.a[1]}" target="_blank" rel="noopener">${esc(g.a[0])} ↗</a>` : '');
+    bub.hidden = false; bub.classList.remove('below');
+    const r = el.getBoundingClientRect(), bw = bub.offsetWidth, bh = bub.offsetHeight;
+    const left = Math.max(8, Math.min(innerWidth - bw - 8, r.left + r.width / 2 - bw / 2));
+    let top = r.top - bh - 10; if (top < 8) { top = r.bottom + 10; bub.classList.add('below'); }
+    bub.style.left = left + 'px'; bub.style.top = top + 'px'; bub.style.setProperty('--ax', (r.left + r.width / 2 - left) + 'px');
+    if (bubFor) bubFor.removeAttribute('aria-describedby');
+    bubFor = el; el.setAttribute('aria-describedby', 'gbub');
+  }
+  function hideBub(delay = 220) { clearTimeout(bubShowT); clearTimeout(bubHideT); bubHideT = setTimeout(() => { bub.hidden = true; if (bubFor) bubFor.removeAttribute('aria-describedby'); bubFor = null; }, delay); }
+  document.addEventListener('mouseover', e => { const el = e.target.closest && e.target.closest('abbr.term'); if (el) { clearTimeout(bubShowT); bubShowT = setTimeout(() => showBub(el), 120); } });
+  document.addEventListener('mouseout', e => { if (e.target.closest && e.target.closest('abbr.term')) hideBub(); });
+  bub.addEventListener('mouseenter', () => clearTimeout(bubHideT));
+  bub.addEventListener('mouseleave', () => hideBub());
+  document.addEventListener('focusin', e => { if (e.target.matches && e.target.matches('abbr.term')) showBub(e.target); });
+  document.addEventListener('focusout', e => { if (e.target.matches && e.target.matches('abbr.term')) hideBub(400); });
+  document.addEventListener('click', e => {                      // taps: toggle the bubble, and never trigger the button a term sits in
+    const el = e.target.closest && e.target.closest('abbr.term');
+    if (el) { e.preventDefault(); e.stopPropagation(); if (bubFor === el && !bub.hidden) hideBub(0); else showBub(el); }
+    else if (!bub.contains(e.target)) hideBub(0);
+  }, true);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !bub.hidden) hideBub(0); });
+  addEventListener('scroll', () => { if (!bub.hidden) hideBub(0); }, { passive: true });
+
+  buildGauges(); buildKeys(); buildDir(); buildMnemo(); buildArchive(); glossifyPage();
+  init('apr26');
+  last = performance.now(); requestAnimationFrame(frame);
+})();
+
+</script>

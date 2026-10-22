@@ -1,0 +1,22 @@
+# Runs on every push and pull request:
+# 1. the physics and data checks in tests/check.js must pass;
+# 2. index.html must match what src/ builds, so the live page never drifts from the source.
+name: check
+on: [push, pull_request]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Regenerate data.js from references/
+        run: cd src && python gen_data.py && git diff --exit-code data.js
+      - name: Rebuild index.html and compare
+        run: cd src && python build.py ../build-check.html && cmp ../build-check.html ../index.html
+      - name: Physics and data checks
+        run: node tests/check.js
