@@ -46,7 +46,8 @@ const SIM = (() => {
     const mean = rods.reduce((a, r) => a + r.wr, 0) / rods.length;
     rods.forEach((r, i) => { r.wr /= mean; r.id = i; r.ang = (Math.atan2(r.y, r.x) + 2 * Math.PI) % (2 * Math.PI); });
     // manual-drive sectors (simulator convenience, not a plant grouping)
-    rods.filter(r => r.type === 'RR').forEach(r => r.group = Math.floor(r.ang / (2 * Math.PI) * 8) % 8);
+    // 12 slices for driving; group8 keeps the original 8-slice split used to build the full-power rod pattern
+    rods.filter(r => r.type === 'RR').forEach(r => { r.group = Math.floor(r.ang / (2 * Math.PI) * 12) % 12; r.group8 = Math.floor(r.ang / (2 * Math.PI) * 8) % 8; });
     const fuel = DATA.fuel.map(([x, y]) => ({ x, y, nx: x / 26, ny: y / 26, rm: Math.hypot(x, y) * P.PITCH }));
     return { rods, dets, fuel };
   }
@@ -153,7 +154,7 @@ const SIM = (() => {
       xe: new Float64Array(N), io: new Float64Array(N),
       p: 65, L: 0, Gfw: 1500, GsF: 1500, hy: null,
       pumps: [11, 12, 13, 14, 21, 22, 23, 24].map((id, k) => ({ id, side: k < 4 ? 'Л' : 'П', on: true, w: 1, coast: false, tripped: false })),
-      drk: 1, ar: { on: true, set: 3100, bank: 0, pk: '' }, groupMove: {}, singleMove: null, scram: false, scramT: null,
+      drk: 1, ar: { on: true, set: 3100, bank: 0, pk: '' }, groupMove: {}, setMove: null, scram: false, scramT: null, scramCause: null,
       destroyed: false, destroyT: null, powerOffT: null, azmSet: 3520, prot: true, tripLatched: {},
       events: [], dregPending: [], dregOnline: true, dregOfflineUntil: 0, dregNextPoll: 2.5, dregCycle: 1, dregRodNext: 60,
       testStarted: false, prizmaNext: 300, skalaMode: 'ПАРНЫЙ', signals: {},
@@ -176,10 +177,10 @@ const SIM = (() => {
   function scram(S, cause) {
     if (S.destroyed) return;
     if (!S.scram) {
-      S.scram = true; S.scramT = S.t; S.ar.on = false;
+      S.scram = true; S.scramT = S.t; S.ar.on = false; S.scramCause = cause || null;
       for (const r of S.rods) if (!r.jam) r.v = r.type === 'USP' ? -P.ROD_SPEED : P.ROD_SPEED;   // USP were not part of AZ in 1986 (Karpan p.370): they stay
       for (const r of S.rods) if (r.type === 'USP') r.v = 0;
-      S.groupMove = {}; S.singleMove = null;
+      S.groupMove = {}; S.setMove = null;
       ev(S, 'АЗ-5 СУЗ', 'AZ-5 command to the control and protection system', { tty: true, ttyRu: 'АВАР ЗАЩИТА 5', ttyEn: 'EMERGENCY PROTECTION 5' });
       ev(S, 'СТЕРЖНИ СОШЛИ С ВК', 'Rods left their upper limit switches');
       ev(S, 'НЕГОТОВНОСТЬ АЗ', 'Emergency protection not ready (AZ rods off upper limits)');
@@ -215,7 +216,7 @@ const SIM = (() => {
       let v = 0;
       if (S.scram) v = r.v;
       else if (r.type === 'AR') continue;
-      else if (S.singleMove && S.singleMove.id === r.id) v = S.singleMove.dir * P.ROD_SPEED;
+      else if (S.setMove && S.setMove.ids.has(r.id)) v = S.setMove.dir * P.ROD_SPEED;     // a rod, or a set of rods the user picked
       else if (S.assistMove && S.assistMove.ids.includes(r.id)) v = S.assistMove.dir * P.ROD_SPEED * 0.5;
       else { const g = r.type === 'RR' ? 'RR' + r.group : r.type; if (S.groupMove[g]) v = S.groupMove[g] * P.ROD_SPEED; }
       const max = r.type === 'USP' ? P.USP_MAX : H;
@@ -333,10 +334,10 @@ const SIM = (() => {
     const L = S.tripLatched;
     if (Pf > S.azmSet && !L.azm) {
       L.azm = true; S.events.push({ t: S.t, kind: 'tty', ru: 'АВАР ЗАЩИТА 5', en: 'EMERGENCY PROTECTION 5 (overpower AZM)' });
-      scram(S, { ru: 'АЗМ (ПРЕВ. МОЩН. В ОСНОВН. ДИАПАЗОНЕ)', en: 'AZM: power above setpoint, main range' });
+      scram(S, { ru: 'АЗМ (ПРЕВ. МОЩН. В ОСНОВН. ДИАПАЗОНЕ)', en: 'AZM: power above setpoint, main range', key: 'azm' });
       ['2УЗМ-1', '2УЗМ-2', '2УЗМ-3', '2УЗМ-4', '1УЗМ-1', '1УЗМ-2', '1УЗМ-3', '1УЗМ-4'].forEach((c, i) => ev(S, `ПРЕВЫШЕНИЕ N АВАРИЙНЫЙ В ${c}`, i ? '' : 'Emergency power excess on each of the eight power-protection channels'));
     }
-    if (S.period < 20 && Pf > 30 && !L.azs) { L.azs = true; scram(S, { ru: 'АЗСР (СНИЖ. ПЕРИОДА В ОСНОВН. ДИАПАЗОНЕ)', en: 'AZSR: reactor period below 20 s, main range' }); }
+    if (S.period < 20 && Pf > 30 && !L.azs) { L.azs = true; scram(S, { ru: 'АЗСР (СНИЖ. ПЕРИОДА В ОСНОВН. ДИАПАЗОНЕ)', en: 'AZSR: reactor period below 20 s, main range', key: 'azsr' }); }
     if (S.p > 75 && !L.pbs) { L.pbs = true; ev(S, 'ПРЕВЫШЕНИЕ ДАВЛЕНИЯ В БС ПРАВ.', 'Drum separator pressure high, right'); ev(S, 'ПРЕВЫШЕНИЕ ДАВЛЕНИЯ В БС ЛЕВ.', 'Drum separator pressure high, left'); }
     if (S.p > 71.5 && !L.bruk) { L.bruk = true; ev(S, 'СРАБАТЫВАНИЕ БРУ-К1', 'Fast steam dump to condenser 1 opened'); }
     signal(S, 'lvl', S.L < -600, 'АВАРИЙНОЕ ОТКЛОНЕНИЕ УРОВНЯ В БС', 'Emergency deviation of drum separator level');
@@ -500,7 +501,7 @@ const SIM = (() => {
       if (r.reads7) r.d = 0.07;           // the 24 rods that read 7 cm in both recorded maps stay withdrawn
       else if (r.type === 'USP') r.d = 2.6;
       else if (r.type === 'AR') r.d = 3.5;
-      else r.d = depth[r.group] + (r.d0039 > 100 ? 0.8 : 0);
+      else r.d = depth[r.group8] + (r.d0039 > 100 ? 0.8 : 0);
     }
   }
   function calibrate() {

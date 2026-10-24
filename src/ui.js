@@ -2,7 +2,7 @@
   const $ = id => document.getElementById(id);
   const P = SIM.P, H = P.H;
   let S, speed = 1, last = 0, evIdx = 0, trend = [], ended = false, endShown = false;
-  let sel = { kind: 'group', key: 'RR0' }, az5Armed = 0, noticeT = 0, hpT = 0, fuelT = 0, fuelPow = null;
+  let sel = { kind: 'group', key: 'RR0' }, multi = false, drag = null, scramShown = false, az5Armed = 0, noticeT = 0, hpT = 0, fuelT = 0, fuelPow = null;
   let prizmaReq = null, lastClockHour = null;
   const marks = {}, firsts = {};
 
@@ -31,7 +31,7 @@
     return {
       set(text, state = '') {
         text = String(text);
-        if (state !== lastState) { el.classList.remove('warn', 'alarm', 'dark'); if (state) el.classList.add(state); lastState = state; }
+        if (state !== lastState) { el.classList.remove('warn', 'alarm', 'dark', 'flash'); if (state) el.classList.add(...state.split(' ')); lastState = state; }
         el.setAttribute('aria-label', text.trim() || 'blank');
         if (text === last) return; last = text;
         const cells = [];
@@ -42,7 +42,7 @@
     };
   }
 
-  function notice(msg) { $('notice').textContent = msg; noticeT = performance.now() + 7000; }
+  function notice(msg, ms = 7000) { $('notice').textContent = msg; noticeT = performance.now() + ms; }
   function flash(dev) { marks[dev] = performance.now() + 400; }
 
   // ---------- paper ----------
@@ -325,32 +325,94 @@
       (firsts.azm !== undefined ? `, DREG logged the overpower trip at ${clk(firsts.azm)}` : '') +
       (firsts.rp !== undefined ? ` and reactor-space pressure at ${clk(firsts.rp)}` : '') +
       `. SKALA lost power at ${clk(S.powerOffT)}.`;
+    run.debriefed = true; $('endDebrief').innerHTML = debriefHTML();
     $('endov').hidden = false; $('endov').querySelector('.card').scrollTop = 0; $('endRestart').focus({ preventScroll: true });
   }
   $('endRestart').addEventListener('click', () => { $('endov').hidden = true; init($('scenario').value); });
   $('endStay').addEventListener('click', () => { $('endov').hidden = true; });
 
+  // ---------- run debrief ----------
+  // Tracks each run and, when it ends (reactor destroyed, or shut down for 10 s), says what happened in plain terms.
+  let run = null;
+  const TRIP_NAMES = { azm: 'АЗМ (overpower)', azs: 'АЗСР (short period)' };
+  function newRun() { run = { p0: SIM.thermal(S), peak: S.n * P.PNOM, peakT: S.t, minPer: Infinity, trips: {}, test: null, orm0: SIM.ormPrizma(S), lowSince: null, debriefed: false }; }
+  function track() {
+    const pn = S.n * P.PNOM;
+    if (!S.destroyed && pn > run.peak) { run.peak = pn; run.peakT = S.t; }
+    if (pn > 1 && S.period > 0 && S.period < run.minPer) run.minPer = S.period;
+    for (const k of ['azm', 'azs']) if (S.tripLatched[k] && run.trips[k] === undefined) run.trips[k] = S.t;
+    if (S.testStarted && run.test === null) run.test = S.t;
+  }
+  function debriefHTML() {
+    const peak = Math.round(run.peak), trips = Object.keys(run.trips).map(k => TRIP_NAMES[k]);
+    const surge = run.peak > Math.max(run.p0 * 1.5, run.p0 + 100);
+    let verdict;
+    if (S.destroyed) verdict = `Reactor destroyed ${S.scramT !== null ? fmt(S.destroyT - S.scramT, 1) + ' s after AZ-5' : 'without AZ-5'}. Peak power about ${fmt(peak)} MW.`;
+    else if (surge && trips.length) verdict = `Survived a surge to about ${fmt(peak)} MW. The ${trips.join(' and ')} protection${trips.length > 1 ? 's' : ''} caught it.`;
+    else if (surge) verdict = `Survived a surge to about ${fmt(peak)} MW.`;
+    else if (trips.length) verdict = `Shut down after a protection trip: ${trips.join(', ')}. Peak power ${fmt(peak)} MW.`;
+    else verdict = `Shut down safely. Peak power ${fmt(peak)} MW, no protection trips.`;
+    const az5 = S.scramT === null ? 'not used' : `${S.scramCause ? 'automatic (' + (S.scramCause.key === 'azsr' ? 'АЗСР' : S.scramCause.key === 'azm' ? 'АЗМ' : 'protection') + ')' : 'pressed'} at ${clk(S.scramT)}`;
+    const rows = [
+      ['Run-down test', run.test === null ? 'not run' : `started at ${clk(run.test)}`],
+      ['AZ-5', az5],
+      ['Peak power', `${fmt(peak)} MW at ${clk(run.peakT)} (start: ${fmt(run.p0)} MW)`],
+      ['Shortest period', run.minPer === Infinity ? '—' : `${fmt(run.minPer, 1)} s`],
+      ['Operating margin (ORM)', `${ru(run.orm0, 1)} rods at the start${S.destroyed ? '' : ` · ${ru(SIM.ormPrizma(S), 1)} now`}`],
+    ];
+    let lesson = '';
+    if (S.destroyed) lesson = 'On 26 April 1986 the reactor was destroyed about 5 s after AZ-5, at 01:23:45.';
+    else if (surge) lesson = 'The surge is the tip effect: rods entering from the top first push water out of the bottom of the core with their graphite displacers, so power jumps before the absorber arrives. Inserting fewer rods at a time avoids it.';
+    else if (run.orm0 < 15) lesson = 'With the margin below 15 rods, the regulations required exactly this: shut the reactor down. Done steadily, it was safe.';
+    return `<p class="verdict">${esc(verdict)}</p><table class="dtab">${rows.map(([a, b]) => `<tr><td>${esc(a)}</td><td>${esc(b)}</td></tr>`).join('')}</table>` +
+      (lesson ? `<p class="small">${esc(lesson)}</p>` : '') + `<p class="small">The model is very sensitive near the edge of stability; treat a single run as a clue, not a prediction.</p>`;
+  }
+  function showDebrief() {
+    run.debriefed = true;
+    $('dbBody').innerHTML = debriefHTML();
+    $('debrief').hidden = false; $('dbRestart').focus({ preventScroll: true });
+  }
+  $('dbRestart').addEventListener('click', () => { $('debrief').hidden = true; init($('scenario').value); });
+  $('dbStay').addEventListener('click', () => { $('debrief').hidden = true; });
+
   // ---------- desk controls ----------
-  const GROUPS = [...[0, 1, 2, 3, 4, 5, 6, 7].map(g => ['RR' + g, 'Сектор ' + (g + 1)]), ['ALL', 'Все РР'], ['USP', 'УСП']];
+  // 12 slices of the core: a simulator convenience, not a plant grouping
+  const NSEC = 12;
+  const GROUPS = [...Array.from({ length: NSEC }, (_, g) => ['RR' + g, 'Сектор ' + (g + 1)]), ['ALL', 'Все РР'], ['USP', 'УСП']];
   const groupRods = k => k === 'ALL' ? S.rods.filter(r => r.type === 'RR') : S.rods.filter(r => k.startsWith('RR') ? (r.type === 'RR' && r.group === +k.slice(2)) : r.type === k);
-  function selRods() { return sel.kind === 'rod' ? [S.rods[sel.id]] : groupRods(sel.key); }
+  function selRods() { return sel.kind === 'set' ? sel.ids.map(i => S.rods[i]) : groupRods(sel.key); }
   function renderGroups() {
     const chips = GROUPS.map(([k, l]) => `<button class="chip" data-g="${k}" aria-pressed="${sel.kind === 'group' && sel.key === k}">${l}</button>`);
-    if (sel.kind === 'rod') chips.unshift(`<button class="chip" aria-pressed="true" data-g="rod">Стержень ${S.rods[sel.id].ch}</button>`);
+    if (sel.kind === 'set') {
+      const label = sel.ids.length === 1 ? `Стержень ${S.rods[sel.ids[0]].ch}` : `Выбрано · ${sel.ids.length} стержней`;
+      chips.unshift(`<button class="chip" aria-pressed="true" data-g="set">${label}</button><button class="chip" data-g="clear" aria-label="Clear the selection">✕</button>`);
+    }
     $('groups').innerHTML = chips.join('');
+    $('multiSel').setAttribute('aria-pressed', String(multi));
   }
-  $('groups').addEventListener('click', e => { const b = e.target.closest('[data-g]'); if (!b || b.dataset.g === 'rod') return; sel = { kind: 'group', key: b.dataset.g }; renderGroups(); });
+  $('groups').addEventListener('click', e => {
+    const b = e.target.closest('[data-g]'); if (!b || b.dataset.g === 'set') return;
+    sel = b.dataset.g === 'clear' ? { kind: 'group', key: 'RR0' } : { kind: 'group', key: b.dataset.g }; renderGroups();
+  });
+  $('multiSel').addEventListener('click', () => { multi = !multi; renderGroups(); notice(multi ? 'Multi-select on: tap dials to add or remove them.' : 'Multi-select off.'); });
+  function pickRods(ids, add) {                 // set the selection to these rods, or toggle them into the current set
+    let cur = add && sel.kind === 'set' ? sel.ids.slice() : [];
+    for (const id of ids) { const i = cur.indexOf(id); if (add && i >= 0 && ids.length === 1) cur.splice(i, 1); else if (i < 0) cur.push(id); }
+    sel = cur.length ? { kind: 'set', ids: cur } : { kind: 'group', key: 'RR0' }; renderGroups();
+  }
   function move(dir) {
     if (S.scram || S.destroyed) { notice('AZ-5 has the rods. Manual drive is locked out.'); return; }
-    S.singleMove = null; S.groupMove = {};
+    S.setMove = null; S.groupMove = {};
     if (!dir) return;
-    if (sel.kind === 'rod') {
-      const r = S.rods[sel.id];
-      if (r.type === 'AR') { notice('AR rods are driven by the automatic regulator.'); return; }
-      S.singleMove = { id: sel.id, dir };
-      SIM.ev(S, `СТЕРЖЕНЬ ${r.ch} ${dir > 0 ? 'ВВОД' : 'ВЫВОД'}`, `${dir > 0 ? 'Inserting' : 'Withdrawing'} rod ${r.ch}`);
+    if (sel.kind === 'set') {
+      const rods = sel.ids.map(i => S.rods[i]).filter(r => r.type !== 'AR');
+      if (!rods.length) { notice('AR rods are driven by the automatic regulator.'); return; }
+      if (rods.length < sel.ids.length) notice('AR rods in the selection are left to the automatic regulator.');
+      S.setMove = { ids: new Set(rods.map(r => r.id)), dir };
+      const what = rods.length === 1 ? `СТЕРЖЕНЬ ${rods[0].ch}` : `ГРУППА ИЗ ${rods.length} СТ.`;
+      SIM.ev(S, `${what} ${dir > 0 ? 'ВВОД' : 'ВЫВОД'}`, `${dir > 0 ? 'Inserting' : 'Withdrawing'} ${rods.length === 1 ? 'rod ' + rods[0].ch : rods.length + ' selected rods'}`);
     } else {
-      const keys = sel.key === 'ALL' ? [0, 1, 2, 3, 4, 5, 6, 7].map(g => 'RR' + g) : [sel.key];
+      const keys = sel.key === 'ALL' ? Array.from({ length: NSEC }, (_, g) => 'RR' + g) : [sel.key];
       keys.forEach(k => S.groupMove[k] = dir);
       SIM.ev(S, `${GROUPS.find(g => g[0] === sel.key)[1].toUpperCase()} ${dir > 0 ? 'ВВОД' : 'ВЫВОД'}`, `${dir > 0 ? 'Inserting' : 'Withdrawing'} ${GROUPS.find(g => g[0] === sel.key)[1]}`);
     }
@@ -365,7 +427,8 @@
   });
   document.querySelectorAll('[data-ars]').forEach(b => b.addEventListener('click', () => { S.ar.set = Math.max(30, Math.min(3200, S.ar.set + +b.dataset.ars)); }));
   $('assist').addEventListener('change', e => { S.assist = e.target.checked; });
-  function buildPumps() { $('pumps').innerHTML = S.pumps.map((p, i) => `<button class="pump" data-p="${i}">ГЦН-${p.id}<b></b></button>`).join(''); }
+  // hovering a pump explains it; .hint elements show the bubble without blocking their own click
+  function buildPumps() { $('pumps').innerHTML = S.pumps.map((p, i) => `<button class="pump hint" data-p="${i}" data-k="${[13, 14, 23, 24].includes(p.id) ? 'p_test' : 'p_grid'}">ГЦН-${p.id}<b></b></button>`).join(''); }
   $('pumps').addEventListener('click', e => {
     const b = e.target.closest('[data-p]'); if (!b || S.destroyed) return; const p = S.pumps[+b.dataset.p];
     if (p.coast) { notice(`ГЦН-${p.id} is running down with the turbine.`); return; }
@@ -478,8 +541,13 @@
       if (srs.has(r.id)) { c.beginPath(); c.arc(x, y, R + Math.max(2, R * 0.4), 0, Math.PI * 2); c.lineWidth = 2; c.strokeStyle = '#f0a232'; c.stroke(); }
     }
     const rs = selRods(), avg = rs.reduce((a, r) => a + r.d, 0) / rs.length;
-    const moving = sel.kind === 'rod' ? (S.singleMove && S.singleMove.id === sel.id) : Object.keys(S.groupMove).length > 0;
-    $('selInfo').textContent = (sel.kind === 'rod' ? `${rs[0].ch} · ${rs[0].type}` : `${GROUPS.find(g => g[0] === sel.key)[1]} · ${rs.length}`) + ` · ${ru(avg, 2)} м${moving ? ' · движение' : ''}`;
+    const moving = sel.kind === 'set' ? !!S.setMove : Object.keys(S.groupMove).length > 0;
+    $('selInfo').textContent = (sel.kind === 'set' ? (rs.length === 1 ? `${rs[0].ch} · ${rs[0].type}` : `Выбрано · ${rs.length}`) : `${GROUPS.find(g => g[0] === sel.key)[1]} · ${rs.length}`) + ` · ${ru(avg, 2)} м${moving ? ' · движение' : ''}`;
+    if (drag && drag.on) {                       // selection box while dragging
+      c.save(); c.setLineDash([5, 4]); c.lineWidth = 1.5; c.strokeStyle = '#f0a232'; c.fillStyle = 'rgba(240,162,50,0.12)';
+      const x = Math.min(drag.x0, drag.x1), y = Math.min(drag.y0, drag.y1), w = Math.abs(drag.x1 - drag.x0), h = Math.abs(drag.y1 - drag.y0);
+      c.fillRect(x, y, w, h); c.strokeRect(x, y, w, h); c.restore();
+    }
   }
   function rodAt(ev) {
     if (!geom) return null;
@@ -491,12 +559,35 @@
   const TYPE_RU = { RR: 'РР/ЛАР/АЗ', AR: 'АР', USP: 'УСП' };
   $('core').addEventListener('mousemove', ev => {
     const h = rodAt(ev), tip = $('coretip');
-    if (!h) { tip.hidden = true; return; }
+    if (!h || (drag && drag.on)) { tip.hidden = true; return; }
     tip.hidden = false; tip.style.left = h.mx + 'px'; tip.style.top = h.my + 'px';
     tip.textContent = `${h.r.ch} · ${TYPE_RU[h.r.type]}${h.r.type === 'AR' ? ' ' + (h.r.bank + 1) : ''} · ${ru(h.r.d, 2)} м${h.r.type === 'USP' ? ' снизу' : ''}`;
   });
   $('core').addEventListener('mouseleave', () => { $('coretip').hidden = true; });
-  $('core').addEventListener('click', ev => { const h = rodAt(ev); if (!h) return; sel = { kind: 'rod', id: h.r.id }; renderGroups(); });
+  // click: one rod · shift/ctrl/⌘-click or multi-select mode: add or remove · drag a box (mouse): select every dial inside
+  const corePt = ev => { const b = $('core').getBoundingClientRect(); return [ev.clientX - b.left, ev.clientY - b.top]; };
+  $('core').addEventListener('pointerdown', ev => {
+    if (ev.pointerType !== 'mouse' || ev.button !== 0) return;
+    const [x, y] = corePt(ev); drag = { x0: x, y0: y, x1: x, y1: y, on: false, add: ev.shiftKey || ev.ctrlKey || ev.metaKey || multi };
+    $('core').setPointerCapture(ev.pointerId);
+  });
+  $('core').addEventListener('pointermove', ev => {
+    if (!drag) return; const [x, y] = corePt(ev); drag.x1 = x; drag.y1 = y;
+    if (!drag.on && Math.hypot(x - drag.x0, y - drag.y0) > 6) { drag.on = true; $('coretip').hidden = true; }
+  });
+  $('core').addEventListener('pointerup', ev => {
+    if (!drag) return; const d = drag; drag = null;
+    if (!d.on) return;                          // a plain click: handled by the click listener
+    d.dragged = true; lastDrag = performance.now();
+    const x0 = Math.min(d.x0, d.x1), x1 = Math.max(d.x0, d.x1), y0 = Math.min(d.y0, d.y1), y1 = Math.max(d.y0, d.y1);
+    const ids = S.rods.filter(r => { const x = geom.cx + r.x * geom.u, y = geom.cy + r.y * geom.u; return x >= x0 && x <= x1 && y >= y0 && y <= y1; }).map(r => r.id);
+    if (ids.length) { pickRods(ids, d.add); notice(`${ids.length} rods selected.`); }
+  });
+  let lastDrag = 0;
+  $('core').addEventListener('click', ev => {
+    if (performance.now() - lastDrag < 250) return;
+    const h = rodAt(ev); if (!h) return; pickRods([h.r.id], ev.shiftKey || ev.ctrlKey || ev.metaKey || multi);
+  });
   ['showFuel', 'showGrid'].forEach(id => $(id).addEventListener('change', () => { fuelT = 0; }));
 
   // ---------- trend ----------
@@ -561,9 +652,11 @@
     const th = SIM.thermal(S), per = S.period, dead = S.powerLost;
     if (dead) GAUGES.forEach(([k]) => setG(k, '-----', 'alarm'));
     else {
-      setG('th', fmt(th), th > S.azmSet ? 'alarm' : (th > S.azmSet * 0.9 ? 'warn' : ''));
-      setG('nn', fmt(S.n * 100, 1), S.n * P.PNOM > S.azmSet ? 'alarm' : '');
-      setG('per', per === Infinity || per > 999 ? '---' : fmt(per, 1), per < 20 ? 'alarm' : per < 60 ? 'warn' : '');
+      const L = S.tripLatched, recent = S.scram && S.t - S.scramT < 12;   // the window behind a trip flashes for 12 s
+      const azmF = L.azm && recent, azsF = L.azs && recent;
+      setG('th', fmt(th), azmF ? 'alarm flash' : th > S.azmSet ? 'alarm' : (th > S.azmSet * 0.9 ? 'warn' : ''));
+      setG('nn', fmt(S.n * 100, 1), azmF ? 'alarm flash' : S.n * P.PNOM > S.azmSet ? 'alarm' : '');
+      setG('per', per === Infinity || per > 999 ? '---' : fmt(per, 1), azsF ? 'alarm flash' : per < 20 ? 'alarm' : per < 60 ? 'warn' : '');
       setG('pbs', ru(S.p, 1), S.p > 75 ? 'alarm' : S.p > 70 ? 'warn' : '');
       setG('lbs', fmt(S.L), S.L < -600 ? 'alarm' : Math.abs(S.L) > 100 ? 'warn' : '');
       setG('gcn', ru(SIM.flowM3(S) / 1000, 1), '');
@@ -573,11 +666,20 @@
     const ax = SIM.sevenPoint(S);
     ax.forEach((v, i) => { const el = $('ax-' + i); if (el) el.style.width = (dead ? 0 : Math.min(100, v / 2.5 * 100)).toFixed(1) + '%'; });
     document.querySelectorAll('#pumps .pump').forEach((b, i) => {
-      const p = S.pumps[i]; b.className = 'pump' + (p.tripped ? ' trip' : p.coast ? ' coast' : p.on ? ' on' : '');
+      const p = S.pumps[i]; b.className = 'pump hint' + (p.tripped ? ' trip' : p.coast ? ' coast' : p.on ? ' on' : '');
       b.querySelector('b').textContent = p.tripped ? 'ОТКЛ ' + fmt(p.w * S.drk * P.PUMP_M3H) : fmt(p.w * S.drk * P.PUMP_M3H) + (p.coast ? ' выбег' : '');
     });
     $('testBtn').disabled = S.testStarted || S.destroyed;
     if (az5Armed && performance.now() > az5Armed && !S.scram) { $('az5').classList.remove('armed'); az5Armed = 0; }
+    $('az5').classList.toggle('fired', S.scram);
+    if (S.scram) $('az5').classList.add('armed');
+    if (S.scram && !scramShown) {                // say at once what tripped; the teletype and DREG keep their real delays
+      scramShown = true;
+      const c = S.scramCause;
+      if (c && c.key === 'azsr') notice('АЗСР: reactor period below 20 s · automatic AZ-5. The teletype message follows at 7 characters per second.', 15000);
+      else if (c && c.key === 'azm') notice('АЗМ: power above the trip setting · automatic AZ-5. The teletype message follows at 7 characters per second.', 15000);
+      else if (c) notice(`${c.ru} · automatic AZ-5`, 15000);
+    }
     renderBanks(); drawCore(); drawTrend(); renderMnemo(); renderVU(); ttyRender();
     if (performance.now() > hpT) { renderHidden(); hpT = performance.now() + 250; }
     if (noticeT && performance.now() > noticeT) { $('notice').textContent = ''; noticeT = 0; }
@@ -590,7 +692,7 @@
       if (speed > 1 && transient()) { setSpeed(1); eff = 1; notice('Fast transient: speed held at ×1.'); }
       let simDt = wall * eff; const h = eff >= 600 ? 0.25 : eff >= 60 ? 0.1 : 0.05; let n = 0;
       while (simDt > 1e-9 && n < 3000 && !ended) {
-        const d = Math.min(h, simDt); SIM.step(S, d); simDt -= d; n++;
+        const d = Math.min(h, simDt); SIM.step(S, d); simDt -= d; n++; track();
         if (h > 0.05 && transient()) break;
         if (S.events.length > evIdx) drainEvents();
       }
@@ -600,9 +702,11 @@
       if (lastClockHour !== null && hr !== lastClockHour && (hr % 24) % 2 === 1 && !S.restarting) printPrizma('СДИВТ');
       lastClockHour = hr;
       drainEvents();
-      if (sel.kind === 'rod' && S.singleMove) { const r = S.rods[S.singleMove.id], max = r.type === 'USP' ? P.USP_MAX : H; if (S.singleMove.dir > 0 ? r.d >= max : r.d <= 0) S.singleMove = null; }
+      if (S.setMove && [...S.setMove.ids].every(i => { const r = S.rods[i], max = r.type === 'USP' ? P.USP_MAX : H; return S.setMove.dir > 0 ? r.d >= max - 1e-6 : r.d <= 1e-6; })) S.setMove = null;
       for (const k of Object.keys(S.groupMove)) { const v = S.groupMove[k], rs = groupRods(k), max = k === 'USP' ? P.USP_MAX : H; if (S.assistMove) continue; if (rs.every(r => v > 0 ? r.d >= max - 1e-6 : r.d <= 1e-6)) delete S.groupMove[k]; }
       if (!S.powerLost) { trend.push({ t: S.t, P: SIM.thermal(S) }); if (trend.length > 900) trend.shift(); }
+      if (!S.destroyed && !run.debriefed && S.n * P.PNOM < 2) { if (run.lowSince === null) run.lowSince = S.t; else if (S.t - run.lowSince > 10) showDebrief(); }
+      else if (S.n * P.PNOM >= 2) run.lowSince = null;
     }
     render();
     requestAnimationFrame(frame);
@@ -623,8 +727,9 @@
     sheet('lpt').innerHTML = name === 'nominal'
       ? '<div class="pl empty">The drum printer is idle. Code 300 requests PRIZMA; the duty engineer also prints it every two hours on odd hours.</div>'
       : '<div class="pl empty">The last PRIZMA printout was carried to the control room at about 01:00 (ORM 17–19 by testimony, Karpan p.351). PRIZMA was not run again before the test. Code 300 requests one; it prints when the current 5-minute cycle ends.</div>';
-    sel = { kind: 'group', key: 'RR0' }; renderGroups();
+    sel = { kind: 'group', key: 'RR0' }; multi = false; drag = null; scramShown = false; renderGroups();
     $('az5').classList.remove('armed'); az5Armed = 0;
+    newRun(); $('debrief').hidden = true;
     vu.digs = [null, null, null]; vu.code = null; vu.val = ''; vu.unit = ''; vu.lamp = ''; vu.msg = 'Set a code in the three columns and press ВВОД. The request codes below list what you can ask for; 120 gives the simple ORM count.';
     buildPumps(); setSpeed(1); notice(NOTES[name]);
     drainEvents(); render();
@@ -674,12 +779,18 @@
     bubFor = el; el.setAttribute('aria-describedby', 'gbub');
   }
   function hideBub(delay = 220) { clearTimeout(bubShowT); clearTimeout(bubHideT); bubHideT = setTimeout(() => { bub.hidden = true; if (bubFor) bubFor.removeAttribute('aria-describedby'); bubFor = null; }, delay); }
-  document.addEventListener('mouseover', e => { const el = e.target.closest && e.target.closest('abbr.term'); if (el) { clearTimeout(bubShowT); bubShowT = setTimeout(() => showBub(el), 120); } });
-  document.addEventListener('mouseout', e => { if (e.target.closest && e.target.closest('abbr.term')) hideBub(); });
+  let bubPending = null;
+  document.addEventListener('mouseover', e => {
+    const el = e.target.closest && e.target.closest('abbr.term, [data-k].hint'); if (!el) return;
+    clearTimeout(bubHideT);
+    if (el === bubPending || (el === bubFor && !bub.hidden)) return;   // same element (its contents may be redrawn every frame)
+    clearTimeout(bubShowT); bubPending = el; bubShowT = setTimeout(() => { bubPending = null; showBub(el); }, 120);
+  });
+  document.addEventListener('mouseout', e => { const el = e.target.closest && e.target.closest('abbr.term, [data-k].hint'); if (!el) return; if (e.relatedTarget && el.contains(e.relatedTarget)) return; bubPending = null; hideBub(); });
   bub.addEventListener('mouseenter', () => clearTimeout(bubHideT));
   bub.addEventListener('mouseleave', () => hideBub());
-  document.addEventListener('focusin', e => { if (e.target.matches && e.target.matches('abbr.term')) showBub(e.target); });
-  document.addEventListener('focusout', e => { if (e.target.matches && e.target.matches('abbr.term')) hideBub(400); });
+  document.addEventListener('focusin', e => { if (e.target.matches && e.target.matches('abbr.term, [data-k].hint')) showBub(e.target); });
+  document.addEventListener('focusout', e => { if (e.target.matches && e.target.matches('abbr.term, [data-k].hint')) hideBub(400); });
   document.addEventListener('click', e => {                      // taps: toggle the bubble, and never trigger the button a term sits in
     const el = e.target.closest && e.target.closest('abbr.term');
     if (el) { e.preventDefault(); e.stopPropagation(); if (bubFor === el && !bub.hidden) hideBub(0); else showBub(el); }

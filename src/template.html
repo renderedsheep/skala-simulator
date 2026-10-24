@@ -162,6 +162,7 @@ select { font: inherit; background: var(--steel); border: 1px solid var(--panel-
 .btn:active { border-bottom-width: 1px; transform: translateY(2px); }
 .btn[aria-pressed="true"] { background: #f7e2b8; border-color: #b9842e; }
 .btn:disabled { opacity: 0.5; cursor: default; }
+#testBtn:disabled { pointer-events: none; }   /* so the hover explanation still shows after the test has started */
 .row { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
 .sub { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--panel-edge); }
 .pumps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
@@ -180,6 +181,11 @@ select { font: inherit; background: var(--steel); border: 1px solid var(--panel-
 .note { font-size: 12px; color: var(--ink-soft); max-width: 40ch; }
 
 /* AZ-5 */
+.az5.fired { animation: az5glow 1s ease-in-out infinite; }
+@keyframes az5glow { 0%, 100% { box-shadow: 0 4px 0 #4a120e, 0 0 0 0 rgba(255,70,50,0.0); } 50% { box-shadow: 0 4px 0 #4a120e, 0 0 22px 8px rgba(255,70,50,0.75); } }
+.vfd.flash { animation: vfdflash 0.6s steps(2) infinite; }
+@keyframes vfdflash { 50% { box-shadow: inset 0 0 0 2px #ff8a7a, inset 0 0 0 3px #000, 0 0 14px rgba(255,80,60,0.9); } }
+@media (prefers-reduced-motion: reduce) { .az5.fired, .vfd.flash { animation: none; box-shadow: 0 4px 0 #4a120e, 0 0 16px 6px rgba(255,70,50,0.6); } }
 .az5box { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
 .az5 { width: 96px; height: 96px; border-radius: 50%; border: 6px solid #6b1c16; background: radial-gradient(circle at 38% 32%, #ef6a5c, var(--red) 55%, #7d1d16); color: #fff; font-family: var(--font-display); font-weight: 700; font-size: 22px; letter-spacing: 0.06em; box-shadow: 0 4px 0 #4a120e; position: relative; flex: none; }
 .az5:active { transform: translateY(3px); box-shadow: 0 1px 0 #4a120e; }
@@ -337,6 +343,11 @@ footer.thanks { margin: 14px 0 0; font-size: 12px; color: var(--ink-soft); text-
 .endov .small { font-size: 12px; color: var(--ink-soft); margin: 10px 0 2px; }
 .endov ul.names { list-style: none; padding: 0; margin: 0; columns: 2 220px; column-gap: 20px; font-size: 13px; }
 .endov ul.names li { break-inside: avoid; padding: 2px 0; }
+.dbov .dbcard { border-top-color: var(--green); max-width: 560px; }
+.endov .verdict { font-size: 16px; font-weight: 700; margin: 6px 0 10px; }
+.endov table.dtab { border-collapse: collapse; width: 100%; font-size: 13px; margin: 4px 0 8px; }
+.endov table.dtab td { padding: 4px 6px; border-bottom: 1px solid #d6d2c0; vertical-align: top; }
+.endov table.dtab td:first-child { color: var(--ink-soft); white-space: nowrap; width: 38%; }
 .endov ul.names span { display: block; font-size: 11.5px; color: var(--gloss); }
 .endov h2 { font-family: var(--font-display); font-size: 22px; margin: 0 0 8px; }
 .endov p { margin: 6px 0; }
@@ -404,31 +415,31 @@ footer.thanks { margin: 14px 0 0; font-size: 12px; color: var(--ink-soft); text-
 
       <div class="plate">
         <header><span class="screw"></span><h2>Управление <span>reactor and plant controls</span></h2><span class="screw"></span></header>
-        <div class="lbl">Selected for manual drive · sectors 1–8, all РР, or УСП</div>
+        <div class="lbl">Selected for manual drive · sectors 1–12, all РР, УСП, or dials you pick</div>
         <div class="chips" id="groups" style="margin-top:4px"></div>
         <div class="drive">
           <button class="btn" id="mvOut">▲ Вывод · withdraw</button>
           <button class="btn" id="mvStop">■ Стоп</button>
           <button class="btn" id="mvIn">▼ Ввод · insert</button>
         </div>
-        <div class="note" style="margin-top:6px">Click any dial on the panel to drive that single rod. Sectors are a simulator convenience, not groups the plant used.</div>
+        <div class="row" style="margin-top:6px;gap:8px"><button class="chip" id="multiSel" aria-pressed="false">Multi-select</button><span class="note" style="flex:1 1 260px">Click a dial to select it. Shift-click to add or remove dials, or drag a box across the panel to select every rod inside it. On a phone, turn on Multi-select and tap dials. Sectors are a simulator convenience, not groups the plant used.</span></div>
 
         <div class="sub">
           <div class="row" style="align-items:flex-start">
             <div>
               <div class="lbl">Автоматический регулятор АР</div>
               <div class="row" style="margin-top:4px">
-                <button class="btn" id="arOn" aria-pressed="true">АР вкл.</button>
-                <div class="vfd md" id="arSet"></div><span class="lbl">MW setpoint</span>
+                <button class="btn hint" id="arOn" data-k="c_aron" aria-pressed="true">АР вкл.</button>
+                <span class="hint" data-k="c_setp" style="display:inline-flex;gap:10px;align-items:center"><div class="vfd md" id="arSet"></div><span class="lbl">MW setpoint</span></span>
               </div>
               <div class="drive">
-                <button class="btn" data-ars="-100">−100</button><button class="btn" data-ars="-10">−10</button>
-                <button class="btn" data-ars="10">+10</button><button class="btn" data-ars="100">+100</button>
+                <button class="btn hint" data-k="c_step" data-ars="-100">−100</button><button class="btn hint" data-k="c_step" data-ars="-10">−10</button>
+                <button class="btn hint" data-k="c_step" data-ars="10">+10</button><button class="btn hint" data-k="c_step" data-ars="100">+100</button>
               </div>
-              <label class="note" style="display:flex;gap:6px;align-items:center;margin-top:8px;cursor:pointer"><input type="checkbox" id="assist"> Помощник СИУР · re-centre the AR with manual rods (simulator aid)</label>
+              <label class="note hint" data-k="c_assist" style="display:flex;gap:6px;align-items:center;margin-top:8px;cursor:pointer"><input type="checkbox" id="assist"> Помощник СИУР · re-centre the AR with manual rods (simulator aid)</label>
             </div>
             <div>
-              <div class="banks" id="banks" aria-label="AR bank positions"></div>
+              <div class="banks hint" id="banks" data-k="c_banks" tabindex="0" aria-label="AR bank positions"></div>
               <div class="note" style="margin-top:4px">Bank numbers 1–3 are assumed: 1 = 2 m square, 2 = 3 m diamond, 3 = 1 m cross.</div>
             </div>
           </div>
@@ -438,7 +449,7 @@ footer.thanks { margin: 14px 0 0; font-size: 12px; color: var(--ink-soft); text-
           <div class="lbl">ГЦН · main circulation pumps, left 11–14 · right 21–24 (m³/h)</div>
           <div class="pumps" id="pumps" style="margin-top:6px"></div>
           <div class="row" style="margin-top:10px">
-            <button class="btn" id="testBtn">Закрыть СРК ТГ-8 · start rundown test</button>
+            <span class="hint" data-k="b_rundown" style="display:inline-block"><button class="btn" id="testBtn">Закрыть СРК ТГ-8 · start rundown test</button></span>
             <span class="note">Closes turbine 8's stop valves. Pumps 13, 14, 23 and 24 then run down with the coasting generator, as at 01:23:04.</span>
           </div>
         </div>
@@ -594,10 +605,22 @@ footer.thanks { margin: 14px 0 0; font-size: 12px; color: var(--ink-soft); text-
   <footer class="thanks">Built by Fernand G. (2026) with gratitude to Nikolai Karpan, the IAEA's INSAG-7 authors, Chornobyl Family, L. Sturm and R. Plaskov. This simulation is released under a <a href="https://creativecommons.org/licenses/by-nc/4.0/deed.en" target="_blank" rel="noopener">CC BY-NC 4.0</a> license.</footer>
 </div>
 
+<div class="endov dbov" id="debrief" hidden>
+  <div class="card dbcard" role="dialog" aria-labelledby="dbH">
+    <h2 id="dbH">Итоги · run debrief</h2>
+    <div id="dbBody"></div>
+    <div class="row" style="margin-top:14px">
+      <button class="btn" id="dbRestart">Restart scenario</button>
+      <button class="btn" id="dbStay">Keep running</button>
+    </div>
+  </div>
+</div>
 <div class="endov" id="endov" hidden>
   <div class="card" role="dialog" aria-labelledby="endH">
     <h2 id="endH">Связь с реактором потеряна · signals lost</h2>
     <p id="endTxt"></p>
+    <h3>Your run</h3>
+    <div id="endDebrief"></div>
     <p>On 26 April 1986 reactor No. 4 was destroyed at about 01:23:45.</p>
     <h3>The human cost</h3>
     <ul class="cost">

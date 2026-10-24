@@ -1,6 +1,6 @@
 # SKALA Simulator Training Manual
 
-Fernand G. · October 2026
+Fernand G. · October 2026 · version 3.1
 
 ## 1. Introduction
 
@@ -26,6 +26,16 @@ This manual covers:
 
 No background in nuclear engineering is assumed. Terms are explained the first time they appear and collected in the glossary.
 
+### What the simulator is for
+
+There is no score and no winning. The simulator is a way to explore what the operators faced and to test "what if?" questions against the record. There are three useful ways to use it:
+
+- **Replay history.** Follow exercise 4: start the run-down test at 01:23:04, press AZ-5 at 01:23:40, then compare your run with the surviving record.
+- **Try to get out of trouble.** From 01:22:30, try to bring the reactor to a safe state. The regulations required a shutdown once the margin fell below 15 rods, and how you do it matters. Inserting rods steadily is safe in this model, while driving in a large share of them at once triggers the same tip effect that destroyed the real reactor.
+- **Learn the machine.** Run the full-power scenario, query SKALA, read the printouts and watch how xenon and the axial power shape change over hours.
+
+When a run ends, a short debrief sums it up (section 2).
+
 ## 2. Getting started
 
 Open `skala.html` (or `index.html`) in any modern browser (Chrome, Firefox, Edge or Safari) by double-clicking it, or open the published page. The simulation starts immediately, running in real time at the 01:22:30 state of 26 April 1986. Nothing needs installing. The internet is used only for the typefaces.
@@ -39,7 +49,7 @@ Open `skala.html` (or `index.html`) in any modern browser (Chrome, Firefox, Edge
 - **Speed** runs the simulation paused, in real time (×1), or 10, 60 or 600 times faster. When anything fast happens (a scram, a power surge or a large reactivity change), the speed drops back to ×1 by itself, so you never skip the important seconds.
 - **Date / Time** is the plant clock, shown on VFD tubes. Times on the printers follow this clock.
 
-Terms with a dotted underline, including every reading on the unit control board and every lamp on the SKALA status panel, open a short definition when you hover over them or tap them. Many link to further reading. Changing the scenario restarts it. The red line under the header shows short notices, such as "Run-down test started".
+Terms with a dotted underline, including every reading on the unit control board and every lamp on the SKALA status panel, open a short definition when you hover over them or tap them. Many link to further reading. The pumps, the run-down test button and the regulator controls also explain themselves when you hover over them. Changing the scenario restarts it. The red line under the header shows short notices, such as "Run-down test started".
 
 ### The four areas of the screen
 
@@ -53,6 +63,16 @@ On a wide screen the page is laid out like a control-room wall in three bays, wi
 | Fold-out panels | Скрытая физика · What is real here | The physics the operators could not see, and the sources and validation |
 
 The operators' view and the hidden view are deliberately separate. In 1986 the shift saw only the desk, the SKALA console and the printers. The *Скрытая физика* panel shows what nobody in the room could see, such as the reactivity balance and the shape of the neutron flux. Use it to understand what happened, and keep it closed to experience the night as they did.
+
+### When a run ends
+
+A run ends when the reactor is destroyed, or when it has been shut down (below 2 MW) for ten seconds. A debrief then gives a one-line verdict, such as "Shut down safely" or "Survived a surge to about 1,200 MW", and lists:
+
+- when the run-down test started, and whether AZ-5 was pressed or fired automatically;
+- the peak power and the shortest reactor period;
+- the operating margin at the start and at the end.
+
+It adds a short note on what the result shows. Choose **Restart scenario** to try again or **Keep running** to carry on. If the reactor is destroyed, the debrief appears on the end screen alongside the human cost of the accident.
 
 ## 3. The rod-position panel
 
@@ -86,7 +106,13 @@ The small squares between the dials are the 1661 fuel channels. With *Fuel chann
 
 ### Selecting rods
 
-Click a dial to select that single rod for manual driving. Its channel number appears as the first chip in the *Управление* panel (section 4). The panel's header shows the current selection, how many rods it holds and their mean depth, for example "СЕКТОР 1 · 22 · 0,18 М".
+Click a dial to select that rod for manual driving. To build your own group:
+
+- **Shift-click** (or Ctrl-click, or ⌘-click on a Mac) dials to add or remove them.
+- **Drag a box** across the panel with the mouse to select every rod inside it. Hold Shift while dragging to add to the current selection.
+- On a phone or tablet, turn on **Multi-select** and tap dials.
+
+The selection appears as the first chip in the *Управление* panel (section 4), for example "Выбрано · 18 стержней", and the ✕ next to it clears it. The panel's header shows the current selection, how many rods it holds and their mean depth, for example "СЕКТОР 1 · 16 · 0,18 М".
 
 ## 4. Instruments and controls
 
@@ -113,8 +139,8 @@ The **trend** under the readings plots thermal power over recent plant time. The
 
 ### Driving rods
 
-1. Pick what to move. The chips are *Сектор 1* to *8* (the dark-grey rods in eight pie slices of the core), *Все РР* (all of them) and *УСП*. A single rod you clicked on the dial panel also appears as a chip. Sectors are a simulator convenience, not plant groups.
-2. Press **▲ Вывод** to withdraw or **▼ Ввод** to insert. Rods move at 0.4 m/s until they reach the end of travel or you press **■ Стоп**.
+1. Pick what to move: a sector chip (*Сектор 1* to *12*, the dark-grey rods in twelve pie slices of the core), *Все РР* (all of them), *УСП*, or your own selection from the dial panel. Sectors are a simulator convenience, not plant groups.
+2. Press **▲ Вывод** to withdraw or **▼ Ввод** to insert. Rods move at 0.4 m/s until they reach the end of travel or you press **■ Стоп**. АР rods in a selection are left to the regulator. There is no limit on how many rods move at once, but real operators moved rods singly or in small groups: moving dozens at once can trip the protections, or worse (exercise 7).
 
 Withdrawing rods adds reactivity and inserting removes it. АР rods cannot be driven by hand. After AZ-5, manual drive is locked out.
 
@@ -145,6 +171,8 @@ A pump trips when its flow falls below 5000 m³/h.
 The red button scrams the reactor. The first tap lifts the guard cap; the second tap presses the button. Every rod except the УСП then drives in at 0.4 m/s, taking about 18 s for full travel. In 1986 the button had to be held down. Here one press is enough.
 
 The protections can also scram the reactor without you. АЗМ trips on overpower, and АЗСР trips when the period falls below 20 s. Both print on the teletype and the DREG listing.
+
+When a protection trips, the desk tells you at once. The AZ-5 button glows red, a notice under the header names the trip (for example "АЗСР: reactor period below 20 s · automatic AZ-5"), and the reading behind it flashes for 12 s: Период for АЗСР, the power readings for АЗМ. The teletype and DREG keep their real delays, so their messages arrive seconds later.
 
 ## 5. The SKALA console
 
@@ -327,7 +355,7 @@ This is open exploration. The simulator does not promise an answer. Starting fro
 - the power you held;
 - whether the run survived.
 
-Remember that the model is very sensitive near this edge (section 9). Treat a single result as a clue, not a proof.
+The debrief at the end tells you whether you shut down cleanly or rode out a surge. Remember that the model is very sensitive near this edge (section 9). Treat a single result as a clue, not a proof.
 
 ### Exercise 8: Running SKALA
 
