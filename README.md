@@ -64,7 +64,7 @@ This project rebuilds that experience in a web page: the rod-position wall, the 
 - **Online:** open the [live simulator](https://renderedsheep.github.io/skala-simulator/).
 - **Offline:** download this repository and double-click `index.html`. It is a single file with no install and no server. An internet connection is only used for the PT Sans and PT Mono typefaces.
 
-The **training manual** walks through every panel, lists the request codes and gives eight graded exercises, from reading the plant to replaying the accident: [PDF](docs/SKALA-Training-Manual.pdf) · [read on GitHub](docs/SKALA-Training-Manual.md).
+The **training manual** walks through every panel, lists the request codes and gives eight graded exercises, from reading the plant to replaying the accident: [PDF](docs/SKALA-Training-Manual.pdf) · [read on GitHub](docs/SKALA-Training-Manual.md). In Russian (на русском): [PDF](docs/SKALA-Training-Manual.ru.pdf) · [read on GitHub](docs/SKALA-Training-Manual.ru.md).
 
 ## Documented or reconstructed
 
@@ -177,6 +177,7 @@ skala-simulator/
 ├── tests/check.js          checks against the historical record (prints PASS/FAIL)
 ├── docs/
 │   ├── SKALA-Training-Manual.pdf   the training manual (also as .md)
+│   ├── SKALA-Training-Manual.ru.pdf  the same manual in Russian (also as .md)
 │   ├── validation.md
 │   └── assets/             images for this README
 ├── .github/workflows/check.yml     runs the checks and verifies index.html on every push

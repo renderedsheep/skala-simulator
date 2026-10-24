@@ -8,3 +8,4 @@ __pycache__/
 # Never commit the source books or reports: link to them in references/sources.md instead
 *.pdf
 !docs/SKALA-Training-Manual.pdf
+!docs/SKALA-Training-Manual.ru.pdf

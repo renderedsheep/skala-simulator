@@ -369,7 +369,7 @@ The debrief at the end tells you whether you shut down cleanly or rode out a sur
 
 | Term | Russian | Meaning |
 | --- | --- | --- |
-| АЗ-5 (AZ-5) | аварийная защита 5-й род | Emergency protection, level 5: full scram, all rods in |
+| АЗ-5 (AZ-5) | аварийная защита 5-го рода | Emergency protection, level 5: full scram, all rods in |
 | АЗ-1, -2, -3 | аварийная защита | Partial power reductions to set levels |
 | АЗМ | аварийная защита по мощности | Overpower trip |
 | АЗСР | аварийная защита по скорости разгона | Trip on a short reactor period (power rising too fast) |
