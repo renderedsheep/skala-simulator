@@ -23,7 +23,7 @@ This project rebuilds that experience in a web page: the rod-position wall, the 
 > [!IMPORTANT]
 > **Read this first. This is a reconstruction, not an emulation and not a reactor simulator.**
 > - **SKALA's software was never published**, nor the <abbr title="V-3M (В-3М): the Soviet process-control computers SKALA ran on. Two worked together in “paired” mode.">V-3M</abbr> computer's instruction set. No original code runs here. The console's behaviour is rebuilt from surviving printouts, messages, timings and testimony.
-> - **The request codes are invented.** The real code table is not public. Printout layouts are reconstructions too.
+> - **Most request codes are invented, in a real grammar.** The code structure, the two display sets and a handful of real codes come from the [Chornobyl Family](https://hackaday.com/2026/07/13/using-your-own-rbmk-reactor-control-center-at-home/) reconstruction, built with former Chernobyl staff. The full code table is not public, so the other codes follow the same rules but are this simulator's own. Printout layouts are reconstructions too.
 > - **The physics is simplified and tuned.** It is a one-dimensional model along the core's height. The explosion timing matches the record because one parameter was tuned to make it match, and a 7 % change to that parameter changes the outcome. See [validation](docs/validation.md).
 > - **Use it to understand the mechanisms**, such as why <a href="https://en.wikipedia.org/wiki/Chernobyl_disaster" title="AZ-5 (АЗ-5): emergency protection level 5, the full shutdown button. Pressed at 01:23:40, it raised power in the lower core for the first seconds because of the rods’ graphite displacers.">AZ-5</a> raised power first, or why the <abbr title="ORM, operating reactivity margin (ОЗР): how much control-rod absorber is in the core, counted as fully inserted manual rods. The rules required at least 15. At 01:22:30 it was about 6–8.">operating margin</abbr> mattered. Do not treat it as evidence for exact numbers.
 >
@@ -42,7 +42,7 @@ This project rebuilds that experience in a web page: the rod-position wall, the 
 | Try this | What you get |
 |---|---|
 | **Read the plant as the shift did** | 211 <a href="https://en.wikipedia.org/wiki/Synchro" title="Selsyn (synchro): an electrical angle-transmitter that turns a rod’s position into a needle angle on a control-room dial.">selsyn</a>-style dials on the real channel grid, eight <a href="https://en.wikipedia.org/wiki/Vacuum_fluorescent_display" title="VFD, vacuum fluorescent display: glowing green digit tubes common on Soviet equipment of the period.">VFD</a> readouts, a power trend and axial power bars. |
-| **Query SKALA** | Key a three-digit code on the column keyboard, wait for the value. <a href="https://www-pub.iaea.org/MTCD/publications/PDF/Pub913e_web.pdf" title="ORM, operating reactivity margin (ОЗР): how much control-rod absorber is in the core, counted as fully inserted manual rods. The rules required at least 15. At 01:22:30 it was about 6–8. Explained in INSAG-7.">ORM</a>, the margin that mattered most that night, was never on a continuous display. You had to ask. |
+| **Query SKALA** | Key a seven-character code (system, part, quantity, address, such as П0N0000 for thermal power), flip ЗАМЕР, and wait for the value, its deviation from the nearest setpoint, and the code on one of two display sets. <a href="https://www-pub.iaea.org/MTCD/publications/PDF/Pub913e_web.pdf" title="ORM, operating reactivity margin (ОЗР): how much control-rod absorber is in the core, counted as fully inserted manual rods. The rules required at least 15. At 01:22:30 it was about 6–8. Explained in INSAG-7.">ORM</a>, the margin that mattered most that night, was never on a continuous display. You had to ask. |
 | **Watch the printers** | The <a href="https://en.wikipedia.org/wiki/Teleprinter" title="RTA-80 (РТА-80): a Soviet roll-paper teleprinter. SKALA printed urgent messages on two of them at 7 characters per second.">RTA-80</a> teletype types at its real 7 characters per second. DREG prints in numbered cycles. PRIZMA arrives on <a href="https://en.wikipedia.org/wiki/Continuous_stationery" title="Fanfold: continuous printer paper with tractor holes along both edges and green bars to guide the eye.">fanfold</a> paper at the end of its 5-minute cycle. |
 | **Replay 26 April 1986** | Start the <a href="https://en.wikipedia.org/wiki/Chernobyl_disaster" title="Turbine run-down test: could a coasting turbine-generator power the pumps until diesel generators took over? It began at 01:23:04 when turbine 8’s stop valves closed.">run-down test</a> at 01:23:04, press AZ-5 at 01:23:40, and compare your run with the surviving record in the archive tab. |
 | **Ask "what if?"** | Run the same test with the rod pattern of 00:39, try AZ-5 without the test, or try to shut the reactor down safely. Pick rods by sector or draw your own group on the dial panel, and a short debrief tells you how the run went. |
@@ -51,11 +51,11 @@ This project rebuilds that experience in a web page: the rod-position wall, the 
 <table>
   <tr>
     <td width="62%"><img src="docs/assets/screen-overview.png" alt="Full simulator: rod-position dial panel, SKALA request device with VFD tubes, and printer bay."></td>
-    <td width="38%"><img src="docs/assets/console.png" alt="Close-up of the SKALA request device: cyan code tubes reading 120, green value tubes, status lamps, and black column keys 0 to 7."></td>
+    <td width="38%"><img src="docs/assets/console.png" alt="Close-up of the SKALA request device: two display sets showing value, setpoint deviation and code, above the seven-column code keyboard."></td>
   </tr>
   <tr>
     <td><sub>The control-room wall: rod dials, SKALA console, printers.</sub></td>
-    <td><sub>The request device, styled after a photographed SKALA console.</sub></td>
+    <td><sub>The request device, laid out after the Chornobyl Family reconstruction.</sub></td>
   </tr>
 </table>
 
@@ -84,8 +84,8 @@ The **training manual** walks through every panel, lists the request codes and g
 | Pump numbering, coast-down and trip times | ![documented](https://img.shields.io/badge/documented-2f6b3a?style=flat-square) | Karpan App. 3 oscillogram chronology |
 | Fuel-channel positions | ![inferred](https://img.shields.io/badge/inferred-d9b632?style=flat-square) | Every lattice cell not used by a rod or detector |
 | Xenon distribution at 01:22:30 | ![inferred](https://img.shields.io/badge/inferred-d9b632?style=flat-square) | Solved backwards from the measured flux shape (INSAG-7 Fig. II-5) |
-| Console look: VFD tubes, 0–7 column keys, suggesting <a href="https://en.wikipedia.org/wiki/Octal" title="Octal: counting in base 8, with digits 0–7. Common on computers of the period.">octal</a> entry | ![inferred](https://img.shields.io/badge/inferred-d9b632?style=flat-square) | A photograph of a SKALA engineer's console; applying it to the operator's device is a design choice |
-| Request code numbers | ![invented](https://img.shields.io/badge/invented-c8352a?style=flat-square) | The real table is not public |
+| Request device layout, code grammar, display sets, error codes 301/303, and codes П0N0000, Т0N7100, К0S0000, К5N0000, К0S/К0G + channel | ![reconstruction](https://img.shields.io/badge/reconstruction-d9b632?style=flat-square) | [Chornobyl Family](https://hackaday.com/2026/07/13/using-your-own-rbmk-reactor-control-center-at-home/), built with former Chernobyl staff. Channel coordinates are <a href="https://en.wikipedia.org/wiki/Octal" title="Octal: counting in base 8, with digits 0–7. The plant's channel grid never uses the digits 8 or 9.">octal</a>, which the plant grid confirms. |
+| All other request codes, the subprogram numbers except 0301, and ПС/АС as the falling setpoints | ![invented](https://img.shields.io/badge/invented-c8352a?style=flat-square) | Same grammar, but the full table is not public |
 | PRIZMA and cartogram printout layouts | ![invented](https://img.shields.io/badge/invented-c8352a?style=flat-square) | No original layout reproduced |
 | Rod "sectors" and the <abbr title="СИУР, senior reactor control engineer: the operator at the reactor desk. On 26 April 1986, Leonid Toptunov.">SIUR</abbr> assist | ![invented](https://img.shields.io/badge/invented-c8352a?style=flat-square) | Simulator conveniences, labelled as such |
 

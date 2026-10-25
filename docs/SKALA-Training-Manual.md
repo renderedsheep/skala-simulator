@@ -1,6 +1,6 @@
 # SKALA Simulator Training Manual
 
-Fernand G. · October 2026 · version 3.1
+Fernand G. · October 2026 · version 3.2
 
 ## 1. Introduction
 
@@ -49,7 +49,7 @@ Open `skala.html` (or `index.html`) in any modern browser (Chrome, Firefox, Edge
 - **Speed** runs the simulation paused, in real time (×1), or 10, 60 or 600 times faster. When anything fast happens (a scram, a power surge or a large reactivity change), the speed drops back to ×1 by itself, so you never skip the important seconds.
 - **Date / Time** is the plant clock, shown on VFD tubes. Times on the printers follow this clock.
 
-Terms with a dotted underline, including every reading on the unit control board and every lamp on the SKALA status panel, open a short definition when you hover over them or tap them. Many link to further reading. The pumps, the run-down test button and the regulator controls also explain themselves when you hover over them. Changing the scenario restarts it. The red line under the header shows short notices, such as "Run-down test started".
+Terms with a dotted underline, including every reading on the unit control board and every lamp on the SKALA status panel, open a short definition when you hover over them or tap them. Many link to further reading. The pumps, the run-down test button, the regulator controls and every control on the SKALA request device also explain themselves when you hover over them. Changing the scenario restarts it. The red line under the header shows short notices, such as "Run-down test started".
 
 ### The four areas of the screen
 
@@ -58,7 +58,7 @@ On a wide screen the page is laid out like a control-room wall in three bays, wi
 | Area | Russian name | What it is for |
 | --- | --- | --- |
 | Left bay, reactor desk | Положение стержней СУЗ · Приборы БЩУ · Управление | Watching the core and the plant, driving rods, pumps, the test and AZ-5 |
-| Middle bay, SKALA console | Вызывное устройство · Мнемосхема СКАЛА · Коды | Asking SKALA for values and programs, and seeing the computer's own state |
+| Middle bay, SKALA console | Вызывное устройство · Клавиатура 2 · Мнемосхема СКАЛА · Коды | Asking SKALA for values, running its programs, and seeing the computer's own state |
 | Right bay, printers | Печать | Reading what SKALA printed: teletype, DREG listing, drum printer, and the 1986 archive |
 | Fold-out panels | Скрытая физика · What is real here | The physics the operators could not see, and the sources and validation |
 
@@ -176,59 +176,103 @@ When a protection trips, the desk tells you at once. The AZ-5 button glows red, 
 
 ## 5. The SKALA console
 
-SKALA answered questions; it did not volunteer them. To get a value, the senior reactor operator (СИУР) dialled a numeric code on the request device and waited for the number to come up on the digital display. ORM, the most important safety figure that night, was not on any continuous display.
+SKALA answered questions; it did not volunteer them. Every reactor operator had a request device (вызывное устройство), and SKALA's own engineers had the same device in the computer room. There were no screens. Answers came up on two indicator assemblies called display sets. ORM, the most important safety figure that night, was not on any continuous display: you had to ask for it.
+
+The layout of the device and the way its codes are built follow the Chornobyl Family reconstruction, made with former Chernobyl staff. Section 9 says what that rests on.
+
+### How a code is built
+
+A request code has seven characters, one from each column of the left keyboard, and narrows from broad to specific:
+
+| Column | Keys | Meaning | Examples |
+| --- | --- | --- | --- |
+| 1 | М Т Д Н П А Я К (Cyrillic) | The system | Я reactor, П steam generation, Т turbine, Н pumps, К channel by channel |
+| 2 | 0–7 | A part of the system | 0 the whole system; 1 and 2 its left and right halves |
+| 3 | X K N S H P G t (Latin) | The quantity | N power, G flow, P pressure, S position, t temperature, H level |
+| 4–7 | 0–7 | The component or place | 0000 for the whole system, or a channel's coordinates |
+
+So П0N0000 means steam generation, whole system, power: the reactor's thermal power. Channel-by-channel codes start with К, and their last four digits are the channel's coordinates in the plant grid, row then column, as the hover label on each dial shows. К0S5027 gives the depth of the rod in channel 50-27. The coordinates are octal, which is why the grid numbers never contain an 8 or a 9.
 
 ### Making a request
 
-1. Set the code on the column keyboard. Column 1 is the first digit, column 2 the second, column 3 the third. Pressing a key in a column sets that digit, and the pressed key stays lit. You can also type the three digits on a computer keyboard, or click a code in the *Коды* list.
-2. Press **ВВОД** (enter). **СБРОС** clears everything and **← ШАГ** removes the last digit.
-3. Wait. The value takes about 1.5 s of plant time to appear, with the **ЖДИТЕ** lamp lit. It then updates live, with **ГОТОВ** lit, until you request something else.
+1. Press one key in each of the seven columns. Each pressed key stays lit. You can also type the code on a computer keyboard: for the first letter use m, t, d, n, p, a, r (for Я) or k, and for the third x, k, n, s, h, p, g or t. Backspace removes the last character and Escape clears the code.
+2. In the row of keys below, choose what you want back. **ПРМ** (parameter) returns the value. The other four return one of its setpoints.
+3. Check that **ИЗМ** (measure) is lit, then flip **ЗАМЕР 1** or **ЗАМЕР 2** to send the answer to display set 1 or 2. Enter and Shift+Enter do the same.
+4. Wait. The answer takes about 1.5 s of plant time to appear. It then stays live until you replace it.
 
-The keys run 0 to 7 only, as on the console in the photograph the design follows. That layout suggests octal entry, a common choice on Soviet computers of the period.
+Clicking a code in the *Коды* list keys it in and measures it on set 1.
 
-### The indicators
+### The display sets
 
-- **Код**: the code being set or last accepted, on cyan-filtered tubes.
-- **Значение**: the value, on green tubes, with its unit on the black plate beside the caption. A decimal point is a lit dot after a digit.
-- The **lamp strip** (табло) reports status:
-    - ПРИНЯТ: request accepted;
-    - ЖДИТЕ: wait;
-    - ЗАНЯТО: SKALA is busy, for example restarting;
-    - ПЕЧАТЬ: sent to a printer;
-    - ДРЕГ ВЫКЛ: the DREG recorder is off;
-    - ОШИБКА: wrong or incomplete code (the value window shows "Е");
-    - НЕТ СИГН.: the sensor no longer responds;
-    - ГОТОВ: value on display.
-- **Гашение** (blanking) is a toggle switch that turns the tubes off. **Контроль индик.** lights every segment while you hold it, to check for dead segments.
+Each display set has three rows:
+
+- **Знач.** (value): the answer, with its unit on the black plate beside it. A decimal point is a lit dot after a digit.
+- **Откл.** (deviation): how far the value is from the nearest setpoint, in percent. The bar in front of the number sits low when the value is below that setpoint and high when it is above. The real symbol is not documented, so the bars are a stand-in. The row reads 000000 when the parameter has no setpoint.
+- **Код**: the request, on alphanumeric tubes.
+
+The **ГАШЕНИЕ** switches blank a set without clearing it.
+
+### Setpoints
+
+A setpoint is a threshold. Crossing a warning setpoint raises an alarm; reaching an emergency setpoint means the state is no longer permitted. The four setpoint keys are:
+
+- ПП: warning, on rising;
+- АП: emergency, on rising;
+- ПС: warning, on falling;
+- АС: emergency, on falling.
+
+For example, П0N0000 with ПП gives 3264 MW, 2 % above nominal, and with АП gives 3520 MW. К0S0000 (ORM) has ПС 26 and АС 15 rods, the limits of 1986 (section 6). SKALA answers with an error code in the deviation row when something is wrong: **301** means there is no such code, and **303** means the parameter has no such setpoint.
+
+**ЗАП** (write) stores a new setpoint. Key the code, choose the setpoint type, enter the number on the right keyboard, press ЗАП and flip ЗАМЕР. At the plant, SKALA's programmers did this from setpoint charts drawn up by the process engineers. Here a new setpoint only changes SKALA's deviation readout. The overpower and short-period trips (АЗМ and АЗСР) belong to the separate, hardwired protection system and are not affected.
 
 ### The codes
 
-The real SKALA code table has not been published, so every number below is invented for the simulator. (The one raw SKALA code we do know, К06L005, is a DREG signal identifier, not a request code.)
+| Code | Russian name | What you get | Source |
+| --- | --- | --- | --- |
+| П0N0000 | Тепловая мощность реактора | Thermal power, MW | video |
+| Т0N7100 | Электрическая мощность блока | Electrical output of the unit, MW (rough estimate) | video |
+| К0S0000 | ОЗР | ORM in rods, from SKALA's last 5-minute calculation | video |
+| К5N0000 | Максимальная мощность канала | Highest fuel-channel power, MW | video |
+| К0Sррсс | Положение стержня СУЗ | Depth in m of the rod in channel рр-сс, measured from its upper limit switch | video |
+| К0Gррсс | Расход через канал | Flow through one channel, m³/h (the model gives the core average) | video |
+| К0Nррсс | Мощность канала | Power of one fuel channel, MW | follows its rules |
+| К0G0000, К1G0000, К2G0000 | Расход через реактор | Total coolant flow, then the left and right loops, m³/h. SKALA first shows how many channels it counted. | follows its rules |
+| Я0N0000 | Нейтронная мощность | Neutron power, % of nominal | invented |
+| Я0K0000 | Kz по СФКРЭ | Axial peaking factor (peak to average power along the height) | invented |
+| П0P0000 | Давление в БС | Drum pressure, kgf/cm² (П1… and П2… for the left and right drums) | invented |
+| П0H0000 | Уровень в БС | Drum level, mm | invented |
+| П0G0000 | Расход питательной воды | Feedwater flow, t/h | invented |
+| Н0t0000 | Температура на входе | Core inlet temperature, °C | invented |
+| Н0G00NN | Расход ГЦН | Flow of pump NN (11–14, 21–24), m³/h | invented |
+| Т1N7100, Т2N7100 | Мощность ТГ-7, ТГ-8 | Output of each turbine-generator, MW (rough estimate) | invented |
 
-| Code | Russian name | What you get |
+"Video" means the code itself appears in the Chornobyl Family video. "Follows its rules" means the code is built by a rule stated there, but the exact code is not shown. "Invented" codes are this simulator's own, written in the same grammar. The video also shows three codes for the nitrogen-helium gas around the graphite (Я0G4211, Я0P4211 and Я0P4311). They are in the list, but that system is not modelled.
+
+**ORM is not live.** К0S0000 shows the result of SKALA's last 5-minute calculation, so it can be up to five minutes old. Watch the countdown on the mode line (see PRIZMA timing below) and ask again after it. The *Скрытая физика* panel shows the live value, which nobody in the control room had.
+
+### The right keyboard: numbers and subprograms
+
+The second keyboard enters numbers and starts programs.
+
+- **Numbers:** one key in each of the four black columns gives the digits, − or + the sign, and a red key 0–4 the decimal exponent, which sets where the decimal point goes. Reading the red key as the number of decimal places (0293 with red 2 is 2.93) is an assumption.
+- **Program keys 1–10:** the chosen program's lamp lights.
+- **ЗАПУСК** starts the program and **ПРЕРЫВ** interrupts it.
+
+To run a subprogram, press only **М** on the left keyboard, choose a program key, set the four-digit subprogram number and press ЗАПУСК. The video's example is program 4 (or 8), subprogram 0301: a search for channels with low coolant flow, which lights them up on one of the two large МТК channel displays. The МТК is not built here, so that search only reports itself. The simulator's own subprograms, all under program 1, are:
+
+| Subprogram | Russian name | What it does |
 | --- | --- | --- |
-| 101 | Тепловая мощность | Thermal power, MW |
-| 102 | Нейтронная мощность | Neutron power, % of nominal |
-| 103 | Давление в БС | Drum pressure, kgf/cm² |
-| 104 | Уровень в БС | Drum level, mm |
-| 105 | Расход через реактор | Coolant flow, m³/h |
-| 106 | Расход питательной воды | Feedwater flow, t/h |
-| 107 | Температура на входе | Core inlet temperature, °C |
-| 110 | Положение активной группы АР | Depth of the active АР bank, m |
-| 111 | Недогрев на входе | Inlet subcooling: how far below boiling the incoming water is, °C |
-| 120 | ОЗР по положению стержней | A quick ORM count from rod positions alone, in rods |
-| 130 | Kz по СФКРЭ | Axial peaking factor (peak to average power along the height) |
-| 300 | Расчёт ПРИЗМА | Queues a full PRIZMA calculation. It prints when the current 5-minute cycle ends. |
-| 310 | Картограмма СУЗ | Prints a map of every rod's depth in cm on the drum printer |
-| 400 | Срез параметров в ДРЕГ | Writes a snapshot of key parameters to the DREG tape |
-| 410 | Перезарядка ленты ДРЕГ | Reloads the DREG tape. Recording stops for 60 s. |
-| 420 | Перезапуск СКАЛЫ | Restarts SKALA from punched tape. DREG is off for 6 min 39 s. |
+| 0300 | Расчёт ПРИЗМА | Queues a full PRIZMA calculation. It prints when the current 5-minute cycle ends. |
+| 0310 | Картограмма СУЗ | Prints a map of every rod's depth in cm on the drum printer |
+| 0400 | Срез параметров в ДРЕГ | Writes a snapshot of key parameters to the DREG tape |
 
-**Two ORM figures, and why they differ.** Code 120 simply adds up inserted rod length. PRIZMA (code 300) weights each rod by the local neutron flux, which is how the plant defined ORM. A rod sitting where the flux is low counts for less than the quick count suggests. In the full-power scenario the two differ by almost a factor of two (about 44 rods against 24). Request both and compare.
+Clicking one in the *Коды* list does all the steps for you. ПРЕРЫВ cancels a queued PRIZMA run.
+
+Some controls are on the console but their purpose is not described in the sources: the ВКЛ key, the three unlabelled keys in the setpoint row, the ВКЛ 1 and ВКЛ 2 switches and the small "! ?" window. They do nothing here.
 
 ### PRIZMA timing
 
-SKALA recalculated core parameters about every five minutes. The mode line under the mnemonic panel counts down to the next cycle ("РАСЧЕТ ЧЕРЕЗ … С"). The duty engineer (СДИВТ) also printed PRIZMA every two hours, on odd hours, and carried it to the control room. On 26 April the last printout before the test was made at about 01:00.
+SKALA recalculated core parameters about every five minutes, ORM included. The mode line under the mnemonic panel counts down to the next cycle ("РАСЧЕТ ЧЕРЕЗ … С"). The duty engineer (СДИВТ) also printed PRIZMA every two hours, on odd hours, and carried it to the control room. On 26 April the last printout before the test was made at about 01:00.
 
 ### The mnemonic panel (Мнемосхема СКАЛА)
 
@@ -251,6 +295,8 @@ The colours mean:
 
 The КРВ lamp is named in SKALA sources but not simulated. The mode line also shows the operating mode (ПАРНЫЙ ВАРИАНТ, the paired two-machine mode, or the 1.5 mode) and the current DREG cycle number.
 
+Two buttons under the panel stand in for jobs the duty engineer did in the computer room: **Перезарядка ленты ДРЕГ** reloads the DREG tape (recording stops for 60 s), and **Перезапуск СКАЛЫ** restarts SKALA from punched tape (DREG is off and SKALA answers no requests for 6 min 39 s). They are simulator shortcuts, not request-device functions.
+
 ## 6. Printers and records
 
 Most of what survives from the night of 26 April is paper. The *Печать* bay has one tab for each output device SKALA drove, plus an archive of the real record. An amber dot on a tab means new output has arrived there. **English gloss** adds an italic translation and explanation under each line. Turn it off to read the printouts as the staff did.
@@ -268,20 +314,20 @@ DREG (the diagnostic recorder) logged discrete signals and selected parameters. 
 - Once a minute DREG records the positions of nine rods.
 - One line carries a raw signal code, **К06L005 =1**: "pressure rise in the reactor space", the sign that fuel channels have burst. It is the only raw DREG code known from the sources. Other lines show the message text only.
 
-Code 410 (tape reload) and code 420 (restart) leave gaps in the tape. On 26 April DREG was off from 01:23:48 to 01:40:35 for lack of power.
+Reloading the tape and restarting SKALA (the two buttons under the mnemonic panel) leave gaps in the tape. On 26 April DREG was off from 01:23:48 to 01:40:35 for lack of power.
 
 ### АЦПУ drum printer
 
 The drum printer prints long reports on green-barred fanfold paper.
 
-- **PRIZMA** (code 300, and on odd hours automatically) gives:
+- **PRIZMA** (subprogram 0300, and on odd hours automatically) gives:
     - thermal and neutron power;
     - ORM, flagged with "ОЗР МЕНЕЕ 26" or "МЕНЕЕ 15" when low (the regulations required an immediate shutdown below 15 rods, and operation below 26 rods needed the chief engineer's permission);
     - the radial and axial peaking factors (KR, KZ);
     - the hottest channel's power and the coolant flow;
     - drum pressure and inlet temperature;
     - a 10 × 10 map of relative power across the core.
-- **The rod cartogram** (code 310) prints every rod's depth in cm on the plant grid, in the layout Karpan reproduces. It ends with the total inserted length and the number of displacer rods sitting within 1 m of the top.
+- **The rod cartogram** (subprogram 0310) prints every rod's depth in cm on the plant grid, in the layout Karpan reproduces. It ends with the total inserted length and the number of displacer rods sitting within 1 m of the top.
 
 The printout layouts are reconstructions. No original PRIZMA sheet layout is reproduced here.
 
@@ -297,9 +343,9 @@ The exercises build from reading the panels to replaying the accident and testin
 
 1. Choose the 01:22:30 scenario and press pause (❚❚).
 2. On the dial panel, find the yellow АР rods and the blue УСП rods. Note how few УСП needles have moved, and how close most dark-grey needles sit to the top.
-3. Press ×1. Request **101** (power), then **105** (flow), then **111** (subcooling).
-4. Request **120**. This is the quick ORM count: about 7 rods.
-5. Request **300** and wait for the next 5-minute cycle (watch the mode line). Read the PRIZMA sheet on the АЦПУ tab.
+3. Press ×1. Request **П0N0000** (thermal power) on set 1 and **К0G0000** (coolant flow) on set 2. Then put **Н0t0000** (inlet temperature) on set 2.
+4. Request **К0S0000** on set 1. ORM is about 6 rods, and the deviation row shows how far below the nearest setpoint it is. Choose **АС** and measure again: 15 rods, the emergency setpoint.
+5. Run subprogram **0300** under program 1 and wait for the next 5-minute cycle (watch the mode line). Read the PRIZMA sheet on the АЦПУ tab.
 
 **What to notice.** ORM is far below the 15-rod limit, at which the regulations demanded a shutdown. Nothing on the desk says so. You had to ask.
 
@@ -307,8 +353,8 @@ The exercises build from reading the panels to replaying the accident and testin
 
 1. Choose the 25.04.1986 01:05 scenario. The Помощник СИУР aid is on.
 2. Lower the АР setpoint by 100 MW at a time, waiting for power to settle each time, down to about 1600 MW.
-3. Run at ×600 for an hour or two of plant time. Request **300** every half hour.
-4. Watch the ДКЭВ bars and code **130** (Kz).
+3. Run at ×600 for an hour or two of plant time. Keep **К0S0000** (ORM) on one display set and print PRIZMA (subprogram 0300) every half hour.
+4. Watch the ДКЭВ bars and put **Я0K0000** (Kz) on the other set.
 
 **What to notice.** Xenon builds up after a power cut and steadily eats the margin, so the АР and the aid must keep withdrawing rods. The axial field also drifts slowly towards the top or the bottom. Try levelling it with the УСП group. This is the slow background to the night.
 
@@ -349,7 +395,7 @@ The exercises build from reading the panels to replaying the accident and testin
 
 ### Exercise 7: Can you rescue it?
 
-This is open exploration. The simulator does not promise an answer. Starting from 01:22:30, try to raise ORM before running the test. For example, insert one sector at a time while the АР holds power, or push in the УСП group. Check your progress with codes **120** and **300**. Then run exercise 4. Record:
+This is open exploration. The simulator does not promise an answer. Starting from 01:22:30, try to raise ORM before running the test. For example, insert one sector at a time while the АР holds power, or push in the УСП group. Check your progress with **К0S0000**, remembering that it updates only every 5 minutes, or print PRIZMA. Then run exercise 4. Record:
 
 - the ORM you reached;
 - the power you held;
@@ -359,9 +405,9 @@ The debrief at the end tells you whether you shut down cleanly or rode out a sur
 
 ### Exercise 8: Running SKALA
 
-1. In any scenario, request **420** to restart SKALA from punched tape, as the duty engineer did twice that night.
-2. Watch the mnemonic panel: the punched-tape lamp blinks, PRIZMA goes dark and DREG stops for 6 min 39 s.
-3. Try code **410** (DREG tape reload) during exercise 4 and see what is missing from the record afterwards.
+1. In any scenario, press **Перезапуск СКАЛЫ** under the mnemonic panel to restart SKALA from punched tape, as the duty engineer did twice that night.
+2. Watch the mnemonic panel: the punched-tape lamp blinks, PRIZMA goes dark and DREG stops for 6 min 39 s. Try a request in the meantime.
+3. Press **Перезарядка ленты ДРЕГ** during exercise 4 and see what is missing from the record afterwards.
 
 **What to notice.** The computer was a tool with its own downtime. Every gap in its record is a gap in what investigators could later know.
 
@@ -380,10 +426,16 @@ The debrief at the end tells you whether you shut down cleanly or rode out a sur
 | ГЦН | главный циркуляционный насос | Main circulation pump |
 | ДКЭВ | датчик контроля энерговыделения по высоте | Axial (height) power detector |
 | ДРЕГ (DREG) | диагностическая регистрация | SKALA's diagnostic event recorder |
+| ЗАМЕР | замер | Measurement: the switch that sends a request and puts the answer on display set 1 or 2 |
+| ИЗМ / ЗАП | измерение / запись | Measure or write: the request device's two modes. ЗАП stores a setpoint. |
+| Комплект индикации | — | Display set: one of two indicator assemblies showing value, deviation from the nearest setpoint and code |
 | ЛАР | локальный автоматический регулятор | Local automatic regulator rods. On 26 April control passed from ЛАР to АР at 00:28, when power fell to about 30 MW. |
+| МТК | — | The large wall displays with one lamp per channel, used by SKALA's channel-search programs |
 | ОЗР (ORM) | оперативный запас реактивности | Operating reactivity margin: how much absorber is in the core, in equivalent fully inserted manual rods |
 | ПК | перекомпенсация | Overcompensation signal: the АР rods are near the end of their travel |
+| ПП, АП, ПС, АС | уставки | The four setpoint types: warning and emergency, on rising (ПП, АП) and on falling (ПС, АС) |
 | ПРИЗМА (PRIZMA) | — | SKALA's core-calculation program, run about every 5 minutes |
+| ПРМ | параметр | The key that returns a parameter's value rather than a setpoint |
 | РР | ручное регулирование | Manual control rods |
 | РТА-80 | — | The teletype model SKALA printed on |
 | СДИВТ | старший дежурный инженер вычислительной техники | SKALA's senior duty engineer, in the computer room |
@@ -409,14 +461,28 @@ The simulator reproduces the documented 1986 sequence, but the reactor model and
 - Teletype speed, message format and cut-off. DREG cycle numbering, the "=0" convention, the message texts and the one raw code К06L005.
 - PRIZMA's 5-minute cycle and the odd-hour printouts. The SKALA restart time and the paired mode.
 
+### From the Chornobyl Family reconstruction
+
+Chornobyl Family rebuilt the request device with help from former Chernobyl staff, and showed how it works in a video ([Hackaday's write-up](https://hackaday.com/2026/07/13/using-your-own-rbmk-reactor-control-center-at-home/)). From it come:
+
+- the two keyboards and the two display sets, with their three rows;
+- the code grammar (system, part, quantity, four digits), and channel coordinates in the last four digits;
+- the ПРМ, ПП and АП keys, the ИЗМ and ЗАП modes, and the ЗАМЕР switches;
+- error codes 301 and 303, and the 000000 shown when no setpoint is defined;
+- the codes П0N0000, Т0N7100, К0S0000, К5N0000, К0S and К0G with channel coordinates, and the three gas-system codes;
+- subprogram 0301 under program 4 or 8, and the red keys as a decimal exponent.
+
+The plant grid backs up one detail independently: its numbers never use the digits 8 or 9, so the coordinates are octal. Some details were read from the video's automatic transcript and may be wrong. The transcript calls the reactor letter "R". There is no Р key, so it is taken here to be Я. The setpoint values in the video are the builders' own examples. Its ORM limits, 43 rods for a warning and 30 for a shutdown, are the rules brought in after 1986, so the simulator keeps the 1986 limits of 26 and 15.
+
 ### Reconstructed or invented
 
 - **Not an emulator.** The SKALA software and the V-3M instruction set are not public.
 - **Invented:**
-    - the request code numbers;
+    - every request code not marked "video" or "follows its rules", and the subprogram numbers 0300, 0310 and 0400;
     - the printout layouts;
     - which nine rods DREG logs.
-- **Console look.** The VFD tubes, the 0–7 column keyboard, the function keys and the Гашение switch follow a photograph of a SKALA console. Its controls (cabinet power-on, subprogram start) suggest it is the duty engineer's panel in the computer room, not the СИУР's request device. Using its style for the request device is a design choice. The digital readouts on the reactor desk are also styled as VFD tubes for consistency. The real desk relied mostly on dial meters and chart recorders.
+- **Request device details.** Reading ПС and АС as the falling setpoints, the bars used as the deviation symbol, the red keys as a count of decimal places, and the placement of the two computer-room buttons are guesses or design choices. The look of the tubes is styled, not copied. The digital readouts on the reactor desk are styled as VFD tubes for consistency, although the real desk relied mostly on dial meters and chart recorders.
+- **Electrical output.** The model has no turbine, so Т0N7100 is a rough estimate from thermal power, and after the stop valves close, from the load of the four coasting pumps.
 - **Physics.** The model is a 28-slice model of the core's height with simple kinetics, not a 3D calculation. The fuel-channel positions and their colouring are estimates. The xenon distribution at 01:22:30 was never measured, so it is worked backwards from the measured flux shape.
 - **Rod types.** The sources do not separate the 139 РР, 12 ЛАР and 24 АЗ rods. An earlier version guessed that the 24 rods reading 7 cm were the АЗ group. Their scattered layout ruled that out, and the guess was withdrawn.
 - **Tuning.** The explosion timing depends on one tuned parameter: how strongly the water in the rod channels absorbs neutrons. Changing it by 7 % either way stops the 01:22:30 explosion or makes the 00:39 case trip. INSAG-7 reports the same extreme sensitivity in the Soviet 3D models.
@@ -439,4 +505,5 @@ The simulator reproduces the documented 1986 sequence, but the reactor model and
 - L. Sturm and R. Plaskov, [DREG protocol transcript](https://archive.org/details/dreg-protocol-last-40-seconds-of-chernobyl), CC BY-NC 4.0.
 - A.S. Dyatlov, [Чернобыль. Как это было](http://lib.ru/MEMUARY/CHERNOBYL/dyatlow.txt_with-big-pictures.html).
 - Hackaday, [Inside SKALA: How Chornobyl's Reactor Was Actually Controlled](https://hackaday.com/2026/03/03/inside-skala-how-chernobyls-reactor-was-actually-controlled/), 2026, on the Chornobyl Family reconstruction.
-- Chornobyl Family, [Exploring SKALA: Chernobyl Reactor Control Computer](https://www.youtube.com/watch?v=ZbaptQh2AM4), 2023. Covers the duty engineer's console and the request devices.
+- Chornobyl Family, [Exploring SKALA: Chernobyl Reactor Control Computer](https://www.youtube.com/watch?v=ZbaptQh2AM4), 2023.
+- Chornobyl Family, "We rebuilt Chernobyl's SKALA" (Chernobyl reactor at home, part 2), 2026: the request device and its codes. Covered by Hackaday in [Using Your Own RBMK Reactor Control Center At Home](https://hackaday.com/2026/07/13/using-your-own-rbmk-reactor-control-center-at-home/).

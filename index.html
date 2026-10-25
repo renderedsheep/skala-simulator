@@ -11,7 +11,7 @@
 /* Layout: a control-room wall in three bays (reactor desk / SKALA console / printers), stacking on phones.
    Look: grey-green enamel panels with black engraved nameplates and cream dial faces. Digital readouts are drawn as
    Soviet side-view VFD tubes (one glass envelope per digit, glowing filament at the top, green or cyan filter glass),
-   modelled on a photographed SKALA engineer's console. The SKALA bay uses that console's warm grey enamel. */
+   laid out after the Chornobyl Family reconstruction of the SKALA request device. The SKALA bay uses that console's warm grey enamel. */
 :root {
   --panel: #c4cdc0;
   --panel-deep: #b3beb0;
@@ -115,13 +115,13 @@ select { font: inherit; background: var(--steel); border: 1px solid var(--panel-
 .stack > .plate:last-child { flex: 1 1 auto; }
 .plate { display: flex; flex-direction: column; }
 @media (min-width: 781px) {
-  .bays { grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.78fr) minmax(0, 1fr); grid-template-rows: auto auto; align-items: stretch; }
+  .bays { grid-template-columns: minmax(0, 1.06fr) minmax(0, 0.86fr) minmax(0, 1fr); grid-template-rows: auto auto; align-items: stretch; }
   .bay { display: contents; }
   .a-core { grid-column: 1; grid-row: 1; } .a-left { grid-column: 1; grid-row: 2; }
   .a-vu { grid-column: 2; grid-row: 1; }   .a-mid { grid-column: 2; grid-row: 2; }
   .a-print { grid-column: 3; grid-row: 1 / span 2; }
   .a-core .legend { margin-top: auto; padding-top: 8px; }
-  .a-vu .consoleface { flex: 1 1 auto; align-content: start; }
+  
 }
 @media (min-width: 781px) and (max-width: 1220px) {
   .bays { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto auto auto; }
@@ -200,42 +200,71 @@ select { font: inherit; background: var(--steel); border: 1px solid var(--panel-
 /* SKALA console: warm grey enamel, black square keycaps in digit columns, red and cream function keys */
 .bay-skala .plate { background: var(--enamel); border-color: var(--enamel-edge); }
 .vu { background: var(--enamel-deep); border-radius: 4px; padding: 12px; border: 1px solid var(--enamel-edge); box-shadow: inset 0 1px 0 rgba(255,255,255,0.5); }
-.vurow { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: flex-end; }
-.vurow .cap { font-family: var(--font-display); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink); margin-bottom: 3px; }
-.vurow .valbox { flex: 1 1 auto; min-width: 0; }
-.vunit { font-family: var(--font-display); font-size: 13px; background: var(--plate); color: var(--plate-ink); border-radius: 2px; padding: 1px 6px; margin-left: 6px; letter-spacing: 0.04em; vertical-align: middle; }
+.vunit { font-family: var(--font-display); font-size: 12px; background: var(--plate); color: var(--plate-ink); border-radius: 2px; padding: 1px 5px; letter-spacing: 0.04em; white-space: nowrap; }
 .vunit:empty { display: none; }
-.tablo { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; margin-top: 10px; }
-.tablo span { font-family: var(--font-display); font-size: 11px; letter-spacing: 0.05em; text-align: center; padding: 3px 2px; border-radius: 2px;
-  background: #e9e5d6; color: #8d897c; border: 1px solid var(--enamel-edge); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tablo span.on { background: #fff2bf; color: #4a3a05; box-shadow: 0 0 8px rgba(255,214,90,0.8), inset 0 0 0 1px #d9b632; }
-.tablo span.on.err { background: #ffd3cc; color: #6d140c; box-shadow: 0 0 8px rgba(255,90,70,0.7), inset 0 0 0 1px var(--red); }
-.vu .what { font-family: var(--font-body); color: var(--ink-soft); font-size: 12px; margin-top: 8px; min-height: 17px; }
-.consoleface { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px 16px; margin-top: 12px; align-items: start; }
-.switches { display: flex; flex-wrap: wrap; gap: 10px 18px; grid-column: 1 / -1; padding-bottom: 8px; border-bottom: 1px solid var(--enamel-edge); }
-.sw { display: inline-flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: 0; padding: 0; font-family: var(--font-display); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink); }
-.sw .lever { width: 26px; height: 26px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #f4f4f0, #a9aba5 60%, #6f726c); box-shadow: inset 0 0 0 1px #6f726c; position: relative; }
-.sw .lever::after { content: ""; position: absolute; left: 50%; top: 50%; width: 7px; height: 20px; margin-left: -3.5px; margin-top: -18px; border-radius: 3px; background: linear-gradient(90deg, #222, #555 50%, #1a1a1a); transform-origin: 50% 100%; transition: transform .12s; }
-.sw[aria-pressed="true"] .lever::after { transform: translateY(16px) scaleY(-1); }
-.sw.push .lever { background: radial-gradient(circle at 40% 35%, #fff9e6, #e8dcb6 55%, #b7a97f); box-shadow: inset 0 0 0 1px #8f8466, 0 2px 0 #8f8466; }
-.sw.push .lever::after { display: none; }
-.sw.push:active .lever { transform: translateY(2px); box-shadow: inset 0 0 0 1px #8f8466; }
-.colkeys { display: grid; grid-template-columns: repeat(3, 40px); gap: 6px 8px; }
-.colkeys .colcap { font-family: var(--font-display); font-size: 11px; text-align: center; color: var(--ink); letter-spacing: 0.04em; }
-.colkeys .col { display: flex; flex-direction: column; gap: 5px; }
-.key { background: linear-gradient(to bottom, #3a3d3b 0, var(--keycap) 18%, var(--keycap) 85%, #0b0c0b 100%); color: #f1efe6; border: 0; border-radius: 3px; width: 40px; height: 30px;
-  font-family: var(--font-display); font-weight: 700; font-size: 15px; box-shadow: 0 2px 0 #000, inset 0 0 0 1px #000; padding: 0; }
+.vu .what, .plate > .what { font-family: var(--font-body); color: var(--ink-soft); font-size: 12px; margin-top: 8px; min-height: 17px; }
+/* display sets: three rows each (value, deviation from the nearest setpoint, code), after the Chornobyl Family reconstruction */
+.vu.sets { display: grid; grid-template-columns: repeat(auto-fit, minmax(232px, 1fr)); gap: 8px 14px; padding: 10px 12px; }
+.vu.sets .what { grid-column: 1 / -1; margin-top: 0; }
+.dset { min-width: 0; }
+.dcap { font-family: var(--font-display); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink); margin-bottom: 3px; }
+.drow { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; min-width: 0; }
+.rcap { font-family: var(--font-display); font-size: 10.5px; letter-spacing: 0.04em; color: var(--ink-soft); width: 38px; flex: none; text-transform: uppercase; }
+.tube.t14 line { stroke-width: 3.3; stroke-linecap: round; }
+.tube.t14 .gh line { stroke: var(--off); }
+.tube.t14 .lt line { stroke: var(--on); opacity: 0; }
+.tube.t14 .lt line.on { opacity: 1; }
+/* left keyboard: seven key columns, the answer-type row, and the mode keys and switches */
+.kbL { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; align-items: flex-start; justify-content: space-between; }
+.colkeys { display: flex; gap: 3px; }
+.colkeys.seven .col:nth-child(2), .colkeys.seven .col:nth-child(4) { margin-right: 3px; }
+.colkeys .col { display: flex; flex-direction: column; gap: 4px; }
+.key { background: linear-gradient(to bottom, #3a3d3b 0, var(--keycap) 18%, var(--keycap) 85%, #0b0c0b 100%); color: #f1efe6; border: 0; border-radius: 3px; width: 28px; height: 24px;
+  font-family: var(--font-display); font-weight: 700; font-size: 14px; box-shadow: 0 2px 0 #000, inset 0 0 0 1px #000; padding: 0; display: inline-grid; place-items: center; }
 .key:active, .key.on { transform: translateY(2px); box-shadow: 0 0 0 #000, inset 0 0 0 1px #000; }
 .key.on { background: #3b3f3c; color: #fff; outline: 2px solid #d9b632; outline-offset: -2px; }
-.fnkeys { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.fkey { border: 0; border-radius: 3px; padding: 9px 10px; font-family: var(--font-display); font-weight: 700; font-size: 14px; letter-spacing: 0.06em; box-shadow: 0 3px 0 rgba(0,0,0,0.45), inset 0 0 0 1px rgba(0,0,0,0.5); text-align: center; }
+.key.sm { width: 27px; height: 22px; font-size: 13px; }
+.key.red { background: linear-gradient(to bottom, #f0705f, #d8412f 20%, #c2321f 85%, #7d1d14); }
+.key.cream { background: linear-gradient(to bottom, #fffbea, #ece3c2 20%, #ddd2ad 85%, #9d9270); color: var(--ink); }
+.kinds { display: flex; gap: 3px; margin-top: 8px; }
+.key.fn { width: 25px; height: 21px; font-size: 9.5px; letter-spacing: 0; }
+.key.dead { opacity: 0.6; cursor: default; }
+.kbside { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.qwin { display: flex; gap: 10px; padding: 2px 12px; background: #e8e0c8; border: 3px solid #5d3a2e; border-radius: 3px; font-family: var(--font-display); font-size: 18px; color: #c4baa0; line-height: 1.1; }
+.modes { display: inline-flex; border-radius: 3px; overflow: hidden; box-shadow: 0 2px 0 rgba(0,0,0,0.4); }
+.mk { border: 0; padding: 4px 4px; font-family: var(--font-display); font-weight: 700; font-size: 11px; letter-spacing: 0.02em; }
+.mk.dead { background: #1d1f1e; color: #f1efe6; cursor: default; }
+.mk.izm { background: #f2efe4; color: var(--ink); }
+.mk.zap { background: #d33a28; color: #fff; }
+.mk.on { box-shadow: inset 0 0 0 2px #d9b632, inset 0 0 10px rgba(255,214,90,0.9); }
+.swgrid { display: grid; grid-template-columns: repeat(2, auto); gap: 8px 8px; }
+.swgrid .sw { font-size: 9.5px; letter-spacing: 0; }
+.sw { display: inline-flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: 0; padding: 0; font-family: var(--font-display); font-size: 10px; letter-spacing: 0.03em; text-transform: uppercase; color: var(--ink); }
+.sw .lever { width: 24px; height: 24px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #f4f4f0, #a9aba5 60%, #6f726c); box-shadow: inset 0 0 0 1px #6f726c; position: relative; }
+.sw .lever::after { content: ""; position: absolute; left: 50%; top: 50%; width: 7px; height: 15px; margin-left: -3.5px; margin-top: -15px; border-radius: 3px; background: linear-gradient(90deg, #222, #555 50%, #1a1a1a); transform-origin: 50% 100%; transition: transform .12s; }
+.sw[aria-pressed="true"] .lever::after { transform: rotate(180deg); }
+.sw { padding-top: 0; } .sw .lever { margin-bottom: 4px; }
+@media (min-width: 1221px) and (max-width: 1400px) { .key { width: 26px; } .key.fn { width: 23px; } .kbL { gap: 8px; } }
+@media (min-width: 1221px) and (max-width: 1300px) { .key { width: 25px; } .key.fn { width: 22px; } .colkeys { gap: 2px; } }
+.kbnote { max-width: none; font-size: 11.5px; margin: 10px 0 0; }
+/* right keyboard: sign and red exponent, four decimal columns, program keys with lamps */
+.kbR { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-start; }
+.colkeys.rk .sgn { margin-right: 6px; }
+.expcap { font-family: var(--font-display); font-size: 10px; color: var(--ink-soft); text-align: center; margin-top: 4px; }
+.progs { display: flex; flex-direction: column; gap: 4px; }
+.prow { display: flex; align-items: center; gap: 5px; }
+.plamp { width: 11px; height: 11px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #e9d9b8, #9a7d52); box-shadow: inset 0 0 0 1px #6b5636; }
+.prow:has(.pk.on) .plamp { background: radial-gradient(circle at 40% 35%, #fff4c0, #ff9a2e); box-shadow: 0 0 8px #ffb347; }
+.subrow { display: flex; gap: 10px 14px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+.subcap { font-family: var(--font-display); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink); margin-top: 4px; }
+.fkey { border: 0; border-radius: 3px; padding: 7px 10px; font-family: var(--font-display); font-weight: 700; font-size: 13px; letter-spacing: 0.04em; box-shadow: 0 3px 0 rgba(0,0,0,0.45), inset 0 0 0 1px rgba(0,0,0,0.5); text-align: center; }
 .fkey:active { transform: translateY(3px); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.5); }
 .fkey.red { background: linear-gradient(to bottom, #e0574a, #b8281d); color: #fff; }
-.fkey.cream { background: linear-gradient(to bottom, #fbf6e3, #ddd2ad); color: var(--ink); }
 .fkey.dark { background: linear-gradient(to bottom, #3a3d3b, var(--keycap)); color: #f1efe6; }
-.fnkeys .note { max-width: none; font-size: 11.5px; }
+#dir { max-height: 460px; overflow: auto; padding-right: 4px; }
+.dir code i { font-style: normal; color: var(--ink-soft); }
 .dir { list-style: none; padding: 0; margin: 0; display: grid; gap: 2px; }
-.dir li button { width: 100%; text-align: left; background: transparent; border: 0; border-radius: 3px; padding: 4px 6px; display: grid; grid-template-columns: 42px minmax(0, 1fr); gap: 8px; align-items: baseline; }
+.dir li button { width: 100%; text-align: left; background: transparent; border: 0; border-radius: 3px; padding: 4px 6px; display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 8px; align-items: baseline; }
 .dir li button:hover { background: rgba(255,255,255,0.4); }
 .dir code { font-family: var(--font-mono); font-size: 14px; color: var(--ink); }
 .dir span { font-size: 13px; }
@@ -321,6 +350,7 @@ table.rho td:last-child { text-align: right; font-family: var(--font-mono); }
 .tag { display: inline-block; font-family: var(--font-display); font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; padding: 1px 6px; border-radius: 2px; margin-right: 4px; }
 .tag.doc { background: #cfe3d0; color: #1f4b28; }
 .tag.inv { background: #f4dfb7; color: #6a4410; }
+.tag.rec { background: #f6edb4; color: #5b4a07; }
 .tablewrap { overflow-x: auto; }
 table.val { border-collapse: collapse; font-size: 13px; min-width: 460px; }
 table.val th, table.val td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--panel-edge); vertical-align: top; }
@@ -471,39 +501,65 @@ footer.thanks { margin: 14px 0 0; font-size: 12px; color: var(--ink-soft); text-
     <section class="bay bay-skala">
       <div class="plate a-vu">
         <header><span class="screw"></span><h2>Вызывное устройство <span>SKALA request device</span></h2><span class="screw"></span></header>
-        <div class="vu" id="vu">
-          <div class="vurow">
-            <div><div class="cap">Код</div><div class="vfd cyan md" id="vuCode"></div></div>
-            <div class="valbox"><div class="cap">Значение <span class="vunit" id="vuUnit"></span></div><div class="vfd lg" id="vuVal"></div></div>
-          </div>
-          <div class="tablo" id="tablo" aria-live="polite"></div>
-          <div class="what" id="vuWhat" aria-live="polite">Set a code in the three columns and press ВВОД. The request codes below list what you can ask for.</div>
+        <div class="vu sets" id="vu">
+          <div class="dset hint" id="dsA" data-k="v_set"><div class="dcap">Комплект 1</div>
+            <div class="drow"><span class="rcap">Знач.</span><div class="vfd md" id="vuA"></div><span class="vunit" id="unitA"></span></div>
+            <div class="drow"><span class="rcap">Откл.</span><div class="vfd sm" id="devA"></div></div>
+            <div class="drow"><span class="rcap">Код</span><div class="vfd sm cyan" id="codeA"></div></div></div>
+          <div class="dset hint" id="dsB" data-k="v_set"><div class="dcap">Комплект 2</div>
+            <div class="drow"><span class="rcap">Знач.</span><div class="vfd md" id="vuB"></div><span class="vunit" id="unitB"></span></div>
+            <div class="drow"><span class="rcap">Откл.</span><div class="vfd sm" id="devB"></div></div>
+            <div class="drow"><span class="rcap">Код</span><div class="vfd sm cyan" id="codeB"></div></div></div>
+          <div class="what" id="vuWhat" aria-live="polite"></div>
         </div>
-        <div class="consoleface">
-          <div class="switches">
-            <button class="sw" id="swBlank" aria-pressed="false"><span class="lever"></span>Гашение</button>
-            <button class="sw push" id="swTest"><span class="lever"></span>Контроль индик.</button>
+        <div class="kbL">
+          <div class="keyblock">
+            <div class="colkeys seven hint" id="keysL" data-k="v_left" aria-label="Request code: one key in each of the seven columns"></div>
+            <div class="kinds" id="kinds">
+              <button class="key fn hint" data-kind="ПРМ" data-k="v_prm">ПРМ</button><button class="key fn hint" data-kind="АС" data-k="v_sp">АС</button><button class="key fn hint" data-kind="ПС" data-k="v_sp">ПС</button><button class="key fn hint" data-kind="ПП" data-k="v_sp">ПП</button><button class="key fn hint" data-kind="АП" data-k="v_sp">АП</button>
+              <span class="key fn dead hint" data-k="v_unk">ш</span><span class="key fn dead hint" data-k="v_unk">&lt;&gt;</span><span class="key fn dead hint" data-k="v_unk">п</span>
+            </div>
           </div>
-          <div class="colkeys" id="keys" aria-label="Code entry: one column per digit"></div>
-          <div class="fnkeys">
-            <button class="fkey cream" data-k="ent">ВВОД</button>
-            <button class="fkey red" data-k="clr">СБРОС</button>
-            <button class="fkey dark" data-k="back">← ШАГ</button>
-            <p class="note">Each column sets one digit of the code, left to right. The keys run 0–7, as on the photographed SKALA console. Typing digits on a keyboard also works.</p>
+          <div class="kbside">
+            <div class="qwin hint" data-k="v_qwin"><span>!</span><span>?</span></div>
+            <div class="modes" id="modes"><span class="mk dead hint" data-k="v_unk">ВКЛ</span><button class="mk izm hint" data-mode="ИЗМ" data-k="v_izm">ИЗМ</button><button class="mk zap hint" data-mode="ЗАП" data-k="v_zap">ЗАП</button></div>
+            <div class="swgrid">
+              <button class="sw hint" data-zamer="0" data-k="v_zamer" aria-pressed="false"><span class="lever"></span>Замер 1</button>
+              <button class="sw hint" data-zamer="1" data-k="v_zamer" aria-pressed="false"><span class="lever"></span>Замер 2</button>
+              <button class="sw hint" data-gash="0" data-k="v_gash" aria-pressed="false"><span class="lever"></span>Гашение 1</button>
+              <button class="sw hint" data-gash="1" data-k="v_gash" aria-pressed="false"><span class="lever"></span>Гашение 2</button>
+            </div>
           </div>
         </div>
+        <p class="note kbnote">One key per column: system, part, quantity, then four octal digits. ПРМ returns the value; flip ЗАМЕР 1 or 2 to measure. You can also type the code (m t d n p a r k for the first letter) and press Enter, or Shift+Enter for set 2.</p>
       </div>
       <div class="stack a-mid">
+      <div class="plate">
+        <header><span class="screw"></span><h2>Клавиатура 2 <span>numbers and subprograms</span></h2><span class="screw"></span></header>
+        <div class="kbR">
+          <div class="colkeys rk hint" id="keysR" data-k="v_right"></div>
+          <div class="progs hint" id="progs" data-k="v_prog"></div>
+        </div>
+        <div class="subrow">
+          <button class="sw hint swv" data-k="v_unk" aria-pressed="true"><span class="lever"></span>Вкл. 1</button>
+          <button class="fkey dark hint" id="btnStart" data-k="v_start">Запуск</button>
+          <button class="fkey red hint" id="btnStop" data-k="v_stop">Прерыв.</button>
+          <button class="sw hint swv" data-k="v_unk" aria-pressed="true"><span class="lever"></span>Вкл. 2</button>
+        </div>
+        <div class="subcap">Подпрограммы</div>
+        <div class="what" id="rkWhat"></div>
+      </div>
       <div class="plate">
         <header><span class="screw"></span><h2>Мнемосхема СКАЛА <span>system status</span></h2><span class="screw"></span></header>
         <div class="mnemo" id="mnemo"></div>
         <div class="mode" id="mode"></div>
+        <div class="row" style="margin-top:8px"><button class="btn hint" id="btnReload" data-k="v_reload">Перезарядка ленты ДРЕГ</button><button class="btn hint" id="btnRestart" data-k="v_restart">Перезапуск СКАЛЫ</button></div>
       </div>
 
       <div class="plate">
-        <header><span class="screw"></span><h2>Коды <span>request codes</span></h2><span class="tag inv">invented numbers</span></header>
+        <header><span class="screw"></span><h2>Коды <span>request codes</span></h2></header>
         <div id="dir"></div>
-        <p class="note" style="margin-top:8px">Operators dialled a numeric code and waited for the value on the digital display (Dyatlov, quoted by Karpan p.351). The real code table is not public, so these numbers are this simulator's own, using only the digits 0–7 so they can be keyed on the column keyboard. (The one raw SKALA code we do know, К06L005, is a DREG signal identifier, not a request code.)</p>
+        <p class="note" style="margin-top:8px">Click a code to key it in and measure it on display set 1. The grammar, and the codes marked "shown in the video", come from the Chornobyl Family reconstruction, built with former Chernobyl staff. The rest are this simulator's own, in the same grammar. «ррсс» stands for a channel's octal coordinates: row, then column, as shown when you hover a dial. (К06L005 is a DREG signal name, not a request code, and does not fit this pattern.)</p>
       </div>
       </div>
     </section>
@@ -559,8 +615,8 @@ footer.thanks { margin: 14px 0 0; font-size: 12px; color: var(--ink-soft); text-
         </ul>
         <h3>Reconstructed or invented</h3>
         <ul>
-          <li><span class="tag inv">inv</span>Console look: the VFD tubes, the column keyboard (keys 0–7), the red and cream function keys and the Гашение switch are modelled on a photograph of a SKALA engineer's console in the computer room, whose controls (cabinet power-on, subprogram start) mark it as the duty engineer's panel rather than the SIUR's request device. Applying its style to the SIUR's device is a design choice, not a documented match.</li>
-          <li><span class="tag inv">inv</span>Not an emulator: the V-3M instruction set and SKALA software are not public. Request codes, PRIZMA and cartogram printout layouts, and the choice of the 9 logged rods are this simulator's own.</li>
+          <li><span class="tag rec">rec</span>Request device: the two keyboards, the two display sets (value, deviation from the nearest setpoint, code), the code grammar, the ПРМ/ПП/АП keys, ИЗМ and ЗАП, error codes 301 and 303, and the codes П0N0000, Т0N7100, К0S0000, К5N0000 and К0S/К0G + channel follow the <a href="https://hackaday.com/2026/07/13/using-your-own-rbmk-reactor-control-center-at-home/">Chornobyl Family</a> reconstruction, built with former Chernobyl staff. Every operator had this device, and SKALA's engineers had the same one. The plant grid, which never uses the digits 8 or 9, confirms that channel coordinates are octal. Reading ПС/АС as the falling setpoints is a guess, and the unlabelled keys do nothing here.</li>
+          <li><span class="tag inv">inv</span>Not an emulator: the V-3M instruction set and SKALA software are not public. All other request codes, the subprogram numbers (except 0301), the PRIZMA and cartogram printout layouts, and the choice of the 9 logged rods are this simulator's own. The tube styling of the displays is a design choice.</li>
           <li><span class="tag inv">inv</span>Physics: 28-slice axial one-group diffusion (quasi-static) with point kinetics, per-slice void, Doppler, xenon/iodine and a burnup profile; every rod's absorber, graphite displacer and water columns at its real depth, weighted by its radial position. Rods are radially averaged, so the local character of the excursion (rows 12–30, Karpan p.380) is not captured.</li>
           <li><span class="tag inv">inv</span>Tuned, not derived: migration area, water-column absorption, burnup profile, and a boiling-crisis threshold after which channels rupture, rods jam and steam floods the core. The xenon profile at 01:22:30 is solved from the measured flux shape because it was never measured (INSAG-7 p.81).</li>
           <li><span class="tag inv">inv</span>Fuel-channel positions are inferred (every lattice cell inside the core not used by a rod or detector). Their colouring is an illustrative radial estimate, not a 2D solution. The 175 plain rods are 139 РР manual, 12 ЛАР local-automatic and 24 АЗ emergency rods, which the sources do not tell apart. 24 of them read exactly 7 cm in both maps; they are probably fully withdrawn, but their scattered positions rule them out as the АЗ group, which would be laid out symmetrically like the АР and УСП rods.</li>
@@ -757,7 +813,7 @@ return [
   { k: 'l_v3m', m: [], t: 'В-3М А / Б · the two computers', d: 'SKALA’s two V-3M machines. In paired mode (ПАРНЫЙ ВАРИАНТ) they ran together. Green: running. Blinking amber: restarting from punched tape.' },
   { k: 'l_pwr', m: [], t: 'ПИТАНИЕ · power supply', d: 'Electrical supply to the SKALA complex. On 26 April it failed seconds after the explosion: the teletypes stopped mid-message and DREG recorded nothing from 01:23:48 to 01:40:35. Red blinking: no power.' },
   { k: 'l_dreg', m: [], t: 'ДРЕГ · diagnostic recorder program', d: 'The DREG logging program, writing a numbered cycle every 2–4 s. Amber flash: a cycle being written. Blinking: recording stopped (tape reload or restart).', a: ['DREG transcript (archive.org)', 'https://archive.org/details/dreg-protocol-last-40-seconds-of-chernobyl'] },
-  { k: 'l_tape', m: [], t: 'ЛЕНТА · DREG magnetic tape', d: 'The magnetic tape DREG writes to. Amber while writing; blinking while the tape is reloaded (code 410). The printed DREG listing was made from this tape afterwards.' },
+  { k: 'l_tape', m: [], t: 'ЛЕНТА · DREG magnetic tape', d: 'The magnetic tape DREG writes to. Amber while writing; blinking while the tape is reloaded. The printed DREG listing was made from this tape afterwards.' },
   { k: 'l_prizma', m: [], t: 'ПРИЗМА · core calculation', d: 'The PRIZMA program, recalculating channel powers and the operating margin about every 5 minutes. Blinking amber: a printout is queued for the end of the cycle. Dark: not running during a restart.' },
   { k: 'l_krv', m: [], t: 'КРВ', d: 'A SKALA subsystem named in the sources used here, which do not describe its function. Shown for completeness; it is not simulated.' },
   { k: 'l_tty', m: [], t: 'РТА-80 №1 / №2 · teletypes', d: 'The two roll-paper teleprinters that printed urgent messages such as АВАР ЗАЩИТА 5, at 7 characters per second. Amber while printing.', a: ['Wikipedia: Teleprinter', 'https://en.wikipedia.org/wiki/Teleprinter'] },
@@ -774,6 +830,22 @@ return [
   { k: 'c_step', m: [], t: 'Setpoint steps', d: 'Change the setpoint by 10 or 100 MW. The regulator follows at the speed of its rods, so a big step takes time. At low power a large step up can shorten the reactor period enough to trip АЗСР.' },
   { k: 'c_assist', m: [], t: 'Помощник СИУР · simulator aid', d: 'Not a plant feature. When the active АР bank drifts near the top or bottom of its travel, the aid moves three manual or УСП rods at half speed to bring it back to mid-travel, so long runs at ×600 do not leave the regulator stranded. Real operators did this by hand, judging the axial power shape as they went.' },
   { k: 'c_banks', m: [], t: '1АР, 2АР, 3АР · the regulator banks', d: 'Each bar is one bank of four automatic-regulator rods. The yellow part shows how far the rods are inserted from the top, out of 7 m, and the number below is their depth in metres. The amber frame marks the bank the regulator is driving. When it nears either end of its travel, SKALA logs 1 ПК-ВВЕРХ or 1 ПК-ВНИЗ. Bank numbers are assumed: 1 is the square 2 m from the centre, 2 the diamond 3 m out, 3 the cross 1 m out.' },
+  { k: 'v_set', m: [], t: 'Комплект индикации · display set', d: 'SKALA had no screens. Answers came up on indicator assemblies, and each request device had two. Each set has three rows. Знач. is the answer. Откл. is the deviation from the nearest setpoint, in percent: the bar before the number sits low when the value is below that setpoint and high when it is above (the real symbol is not documented, so this is a stand-in). It reads 000000 if the parameter has no setpoint, or an error code: 301 for no such code, 303 for no such setpoint. Код is the request. A value stays live until you replace it.', a: ['Hackaday on the Chornobyl Family console video', 'https://hackaday.com/2026/07/13/using-your-own-rbmk-reactor-control-center-at-home/'] },
+  { k: 'v_left', m: [], t: 'Left keyboard · the request code', d: 'Press one key in each column. Codes run from broad to specific: column 1 is the system (Я reactor, П steam generation, Т turbine, Н pumps, К channel by channel), column 2 a part of it (0 the whole, 1 and 2 the left and right halves), column 3 the quantity (N power, G flow, P pressure, S position, t temperature, H level), and the last four digits a component or a channel’s octal coordinates (0000 for the whole system). Example: П0N0000 is the reactor’s thermal power. Every column is octal, 0–7, as was the plant’s channel grid.', a: ['Hackaday on the Chornobyl Family console video', 'https://hackaday.com/2026/07/13/using-your-own-rbmk-reactor-control-center-at-home/'] },
+  { k: 'v_prm', m: [], t: 'ПРМ · parameter', d: 'Return the parameter’s current value. The other four keys in this row return one of its setpoints instead.' },
+  { k: 'v_sp', m: [], t: 'АС, ПС, ПП, АП · setpoint types', d: 'Return, or with ЗАП write, one of the parameter’s setpoints instead of its value. The video names ПП as the warning-high and АП as the emergency-high setpoint. Reading ПС and АС as warning-low and emergency-low (по повышению / по снижению, on rising / on falling) is this simulator’s guess. A setpoint SKALA does not have gives error 303.' },
+  { k: 'v_unk', m: [], t: 'Not simulated', d: 'This control is on the console, but its purpose is not described in the sources used here, so it does nothing.' },
+  { k: 'v_qwin', m: [], t: 'Indicator window', d: 'A small window on the console, marked here with “!” and “?”. Its function is not described in the sources used here, so it stays dark.' },
+  { k: 'v_izm', m: [], t: 'ИЗМ · measurement', d: 'Measurement mode: ЗАМЕР reads the keyed code and shows the answer on a display set. This is the normal mode.' },
+  { k: 'v_zap', m: [], t: 'ЗАП · write', d: 'Write mode: ЗАМЕР stores the number on the right keyboard as the chosen setpoint (ПП, АП, ПС or АС) of the keyed code. At the plant, SKALA’s programmers did this from setpoint charts drawn up by the process engineers. In the simulator a new setpoint only changes SKALA’s own deviation readout; the hardwired protections are unaffected.' },
+  { k: 'v_zamer', m: [], t: 'ЗАМЕР 1 / 2 · measure into display set 1 or 2', d: 'Sends the request to SKALA and puts the answer on the first or second display set. The answer takes about 1.5 s of plant time to appear. On a computer keyboard, Enter and Shift+Enter do the same.' },
+  { k: 'v_gash', m: [], t: 'ГАШЕНИЕ · blanking', d: 'Turns a display set’s indicators off without forgetting what it shows.' },
+  { k: 'v_right', m: [], t: 'Right keyboard · numbers', d: 'Enters a signed number: one key in each of the four black columns for the digits, − or + for the sign, and a red key for the decimal exponent, which sets where the decimal point goes (0293 with red 2 is 2.93; that the red keys count decimal places is an assumption). Used for setpoints with ЗАП and for subprogram numbers.', a: ['Hackaday on the Chornobyl Family console video', 'https://hackaday.com/2026/07/13/using-your-own-rbmk-reactor-control-center-at-home/'] },
+  { k: 'v_prog', m: [], t: 'Program keys 1–10', d: 'Choose a program; its lamp lights. In the video, programs 4 and 8 send results to one of two МТК channel displays. In this simulator, program 1 holds the printing and DREG jobs, under invented numbers.' },
+  { k: 'v_start', m: [], t: 'ЗАПУСК · start a subprogram', d: 'Runs the chosen program with the subprogram number on the four black columns. As in the video, press only М on the left keyboard first. Example from the video: program 4, subprogram 0301, the search for channels with low coolant flow (needs the МТК display, not built here). Invented here: program 1 with 0300 prints PRIZMA, 0310 the rod cartogram, 0400 a DREG snapshot.' },
+  { k: 'v_stop', m: [], t: 'ПРЕРЫВ · interrupt', d: 'Stops the running program. Here it cancels a queued PRIZMA printout and clears the program key.' },
+  { k: 'v_reload', m: [], t: 'Reload the DREG tape', d: 'A computer-room job for the duty engineer, not a request-device code. DREG stops for 60 s while the tape is changed, and anything that happens meanwhile is lost, as in the gap at 01:12:10–01:18:49. A simulator shortcut.' },
+  { k: 'v_restart', m: [], t: 'Restart SKALA from punched tape', d: 'What the duty engineer did twice that night to load the test parameters: stop SKALA and restart it from the programmer’s punched tape. DREG is off and SKALA answers no requests for 6 min 39 s. A simulator shortcut.' },
 ];
 })();
 if (typeof module !== 'undefined') module.exports = GLOSSARY;
@@ -1342,7 +1414,7 @@ if (typeof module !== 'undefined') module.exports = SIM;
   const P = SIM.P, H = P.H;
   let S, speed = 1, last = 0, evIdx = 0, trend = [], ended = false, endShown = false;
   let sel = { kind: 'group', key: 'RR0' }, multi = false, drag = null, scramShown = false, az5Armed = 0, noticeT = 0, hpT = 0, fuelT = 0, fuelPow = null;
-  let prizmaReq = null, lastClockHour = null;
+  let prizmaReq = null, lastClockHour = null, lastCycle = null;
   const marks = {}, firsts = {};
 
   // ---------- helpers ----------
@@ -1360,7 +1432,7 @@ if (typeof module !== 'undefined') module.exports = SIM;
     return [h(9, 27, 7), v(27.6, 7.6, 30), v(27.6, 30, 52.4), h(9, 27, 53), v(8.4, 30, 52.4), v(8.4, 7.6, 30), h(9, 27, 30)];
   })();
   const GLYPH = { '0': 'abcdef', '1': 'bc', '2': 'abdeg', '3': 'abcdg', '4': 'bcfg', '5': 'acdfg', '6': 'acdefg', '7': 'abc', '8': 'abcdefg', '9': 'abcdfg',
-    '-': 'g', '—': 'g', ' ': '', '_': 'd', 'E': 'adefg', 'Е': 'adefg', 'r': 'eg', 'P': 'abefg', 'Р': 'abefg', 'C': 'adef', 'С': 'adef', 'H': 'bcefg', 'Н': 'bcefg',
+    '-': 'g', '—': 'g', '‾': 'a', ' ': '', '_': 'd', 'E': 'adefg', 'Е': 'adefg', 'r': 'eg', 'P': 'abefg', 'Р': 'abefg', 'C': 'adef', 'С': 'adef', 'H': 'bcefg', 'Н': 'bcefg',
     'L': 'def', 'П': 'abcef', 'Г': 'aef', 'U': 'bcdef', 'b': 'cdefg', 'Ь': 'cdefg', 'd': 'bcdeg', 'A': 'abcefg', 'А': 'abcefg', 'n': 'ceg', 't': 'defg', 'o': 'cdeg', 'О': 'abcdef' };
   const tubeSvg = () => `<svg viewBox="0 0 36 60" aria-hidden="true"><g class="gh">${SEGS.map(d => `<path d="${d}"/>`).join('')}<circle cx="32.5" cy="54" r="2"/></g><g class="lt">${SEGS.map(d => `<path d="${d}"/>`).join('')}<circle cx="32.5" cy="54" r="2"/></g></svg>`;
   function vfd(el, n) {            // returns {set(text, state)}; text is right-aligned, '.' or ',' or ':' lights the previous tube's point
@@ -1379,6 +1451,23 @@ if (typeof module !== 'undefined') module.exports = SIM;
         out.forEach((c, i) => { const g = GLYPH[c.ch] ?? GLYPH[String(c.ch).toUpperCase()] ?? ''; tubes[i].forEach((p, k) => p.classList.toggle('on', k < 7 ? g.includes('abcdefg'[k]) : c.dp)); });
       },
     };
+  }
+
+  // 14-segment alphanumeric tubes (the code row of each display set shows letters)
+  const S14 = { a: [7, 5, 29, 5], a2: [18, 5, 29, 5], b: [31, 7, 31, 28], c: [31, 32, 31, 53], d: [7, 55, 29, 55], e: [5, 32, 5, 53], f: [5, 7, 5, 28], g1: [7, 30, 16.5, 30], g2: [19.5, 30, 29, 30],
+    h: [8, 8, 16, 27], i: [18, 7, 18, 28], j: [28, 8, 20, 27], k: [8, 52, 16, 33], l: [18, 32, 18, 53], m: [28, 52, 20, 33], n: [17, 7, 6, 53] };
+  const BASE14 = ['a', 'b', 'c', 'd', 'e', 'f', 'g1', 'g2', 'h', 'i', 'j', 'k', 'l', 'm'];
+  const G14 = { '0': 'a b c d e f', '1': 'b c', '2': 'a b g1 g2 e d', '3': 'a b c d g2 g1', '4': 'f g1 g2 b c', '5': 'a f g1 g2 c d', '6': 'a f e d c g1 g2', '7': 'a b c', '8': 'a b c d e f g1 g2', '9': 'a b c d f g1 g2',
+    'Т': 'a i l', 'М': 'f e h j b c', 'Д': 'n a2 b c d', 'Н': 'f e b c g1 g2', 'П': 'a f e b c', 'А': 'a b c e f g1 g2', 'Я': 'a b c f g1 g2 k', 'К': 'f e g1 j m',
+    'X': 'h j k m', 'K': 'f e g1 j m', 'N': 'f e h m b c', 'S': 'a f g1 g2 c d', 'H': 'f e b c g1 g2', 'P': 'a b f e g1 g2', 'G': 'a f e d c g2', 't': 'f e d g1', 'E': 'a f e d g1', '-': 'g1 g2', ' ': '' };
+  const ln = ([x1, y1, x2, y2], k) => `<line data-s="${k}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
+  function vfd14(el, n) {
+    el.innerHTML = '<span class="vfdscrew l"></span>' + Array.from({ length: n }, () => `<span class="tube t14"><svg viewBox="0 0 36 60" aria-hidden="true"><g class="gh">${BASE14.map(k => ln(S14[k], k)).join('')}</g><g class="lt">${Object.keys(S14).map(k => ln(S14[k], k)).join('')}</g></svg></span>`).join('') + '<span class="vfdscrew r"></span>';
+    const tubes = [...el.querySelectorAll('.lt')].map(g => [...g.children]);
+    let last = null;
+    return { set(text) { text = String(text); el.setAttribute('aria-label', text.trim() || 'blank'); if (text === last) return; last = text;
+      const cells = [...text.padEnd(n).slice(0, n)];
+      cells.forEach((c, i) => { const g = (G14[c] ?? '').split(' '); tubes[i].forEach(p => p.classList.toggle('on', g.includes(p.dataset.s))); }); } };
   }
 
   function notice(msg, ms = 7000) { $('notice').textContent = msg; noticeT = performance.now() + ms; }
@@ -1473,99 +1562,235 @@ if (typeof module !== 'undefined') module.exports = SIM;
     papers.arc.scrollTop = 0;
   }
 
-  // ---------- codes ----------
+  // ---------- request codes ----------
+  // Code grammar from the Chornobyl Family reconstruction, built with former Chernobyl NPP staff:
+  //   [system: Cyrillic letter] [subdivision: 0-7, 0 = whole, 1/2 = left/right] [quantity: Latin letter] [4 octal digits: component, or channel coordinates]
+  // src: 'doc' = code shown in that video; 'inf' = follows a rule stated there; 'inv' = this simulator's own, in the same grammar.
+  const K1 = ['М', 'Т', 'Д', 'Н', 'П', 'А', 'Я', 'К'];        // column 1, top to bottom as on the console
+  const K3 = ['X', 'K', 'N', 'S', 'H', 'P', 'G', 't'];        // column 3
+  const OCT = ['7', '6', '5', '4', '3', '2', '1', '0'];
+  const LEFTCOLS = [K1, OCT, K3, OCT, OCT, OCT, OCT];
+  const oct2 = n => n.toString(8).padStart(2, '0');
+  const chOf = (x, y) => oct2(32 - y) + oct2(31 + x);           // plant grid coordinates are octal: row then column, as in "50-27"
+  let fuelIdx = null, fuelFor = null;
+  const fuelAt = ch => { if (fuelFor !== S) { fuelIdx = new Map(S.fuel.map((f, i) => [chOf(f.x, f.y), i])); fuelFor = S; } return fuelIdx.get(ch); };
+  const online = () => S.name === 'nominal' ? [7, 8] : [8];      // TG-7 was taken off the grid at 13:05 on 25 April
+  function elecMW(tg) {                                          // rough estimate: the model has no turbine
+    if (S.destroyed || S.powerLost) return 0;
+    const on = online();
+    if (tg && !on.includes(tg)) return 0;
+    if (S.testStarted) {                                          // stop valves shut: the coasting TG-8 only carries its four pumps
+      if (tg === 7) return 0;
+      const c = S.pumps.filter(p => p.coast && !p.tripped);
+      return c.reduce((a, p) => a + 5.5 * p.w ** 3, 0);
+    }
+    const total = SIM.thermal(S) * 0.31;
+    return tg ? total / on.length : total;
+  }
+  const loopFlow = side => S.pumps.filter(p => p.side === side).reduce((a, p) => a + p.w * S.drk * SIM.P.PUMP_M3H, 0);
+  let ormCycle = { v: null, at: null };                          // SKALA's ORM is the last 5-minute calculation, not a live value
+
   const CODES = [
-    { c: '101', ru: 'Тепловая мощность', en: 'Thermal power', u: 'МВТ', f: () => fmt(SIM.thermal(S)) },
-    { c: '102', ru: 'Нейтронная мощность', en: 'Neutron power, % of nominal', u: '%', f: () => fmt(S.n * 100, 1) },
-    { c: '103', ru: 'Давление в БС', en: 'Drum separator pressure', u: 'КГС/СМ²', f: () => ru(S.p, 1) },
-    { c: '104', ru: 'Уровень в БС', en: 'Drum separator level', u: 'ММ', f: () => fmt(S.L) },
-    { c: '105', ru: 'Расход через реактор', en: 'Coolant flow, all pumps', u: 'М³/Ч', f: () => fmt(SIM.flowM3(S)) },
-    { c: '106', ru: 'Расход питательной воды', en: 'Feedwater flow', u: 'Т/Ч', f: () => fmt(S.Gfw * 3.6) },
-    { c: '107', ru: 'Температура на входе', en: 'Coolant inlet temperature', u: '°C', f: () => ru(inletT(), 1) },
-    { c: '111', ru: 'Недогрев на входе', en: 'Inlet subcooling', u: '°C', f: () => ru(S.hy ? S.hy.dTsub : 0, 1) },
-    { c: '110', ru: 'Положение активной группы АР', en: 'Depth of the active AR bank', u: 'М', f: () => { const r = S.rods.find(r => r.type === 'AR' && r.bank === S.ar.bank); return ru(r.d, 2); } },
-    { c: '120', ru: 'ОЗР по положению стержней', en: 'ORM, simple count from rod positions (what the display gave without PRIZMA)', u: 'СТ.РР', f: () => ru(SIM.ormQuick(S), 1) },
-    { c: '130', ru: 'Kz по СФКРЭ', en: 'Axial peaking factor from the height detectors', u: '', f: () => ru(SIM.kz(S), 2) },
-    { c: '300', ru: 'Расчёт ПРИЗМА', en: 'Request PRIZMA: printed at the end of the next 5-minute SKALA cycle', act: requestPrizma },
-    { c: '310', ru: 'Картограмма СУЗ', en: 'Rod depth cartogram (cm) to the drum printer', act: printCartogram },
-    { c: '400', ru: 'Срез параметров в ДРЕГ', en: 'Write a parameter snapshot into DREG', act: dregSnap },
-    { c: '410', ru: 'Перезарядка ленты ДРЕГ', en: 'Reload the DREG tape: recording stops 60 s', act: dregReload },
-    { c: '420', ru: 'Перезапуск СКАЛЫ', en: 'Restart SKALA from punched tape, as done twice that night: DREG off 6 min 39 s', act: skalaRestart },
+    { c: 'П0N0000', src: 'doc', ru: 'Тепловая мощность реактора', en: 'Reactor thermal power', u: 'МВТ', f: () => fmt(SIM.thermal(S)) },
+    { c: 'Т0N7100', src: 'doc', ru: 'Электрическая мощность блока', en: 'Electrical output of the whole unit (rough estimate: the model has no turbine)', u: 'МВТ', f: () => fmt(elecMW()) },
+    { c: 'К0S0000', src: 'doc', ru: 'ОЗР', en: "Operating reactivity margin, from SKALA's last 5-minute calculation", u: 'СТ.РР', f: () => ru(ormCycle.v, 1) },
+    { c: 'К5N0000', src: 'doc', ru: 'Максимальная мощность канала', en: 'Highest fuel-channel power in the core (illustrative radial estimate)', u: 'МВТ', f: () => ru(SIM.thermal(S) / 1661 * Math.max(...SIM.channelPower(S)), 2) },
+    { c: 'К0S', pat: 'ch', src: 'doc', ex: 'К0S5027', ru: 'Положение стержня СУЗ', en: 'Rod depth in m below its upper limit switch, by channel (УСП: height pushed up from below)', u: 'М', f: ch => { const r = S.rods.find(r => r.ch.replace('-', '') === ch); return r ? ru(r.d, 2) : null; } },
+    { c: 'К0G', pat: 'ch', src: 'doc', ex: 'К0G4036', ru: 'Расход через канал', en: 'Coolant flow through one fuel channel. The model has no channel-by-channel flow, so this is the core average.', u: 'М³/Ч', f: ch => fuelAt(ch) === undefined ? null : fmt(SIM.flowM3(S) / 1661) },
+    { c: 'К0G0000', src: 'inf', count: true, ru: 'Расход через реактор', en: 'Total coolant flow. SKALA first shows how many channels it counted, then the sum.', u: 'М³/Ч', f: () => fmt(SIM.flowM3(S)) },
+    { c: 'К1G0000', src: 'inf', count: true, ru: 'Расход, левая половина', en: 'Coolant flow, left loop (pumps 11–14)', u: 'М³/Ч', f: () => fmt(loopFlow('Л')) },
+    { c: 'К2G0000', src: 'inf', count: true, ru: 'Расход, правая половина', en: 'Coolant flow, right loop (pumps 21–24)', u: 'М³/Ч', f: () => fmt(loopFlow('П')) },
+    { c: 'К0N', pat: 'ch', src: 'inf', ex: 'К0N4036', ru: 'Мощность канала', en: 'Power of one fuel channel (illustrative radial estimate)', u: 'МВТ', f: ch => { const i = fuelAt(ch); return i === undefined ? null : ru(SIM.thermal(S) / 1661 * SIM.channelPower(S)[i], 2); } },
+    { c: 'Я0N0000', src: 'inv', ru: 'Нейтронная мощность', en: 'Neutron power, % of nominal', u: '%', f: () => fmt(S.n * 100, 1) },
+    { c: 'Я0K0000', src: 'inv', ru: 'Kz по СФКРЭ', en: 'Axial peaking factor from the height detectors', u: '', f: () => ru(SIM.kz(S), 2) },
+    { c: 'П0P0000', src: 'inv', ru: 'Давление в БС', en: 'Steam-drum pressure. П1… and П2… give the left and right drums; the model has one pressure for both.', u: 'КГС/СМ²', f: () => ru(S.p, 1) },
+    { c: 'П1P0000', src: 'inv', hide: true, ru: 'Давление в БС, левая', en: 'Left steam-drum pressure (same as the right in this model)', u: 'КГС/СМ²', f: () => ru(S.p, 1) },
+    { c: 'П2P0000', src: 'inv', hide: true, ru: 'Давление в БС, правая', en: 'Right steam-drum pressure (same as the left in this model)', u: 'КГС/СМ²', f: () => ru(S.p, 1) },
+    { c: 'П0H0000', src: 'inv', ru: 'Уровень в БС', en: 'Steam-drum water level against normal', u: 'ММ', f: () => fmt(S.L) },
+    { c: 'П0G0000', src: 'inv', ru: 'Расход питательной воды', en: 'Feedwater flow', u: 'Т/Ч', f: () => fmt(S.Gfw * 3.6) },
+    { c: 'Н0t0000', src: 'inv', ru: 'Температура на входе в реактор', en: 'Coolant temperature entering the core', u: '°C', f: () => ru(inletT(), 1) },
+    { c: 'Н0G00', pat: 'pump', src: 'inv', ex: 'Н0G0013', ru: 'Расход ГЦН', en: 'Flow of one main circulation pump: the last two digits are its number, 11–14 or 21–24', u: 'М³/Ч', f: n => { const p = S.pumps.find(p => String(p.id) === n); return p ? fmt(p.w * S.drk * SIM.P.PUMP_M3H) : null; } },
+    { c: 'Т1N7100', src: 'inv', ru: 'Электрическая мощность ТГ-7', en: 'Electrical output of turbine-generator 7 (rough estimate)', u: 'МВТ', f: () => fmt(elecMW(7)) },
+    { c: 'Т2N7100', src: 'inv', ru: 'Электрическая мощность ТГ-8', en: 'Electrical output of turbine-generator 8 (rough estimate)', u: 'МВТ', f: () => fmt(elecMW(8)) },
+    { c: 'Я0G4211', src: 'doc', nm: true, ru: 'Расход азотно-гелиевой смеси', en: 'Nitrogen-helium gas flow into the reactor space. A real code from the video; the gas system is not modelled here.' },
+    { c: 'Я0P4211', src: 'doc', nm: true, ru: 'Давление смеси на входе', en: 'Gas mixture pressure entering the reactor space. Not modelled here.' },
+    { c: 'Я0P4311', src: 'doc', nm: true, ru: 'Давление смеси на выходе', en: 'Gas mixture pressure leaving the reactor space. Not modelled here.' },
   ];
+  // SKALA's own setpoint table (what the middle row measures against). Only warnings and limits SKALA knew about;
+  // the protections themselves (АЗМ, АЗСР) are hardwired in the control and protection system.
+  const SP_DEFAULT = {
+    'П0N0000': { ПП: 3264, АП: 3520 },         // video: warning 2 % above nominal, emergency at 3520 MW
+    'К5N0000': { ПП: 2.93, АП: 3.0 },          // video
+    'К0S0000': { ПС: 26, АС: 15 },             // 1986 regulations. The video's 43 and 30 rods are the post-accident limits.
+    'П0P0000': { ПП: 70, АП: 75 }, 'П1P0000': { ПП: 70, АП: 75 }, 'П2P0000': { ПП: 70, АП: 75 },
+    'П0H0000': { ПП: 100, ПС: -100, АС: -600 },
+  };
+  let SP = {};
+  const KINDS = { ПРМ: 'the value itself', ПП: 'warning setpoint, rising', АП: 'emergency setpoint, rising', ПС: 'warning setpoint, falling', АС: 'emergency setpoint, falling' };
+  function lookup(code) {
+    const exact = CODES.find(k => !k.pat && k.c === code);
+    if (exact) return { k: exact, arg: null };
+    for (const k of CODES.filter(k => k.pat)) if (code.startsWith(k.c)) return { k, arg: code.slice(k.c.length) };
+    return null;
+  }
+  const SRC_TAG = { doc: 'shown in the video', inf: 'follows the video', inv: 'invented' };
   function buildDir() {
-    const grp = (title, list) => `<div class="dirhead">${title}</div><ul class="dir">${list.map(k => `<li><button data-code="${k.c}"><code>${k.c}</code><span>${esc(k.ru)}<em>${esc(k.en)}</em></span></button></li>`).join('')}</ul>`;
-    $('dir').innerHTML = grp('Вызов параметра · read a value', CODES.filter(k => !k.act)) + grp('Программы · run a program', CODES.filter(k => k.act));
-    $('dir').addEventListener('click', e => { const b = e.target.closest('button[data-code]'); if (!b) return; enterCode(b.dataset.code); });
+    const row = k => `<li><button data-code="${k.ex || k.c}"><code>${k.pat ? k.c + (k.pat === 'ch' ? '<i>ррсс</i>' : '<i>NN</i>') : k.c}</code><span>${esc(k.ru)}<em>${esc(k.en)}</em></span></button></li>`;
+    const grp = (title, list) => `<div class="dirhead">${title}</div><ul class="dir">${list.map(row).join('')}</ul>`;
+    const vis = CODES.filter(k => !k.hide);
+    $('dir').innerHTML = grp('Из видео Chornobyl Family · shown in the video', vis.filter(k => k.src === 'doc'))
+      + grp('По правилам из видео · follows its rules', vis.filter(k => k.src === 'inf'))
+      + grp('Придуманы для симулятора · invented, same grammar', vis.filter(k => k.src === 'inv'))
+      + `<div class="dirhead">Подпрограммы · subprograms (right keyboard)</div><ul class="dir">${SUBPROGS.map(s => `<li><button data-sub="${s.n}"><code>${s.p}·${s.n}</code><span>${esc(s.ru)}<em>${esc(s.en)}</em></span></button></li>`).join('')}</ul>`;
+    $('dir').addEventListener('click', e => {
+      const b = e.target.closest('button[data-code]');
+      if (b) { setLeft(b.dataset.code); vu.kind = 'ПРМ'; vu.mode = 'ИЗМ'; zamer(0); return; }
+      const s = e.target.closest('button[data-sub]');
+      if (s) { const sp = SUBPROGS.find(x => x.n === s.dataset.sub); vu.left = ['М', null, null, null, null, null, null]; rk.prog = sp.p; rk.sign = 1; rk.d = sp.n.split(''); rk.e = 0; start(); }
+    });
   }
 
   // ---------- request device ----------
-  // Code entry follows the photographed SKALA console: one key column per digit position, keys 0-7.
-  const vu = { digs: [null, null, null], code: null, msg: '', val: '', unit: '', lamp: '', readyAt: 0 };
-  const TABLO = [['ПРИНЯТ', ''], ['ЖДИТЕ', ''], ['ЗАНЯТО', ''], ['ПЕЧАТЬ', ''], ['ДРЕГ ВЫКЛ', ''], ['ОШИБКА', 'err'], ['НЕТ СИГНАЛА', 'err'], ['ГОТОВ', '']];
-  const TABLO_SHORT = { 'НЕТ СИГНАЛА': 'НЕТ СИГН.' };
-  let vCode, vVal;
-  const entryStr = () => vu.digs.map(d => d === null ? ' ' : d).join('');
-  function renderVU() {
-    let lamp = vu.lamp;
-    if (vu.code && !vu.code.act && vu.digs.every(d => d === null)) {
-      if (S.destroyed && S.powerLost) { vu.val = ''; vu.unit = ''; lamp = 'НЕТ СИГНАЛА'; }
-      else if (S.t < vu.readyAt) { vu.val = ''; vu.unit = ''; lamp = 'ЖДИТЕ'; }
-      else { vu.val = vu.code.f(); vu.unit = vu.code.u; lamp = 'ГОТОВ'; }
-    }
-    const showCode = vu.digs.some(d => d !== null) ? entryStr() : (vu.code ? vu.code.c : '');
-    vCode.set(showCode); vVal.set(vu.val);
-    $('vuUnit').textContent = vu.unit; $('vuWhat').textContent = vu.msg;
-    document.querySelectorAll('#tablo span').forEach(s => s.classList.toggle('on', s.dataset.l === lamp));
-    document.querySelectorAll('#keys .key').forEach(k => k.classList.toggle('on', vu.digs[+k.dataset.col] === +k.dataset.d));
-    $('vu').parentElement.classList.toggle('poweroff', !!S.powerLost);
-  }
-  function key(k) {
+  // Two keyboards and two display sets, after the Chornobyl Family reconstruction. Left: one key per column builds the code;
+  // the row below picks what to return (ПРМ = the value, or one of four setpoints); ИЗМ measures, ЗАП writes a setpoint;
+  // ЗАМЕР 1 / 2 sends the answer to display set 1 or 2. Right: a signed number (black digits, red decimal exponent) and subprograms.
+  const vu = { left: Array(7).fill(null), kind: 'ПРМ', mode: 'ИЗМ', msg: '', sets: [null, null], blank: [false, false] };
+  const rk = { sign: 1, d: [null, null, null, null], e: null, prog: null };
+  const ds = [];                                                  // display-set widgets
+  const codeStr = () => vu.left.map(c => c ?? ' ').join('');
+  const rkValue = () => rk.d.includes(null) ? null : rk.sign * parseInt(rk.d.join(''), 10) / 10 ** (rk.e || 0);
+  const rkStr = () => (rk.sign < 0 ? '−' : '+') + rk.d.map(d => d ?? '·').join('') + (rk.e ? ` × 10^−${rk.e}` : '');
+  function setLeft(code) { vu.left = [...code].slice(0, 7); while (vu.left.length < 7) vu.left.push(null); }
+  function zamer(i) {
     if (ended) return;
-    if (/^\d$/.test(k)) {
-      if (+k > 7) { vu.msg = 'The keys run 0–7 only.'; renderVU(); return; }
-      let i = vu.digs.indexOf(null); if (i < 0) { vu.digs = [null, null, null]; i = 0; }
-      vu.digs[i] = +k; vu.lamp = ''; vu.msg = vu.digs.includes(null) ? 'Next digit…' : 'Press ВВОД to request.';
-    } else if (/^c\d\d$/.test(k)) {             // a column key: c<column><digit>
-      vu.digs[+k[1]] = +k[2]; vu.lamp = ''; vu.msg = vu.digs.includes(null) ? 'Set the remaining columns.' : 'Press ВВОД to request.';
-    } else if (k === 'back') { const i = [0, 1, 2].filter(j => vu.digs[j] !== null).pop(); if (i !== undefined) vu.digs[i] = null; }
-    else if (k === 'clr') { vu.digs = [null, null, null]; vu.code = null; vu.val = ''; vu.unit = ''; vu.lamp = ''; vu.msg = 'Cleared.'; }
-    else if (k === 'ent') {
-      if (vu.digs.includes(null)) { vu.lamp = 'ОШИБКА'; vu.msg = 'A code has three digits.'; renderVU(); return; }
-      enterCode(vu.digs.join('')); return;
+    if (S.powerLost) { vu.msg = 'SKALA has no power.'; return renderVU(); }
+    if (S.restarting) { vu.msg = 'SKALA is restarting from punched tape and does not answer requests.'; return renderVU(); }
+    if (vu.left.includes(null)) { vu.msg = vu.left[0] === 'М' && vu.left.slice(1).every(c => c === null) ? 'М on its own starts a program: choose it on the right keyboard and press ЗАПУСК.' : 'Press one key in every column of the left keyboard first.'; return renderVU(); }
+    const code = codeStr(), hit = lookup(code);
+    const set = { code, kind: vu.kind, hit, readyAt: S.t + 1.5, err: null, fixed: null };
+    if (vu.mode === 'ЗАП') {
+      if (vu.kind === 'ПРМ') { vu.msg = 'ЗАП writes a setpoint: choose ПП, АП, ПС or АС first.'; return renderVU(); }
+      const v = rkValue();
+      if (v === null) { vu.msg = 'Enter the setpoint on the right keyboard: one key in each of the four black columns, plus a red exponent key if it has decimals.'; return renderVU(); }
+      if (!hit || hit.k.nm) { set.err = '301'; vu.msg = `No code ${code} in SKALA's table.`; }
+      else { (SP[code] = SP[code] || {})[vu.kind] = v; set.fixed = v; vu.msg = `Setpoint ${vu.kind} for ${code} written: ${ru(v, rk.e || 0)}. Setpoints were entered by SKALA's programmers from the engineers' setpoint charts.`; }
+      vu.sets[i] = set; return renderVU();
     }
-    renderVU();
+    if (!hit) { set.err = '301'; vu.msg = `Error 301: there is no code ${code}. The list below shows what this simulator knows.`; }
+    else if (hit.k.nm) { set.err = 'nm'; vu.msg = `${hit.k.ru} · ${hit.k.en}`; }
+    else if (hit.k.pat && hit.k.f(hit.arg) === null) { set.err = '301'; vu.msg = `Error 301: ${code} names no ${hit.k.pat === 'pump' ? 'pump' : 'suitable channel'}. ${hit.k.pat === 'ch' ? 'The last four digits are the channel’s octal coordinates, row then column, as shown when you hover a dial.' : ''}`; }
+    else if (vu.kind !== 'ПРМ' && !(SP[code] && SP[code][vu.kind] !== undefined)) { set.err = '303'; vu.msg = `Error 303: ${code} has no ${KINDS[vu.kind]}.`; }
+    else vu.msg = `${hit.k.ru} · ${hit.k.en}${vu.kind !== 'ПРМ' ? ` · ${vu.kind}: ${KINDS[vu.kind]}` : ''}`;
+    vu.sets[i] = set; renderVU();
   }
-  const LAMP_OF = { 'ОШ': 'ОШИБКА', 'ЗАНЯТО': 'ЗАНЯТО', 'ЖДИТЕ': 'ЖДИТЕ', 'ПРИНЯТ': 'ПРИНЯТ', 'ПЕЧАТЬ': 'ПЕЧАТЬ', 'ДРЕГ': 'ДРЕГ ВЫКЛ', 'ПУСК': 'ПРИНЯТ' };
-  function enterCode(code) {
-    const c = CODES.find(x => x.c === code);
-    vu.digs = [null, null, null];
-    if (!c) { vu.code = null; vu.val = 'Е'; vu.unit = ''; vu.lamp = 'ОШИБКА'; vu.msg = `No code ${code}. See the list below.`; renderVU(); return; }
-    vu.code = c; vu.msg = `${c.ru} · ${c.en}`; vu.readyAt = S.t + 1.5; vu.lamp = '';     // the value takes a moment to come up
-    if (c.act) { const r = c.act(); vu.val = ''; vu.unit = ''; vu.lamp = LAMP_OF[r[0]] || 'ПРИНЯТ'; if (r[2]) vu.msg += ' · ' + r[2]; }
-    renderVU();
+  function devStr(code, v) {                                       // deviation from the nearest setpoint, in %
+    const sp = SP[code]; if (!sp || v === null || !isFinite(v)) return '000000';
+    let best = null; for (const s of Object.values(sp)) if (best === null || Math.abs(v - s) < Math.abs(v - best)) best = s;
+    if (!best) return '000000';
+    const p = Math.abs((v - best) / best * 100), sym = v < best ? '_' : '‾';
+    return sym + (p < 10 ? fmt(p, 2) : p < 100 ? fmt(p, 1) : p < 10000 ? fmt(p, 0) : '9999');
   }
+  function renderSet(i) {
+    const w = ds[i], s = vu.sets[i];
+    w.el.classList.toggle('blank', vu.blank[i] || !!S.powerLost);
+    if (!s) { w.val.set(''); w.dev.set(''); w.code.set(''); w.unit.textContent = ''; return; }
+    w.code.set(s.code);
+    if (S.powerLost) { w.val.set(''); w.dev.set(''); w.unit.textContent = ''; return; }
+    if (S.t < s.readyAt) { w.val.set(''); w.dev.set(''); w.unit.textContent = ''; return; }
+    if (s.err === 'nm') { w.val.set('------'); w.dev.set('000000'); w.unit.textContent = ''; return; }
+    if (s.err) { w.val.set(''); w.dev.set(s.err); w.unit.textContent = ''; return; }
+    const k = s.hit.k;
+    w.unit.textContent = k.u;
+    if (s.fixed !== null) { w.val.set(ru(s.fixed, rk.e || 0)); w.dev.set('000000'); return; }
+    if (s.kind !== 'ПРМ') { const v = SP[s.code][s.kind]; w.val.set(String(v).replace('.', ',')); w.dev.set('000000'); return; }
+    if (k.count && S.t < s.readyAt + 1) { w.val.set('1661'); w.dev.set('000000'); w.unit.textContent = 'КАН.'; return; }
+    const txt = k.f(s.hit.arg);
+    w.val.set(txt ?? '');
+    w.dev.set(devStr(s.code, txt === null ? null : parseFloat(String(txt).replace(',', '.'))));
+  }
+  function renderVU() {
+    renderSet(0); renderSet(1);
+    $('vuWhat').textContent = vu.msg;
+    document.querySelectorAll('#keysL .key').forEach(k => k.classList.toggle('on', vu.left[+k.dataset.col] === k.dataset.v));
+    document.querySelectorAll('#kinds .key').forEach(k => k.classList.toggle('on', k.dataset.kind === vu.kind));
+    document.querySelectorAll('#modes [data-mode]').forEach(k => k.classList.toggle('on', k.dataset.mode === vu.mode));
+    document.querySelectorAll('#keysR .key[data-rc]').forEach(k => k.classList.toggle('on', rk.d[+k.dataset.rc] === k.dataset.v));
+    document.querySelectorAll('#keysR .key[data-exp]').forEach(k => k.classList.toggle('on', rk.e === +k.dataset.exp));
+    document.querySelectorAll('#keysR .key[data-sign]').forEach(k => k.classList.toggle('on', +k.dataset.sign === rk.sign));
+    document.querySelectorAll('#progs .pk').forEach(k => k.classList.toggle('on', rk.prog === +k.dataset.p));
+    $('rkWhat').textContent = `Набор · number: ${rkStr()}${rk.prog ? ` · программа ${rk.prog}` : ''}`;
+    $('vu').classList.toggle('poweroff', !!S.powerLost);
+  }
+
+  // subprograms: run with М alone on the left keyboard, a program key and a four-digit number on the right, then ЗАПУСК.
+  // Only 0301 under program 4 or 8 comes from the video; the rest are this simulator's own numbers.
+  const SUBPROGS = [
+    { p: 1, n: '0300', ru: 'Расчёт ПРИЗМА', en: 'PRIZMA printout, at the end of the current 5-minute cycle (invented number)', f: () => requestPrizma() },
+    { p: 1, n: '0310', ru: 'Картограмма СУЗ', en: 'Rod depth cartogram to the drum printer (invented number)', f: () => printCartogram() },
+    { p: 1, n: '0400', ru: 'Срез параметров в ДРЕГ', en: 'Parameter snapshot into DREG (invented number)', f: () => dregSnap() },
+    { p: 4, n: '0301', ru: 'Поиск каналов со снижением расхода', en: 'Low-flow channel search on МТК display 1 (program 8: display 2). From the video; the МТК is not built here.', f: () => ['', '', 'The low-flow search lights matching channels on the МТК channel display, which this simulator does not have.'] },
+  ];
+  function start() {
+    if (ended) return;
+    if (S.powerLost) { vu.msg = 'SKALA has no power.'; return renderVU(); }
+    if (vu.left[0] !== 'М' || vu.left.slice(1).some(c => c !== null)) { vu.msg = 'To start a program, press only М on the left keyboard (as in the video), then the program key and number on the right.'; return renderVU(); }
+    if (!rk.prog) { vu.msg = 'Choose a program key (1–10) on the right keyboard.'; return renderVU(); }
+    const n = rk.d.includes(null) ? null : rk.d.join('');
+    if (n === null) { vu.msg = 'Enter the four-digit subprogram number on the right keyboard.'; return renderVU(); }
+    const sp = SUBPROGS.find(s => s.n === n && (s.p === rk.prog || (s.n === '0301' && rk.prog === 8)));
+    if (!sp) { vu.msg = `Program ${rk.prog}, subprogram ${n}: not simulated. See the subprogram list below.`; return renderVU(); }
+    const r = sp.f(); vu.msg = `${sp.ru} · ${r && r[2] ? r[2] : sp.en}`; renderVU();
+  }
+
   function buildKeys() {
-    vCode = vfd($('vuCode'), 3); vVal = vfd($('vuVal'), 7);
-    $('tablo').innerHTML = TABLO.map(([l, c]) => `<span data-l="${l}" class="${c}" title="${l}">${TABLO_SHORT[l] || l}</span>`).join('');
-    $('keys').innerHTML = [0, 1, 2].map(i => `<div class="colcap">${i + 1}</div>`).join('') +
-      [0, 1, 2].map(i => `<div class="col">${[7, 6, 5, 4, 3, 2, 1, 0].map(d => `<button class="key" data-k="c${i}${d}" data-col="${i}" data-d="${d}" aria-label="Digit ${i + 1}: ${d}">${d}</button>`).join('')}</div>`).join('');
-    const press = e => { const b = e.target.closest('[data-k]'); if (b) key(b.dataset.k); };
-    $('keys').addEventListener('click', press);
-    document.querySelector('.fnkeys').addEventListener('click', press);
-    $('swBlank').addEventListener('click', e => { const on = e.currentTarget.getAttribute('aria-pressed') !== 'true'; e.currentTarget.setAttribute('aria-pressed', String(on)); $('vu').classList.toggle('blank', on); });
-    const test = on => $('vu').classList.toggle('lamptest', on);
-    $('swTest').addEventListener('pointerdown', () => test(true));
-    ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => $('swTest').addEventListener(ev, () => test(false)));
-    $('swTest').addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') test(true); });
-    $('swTest').addEventListener('keyup', () => test(false));
-    document.addEventListener('keydown', e => {
-      if (e.target.closest('input,select,textarea')) return;
-      if (e.target.closest('button') && (e.key === 'Enter' || e.key === ' ')) return;
-      if (/^\d$/.test(e.key)) { key(e.key); e.preventDefault(); }
-      else if (e.key === 'Enter' && document.activeElement === document.body) { key('ent'); e.preventDefault(); }
-      else if (e.key === 'Backspace') { key('back'); e.preventDefault(); }
-      else if (e.key === 'Escape') key('clr');
+    ds[0] = { el: $('dsA'), val: vfd($('vuA'), 8), dev: vfd($('devA'), 6), code: vfd14($('codeA'), 7), unit: $('unitA') };
+    ds[1] = { el: $('dsB'), val: vfd($('vuB'), 8), dev: vfd($('devB'), 6), code: vfd14($('codeB'), 7), unit: $('unitB') };
+    $('keysL').innerHTML = LEFTCOLS.map((col, i) => `<div class="col">${col.map(v => `<button class="key${i === 0 || i === 2 ? ' let' : ''}" data-col="${i}" data-v="${v}" aria-label="Column ${i + 1}: ${v}">${v}</button>`).join('')}</div>`).join('');
+    $('keysL').addEventListener('click', e => { const b = e.target.closest('.key'); if (!b) return; const i = +b.dataset.col; vu.left[i] = vu.left[i] === b.dataset.v ? null : b.dataset.v; vu.msg = vu.left.includes(null) ? `Code so far: ${codeStr().replace(/ /g, '·')}` : `Code ${codeStr()}. Choose what to return, then ЗАМЕР 1 or 2.`; renderVU(); });
+    $('kinds').addEventListener('click', e => { const b = e.target.closest('[data-kind]'); if (!b) return; vu.kind = b.dataset.kind; vu.msg = `${vu.kind}: ${KINDS[vu.kind]}.`; renderVU(); });
+    $('modes').addEventListener('click', e => { const b = e.target.closest('[data-mode]'); if (!b) return; vu.mode = b.dataset.mode; vu.msg = vu.mode === 'ЗАП' ? 'ЗАП: write mode. The next ЗАМЕР writes the number on the right keyboard as the chosen setpoint.' : 'ИЗМ: measurement mode.'; renderVU(); });
+    document.querySelectorAll('[data-zamer]').forEach(b => b.addEventListener('click', () => { b.setAttribute('aria-pressed', 'true'); setTimeout(() => b.setAttribute('aria-pressed', 'false'), 220); zamer(+b.dataset.zamer); }));
+    document.querySelectorAll('[data-gash]').forEach(b => b.addEventListener('click', () => { const i = +b.dataset.gash; vu.blank[i] = !vu.blank[i]; b.setAttribute('aria-pressed', String(vu.blank[i])); renderVU(); }));
+    // right keyboard: four decimal columns, sign, red exponent, program keys
+    const dcol = i => `<div class="col">${['9', '8', '7', '6', '5', '4', '3', '2', '1', '0'].map(v => `<button class="key sm" data-rc="${i}" data-v="${v}">${v}</button>`).join('')}</div>`;
+    $('keysR').innerHTML = `<div class="col sgn"><button class="key sm cream" data-sign="-1" aria-label="minus">−</button><button class="key sm cream" data-sign="1" aria-label="plus">+</button>
+      <div class="expcap">10<sup>−n</sup></div>${[4, 3, 2, 1, 0].map(n => `<button class="key sm red" data-exp="${n}">${n}</button>`).join('')}</div>${[0, 1, 2, 3].map(dcol).join('')}`;
+    $('progs').innerHTML = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map(p => `<div class="prow"><span class="plamp"></span><button class="key sm pk" data-p="${p}">${p}</button></div>`).join('');
+    $('keysR').addEventListener('click', e => {
+      const b = e.target.closest('.key'); if (!b) return;
+      if (b.dataset.sign) rk.sign = +b.dataset.sign;
+      else if (b.dataset.exp !== undefined) rk.e = rk.e === +b.dataset.exp ? null : +b.dataset.exp;
+      else { const i = +b.dataset.rc; rk.d[i] = rk.d[i] === b.dataset.v ? null : b.dataset.v; }
+      renderVU();
     });
+    $('progs').addEventListener('click', e => { const b = e.target.closest('.pk'); if (!b) return; rk.prog = rk.prog === +b.dataset.p ? null : +b.dataset.p; renderVU(); });
+    $('btnStart').addEventListener('click', start);
+    $('btnStop').addEventListener('click', () => { const q = !!prizmaReq; prizmaReq = null; rk.prog = null; vu.msg = q ? 'ПРЕРЫВ: the queued PRIZMA run was cancelled.' : 'ПРЕРЫВ: nothing was running.'; renderVU(); });
+    // typing: letters and digits fill the left keyboard column by column (m t d n p a r k for column 1; x k n s h p g t for column 3)
+    const C1 = { m: 'М', t: 'Т', d: 'Д', n: 'Н', h: 'Н', p: 'П', a: 'А', r: 'Я', y: 'Я', k: 'К' };
+    for (const c of K1) C1[c.toLowerCase()] = c;
+    document.addEventListener('keydown', e => {
+      if (e.target.closest('input,select,textarea') || e.ctrlKey || e.metaKey || e.altKey) return;
+      const inKb = e.target.closest && e.target.closest('#keysL, #kinds, #modes, #keysR, #progs, #dir');
+      if (e.key === 'Enter' && inKb) { zamer(e.shiftKey ? 1 : 0); e.preventDefault(); return; }
+      if (e.target.closest('button') && (e.key === 'Enter' || e.key === ' ')) return;
+      const ch = e.key.length === 1 ? e.key.toLowerCase() : '';
+      let i = vu.left.indexOf(null);
+      if (ch && /^[0-7a-zа-я]$/.test(ch)) {
+        if (i < 0) { vu.left = Array(7).fill(null); i = 0; }
+        let v = i === 0 ? C1[ch] : i === 2 ? K3.find(x => x.toLowerCase() === ch) : /[0-7]/.test(ch) ? ch : null;
+        if (!v && i !== 0 && C1[ch]) { vu.left = Array(7).fill(null); i = 0; v = C1[ch]; }   // a system letter out of turn starts a new code
+        if (!v) return;
+        if (document.activeElement && document.activeElement.closest && document.activeElement.closest('button')) document.activeElement.blur();   // so Enter measures instead of re-pressing the last clicked button
+        vu.left[i] = v; vu.msg = vu.left.includes(null) ? `Code so far: ${codeStr().replace(/ /g, '·')}` : `Code ${codeStr()}. Enter for ЗАМЕР 1, Shift+Enter for ЗАМЕР 2.`;
+        e.preventDefault(); renderVU();
+      } else if (e.key === 'Enter' && (document.activeElement === document.body || !document.activeElement)) { zamer(e.shiftKey ? 1 : 0); e.preventDefault(); }
+      else if (e.key === 'Backspace') { const j = [...vu.left.keys()].filter(j => vu.left[j] !== null).pop(); if (j !== undefined) vu.left[j] = null; renderVU(); e.preventDefault(); }
+      else if (e.key === 'Escape') { vu.left = Array(7).fill(null); renderVU(); }
+    });
+    document.querySelectorAll('.swv').forEach(b => b.addEventListener('click', () => b.setAttribute('aria-pressed', String(b.getAttribute('aria-pressed') !== 'true'))));
+    $('btnRestart').addEventListener('click', () => { const r = skalaRestart(); notice(r[2]); });
+    $('btnReload').addEventListener('click', () => { const r = dregReload(); notice(r[2]); });
   }
 
   // ---------- SKALA programs ----------
@@ -2040,6 +2265,9 @@ if (typeof module !== 'undefined') module.exports = SIM;
       const hr = Math.floor(clockSec(S.t) / 3600);
       if (lastClockHour !== null && hr !== lastClockHour && (hr % 24) % 2 === 1 && !S.restarting) printPrizma('СДИВТ');
       lastClockHour = hr;
+      const cyc = Math.floor(clockSec(S.t) / 300);
+      if (lastCycle !== null && cyc !== lastCycle && !S.restarting && !S.powerLost) ormCycle = { v: SIM.ormPrizma(S), at: S.t };
+      lastCycle = cyc;
       drainEvents();
       if (S.setMove && [...S.setMove.ids].every(i => { const r = S.rods[i], max = r.type === 'USP' ? P.USP_MAX : H; return S.setMove.dir > 0 ? r.d >= max - 1e-6 : r.d <= 1e-6; })) S.setMove = null;
       for (const k of Object.keys(S.groupMove)) { const v = S.groupMove[k], rs = groupRods(k), max = k === 'USP' ? P.USP_MAX : H; if (S.assistMove) continue; if (rs.every(r => v > 0 ? r.d >= max - 1e-6 : r.d <= 1e-6)) delete S.groupMove[k]; }
@@ -2064,12 +2292,14 @@ if (typeof module !== 'undefined') module.exports = SIM;
     Object.keys(firsts).forEach(k => delete firsts[k]);
     ['tty', 'dreg', 'lpt'].forEach(k => sheet(k).innerHTML = '');
     sheet('lpt').innerHTML = name === 'nominal'
-      ? '<div class="pl empty">The drum printer is idle. Code 300 requests PRIZMA; the duty engineer also prints it every two hours on odd hours.</div>'
-      : '<div class="pl empty">The last PRIZMA printout was carried to the control room at about 01:00 (ORM 17–19 by testimony, Karpan p.351). PRIZMA was not run again before the test. Code 300 requests one; it prints when the current 5-minute cycle ends.</div>';
+      ? '<div class="pl empty">The drum printer is idle. Subprogram 0300 (program 1) requests PRIZMA; the duty engineer also prints it every two hours on odd hours.</div>'
+      : '<div class="pl empty">The last PRIZMA printout was carried to the control room at about 01:00 (ORM 17–19 by testimony, Karpan p.351). PRIZMA was not run again before the test. Subprogram 0300 (program 1) requests one; it prints when the current 5-minute cycle ends.</div>';
     sel = { kind: 'group', key: 'RR0' }; multi = false; drag = null; scramShown = false; renderGroups();
     $('az5').classList.remove('armed'); az5Armed = 0;
     newRun(); $('debrief').hidden = true;
-    vu.digs = [null, null, null]; vu.code = null; vu.val = ''; vu.unit = ''; vu.lamp = ''; vu.msg = 'Set a code in the three columns and press ВВОД. The request codes below list what you can ask for; 120 gives the simple ORM count.';
+    vu.left = Array(7).fill(null); vu.kind = 'ПРМ'; vu.mode = 'ИЗМ'; vu.sets = [null, null]; rk.sign = 1; rk.d = [null, null, null, null]; rk.e = null; rk.prog = null;
+    SP = JSON.parse(JSON.stringify(SP_DEFAULT)); ormCycle = { v: SIM.ormPrizma(S), at: 0 }; lastCycle = null;
+    vu.msg = 'Press one key in each column of the left keyboard, then ЗАМЕР 1 or 2. Try П0N0000 (thermal power) or К0S0000 (ORM). You can also type the code.';
     buildPumps(); setSpeed(1); notice(NOTES[name]);
     drainEvents(); render();
   }

@@ -9,7 +9,8 @@ Open an issue with:
 3. **Your source**: a document with page or figure number, a photograph, or first-hand experience (say which). Corrections without a source are still welcome, but will be marked "unverified" until one turns up.
 
 Most wanted:
-- The real SKALA request-code table, or any photograph showing codes in use.
+- The real SKALA request-code table, or more real codes in the grammar the Chornobyl Family reconstruction shows (for example П0N0000).
+- What the console's unlabelled keys (ш, <>, п), the ВКЛ key and the "! ?" window do.
 - Raw DREG signal identifiers beyond К06L005.
 - An RBMK-1000 control-rod channel-assignment diagram showing which rods were РР, ЛАР and АЗ.
 - The real numbering of the three АР banks.

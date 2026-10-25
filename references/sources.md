@@ -10,6 +10,7 @@ Online sources:
 - L. Sturm and R. Plaskov, DREG protocol transcript, CC BY-NC 4.0: https://archive.org/details/dreg-protocol-last-40-seconds-of-chernobyl
 - V. Alekseev, Чернобыль: http://v-alekseev.org/chnpp/
 - Hackaday, Inside SKALA (Chornobyl Family): https://hackaday.com/2026/03/03/inside-skala-how-chernobyls-reactor-was-actually-controlled/
+- Chornobyl Family, "We rebuilt Chernobyl's SKALA | Chernobyl reactor at home, part 2" (video, 2026), covered by Hackaday: https://hackaday.com/2026/07/13/using-your-own-rbmk-reactor-control-center-at-home/. Source of the request-device layout, the code grammar, the display sets, the setpoint keys, error codes 301/303 and the example codes. The builders credit former Chernobyl NPP staff for the details. Their example setpoint values are their own illustrations, and their ORM limits (43 and 30 rods) are the post-1986 rules.
 - Habr, СКАЛА — ЭВМ ЧАЭС: https://habr.com/ru/articles/220941/
 - eti.su, PRIZMA and ORM: https://eti.su/articles/over/over_1645.html
 - Chernobyl Witness DREG graphs: https://chernobylcritical.blogspot.com/p/dreg-reactor-parameter-data-from-skala.html

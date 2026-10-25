@@ -6,7 +6,7 @@
 /* Layout: a control-room wall in three bays (reactor desk / SKALA console / printers), stacking on phones.
    Look: grey-green enamel panels with black engraved nameplates and cream dial faces. Digital readouts are drawn as
    Soviet side-view VFD tubes (one glass envelope per digit, glowing filament at the top, green or cyan filter glass),
-   modelled on a photographed SKALA engineer's console. The SKALA bay uses that console's warm grey enamel. */
+   laid out after the Chornobyl Family reconstruction of the SKALA request device. The SKALA bay uses that console's warm grey enamel. */
 :root {
   --panel: #c4cdc0;
   --panel-deep: #b3beb0;
@@ -110,13 +110,13 @@ select { font: inherit; background: var(--steel); border: 1px solid var(--panel-
 .stack > .plate:last-child { flex: 1 1 auto; }
 .plate { display: flex; flex-direction: column; }
 @media (min-width: 781px) {
-  .bays { grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.78fr) minmax(0, 1fr); grid-template-rows: auto auto; align-items: stretch; }
+  .bays { grid-template-columns: minmax(0, 1.06fr) minmax(0, 0.86fr) minmax(0, 1fr); grid-template-rows: auto auto; align-items: stretch; }
   .bay { display: contents; }
   .a-core { grid-column: 1; grid-row: 1; } .a-left { grid-column: 1; grid-row: 2; }
   .a-vu { grid-column: 2; grid-row: 1; }   .a-mid { grid-column: 2; grid-row: 2; }
   .a-print { grid-column: 3; grid-row: 1 / span 2; }
   .a-core .legend { margin-top: auto; padding-top: 8px; }
-  .a-vu .consoleface { flex: 1 1 auto; align-content: start; }
+  
 }
 @media (min-width: 781px) and (max-width: 1220px) {
   .bays { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto auto auto; }
@@ -195,42 +195,71 @@ select { font: inherit; background: var(--steel); border: 1px solid var(--panel-
 /* SKALA console: warm grey enamel, black square keycaps in digit columns, red and cream function keys */
 .bay-skala .plate { background: var(--enamel); border-color: var(--enamel-edge); }
 .vu { background: var(--enamel-deep); border-radius: 4px; padding: 12px; border: 1px solid var(--enamel-edge); box-shadow: inset 0 1px 0 rgba(255,255,255,0.5); }
-.vurow { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: flex-end; }
-.vurow .cap { font-family: var(--font-display); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink); margin-bottom: 3px; }
-.vurow .valbox { flex: 1 1 auto; min-width: 0; }
-.vunit { font-family: var(--font-display); font-size: 13px; background: var(--plate); color: var(--plate-ink); border-radius: 2px; padding: 1px 6px; margin-left: 6px; letter-spacing: 0.04em; vertical-align: middle; }
+.vunit { font-family: var(--font-display); font-size: 12px; background: var(--plate); color: var(--plate-ink); border-radius: 2px; padding: 1px 5px; letter-spacing: 0.04em; white-space: nowrap; }
 .vunit:empty { display: none; }
-.tablo { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; margin-top: 10px; }
-.tablo span { font-family: var(--font-display); font-size: 11px; letter-spacing: 0.05em; text-align: center; padding: 3px 2px; border-radius: 2px;
-  background: #e9e5d6; color: #8d897c; border: 1px solid var(--enamel-edge); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tablo span.on { background: #fff2bf; color: #4a3a05; box-shadow: 0 0 8px rgba(255,214,90,0.8), inset 0 0 0 1px #d9b632; }
-.tablo span.on.err { background: #ffd3cc; color: #6d140c; box-shadow: 0 0 8px rgba(255,90,70,0.7), inset 0 0 0 1px var(--red); }
-.vu .what { font-family: var(--font-body); color: var(--ink-soft); font-size: 12px; margin-top: 8px; min-height: 17px; }
-.consoleface { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px 16px; margin-top: 12px; align-items: start; }
-.switches { display: flex; flex-wrap: wrap; gap: 10px 18px; grid-column: 1 / -1; padding-bottom: 8px; border-bottom: 1px solid var(--enamel-edge); }
-.sw { display: inline-flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: 0; padding: 0; font-family: var(--font-display); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink); }
-.sw .lever { width: 26px; height: 26px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #f4f4f0, #a9aba5 60%, #6f726c); box-shadow: inset 0 0 0 1px #6f726c; position: relative; }
-.sw .lever::after { content: ""; position: absolute; left: 50%; top: 50%; width: 7px; height: 20px; margin-left: -3.5px; margin-top: -18px; border-radius: 3px; background: linear-gradient(90deg, #222, #555 50%, #1a1a1a); transform-origin: 50% 100%; transition: transform .12s; }
-.sw[aria-pressed="true"] .lever::after { transform: translateY(16px) scaleY(-1); }
-.sw.push .lever { background: radial-gradient(circle at 40% 35%, #fff9e6, #e8dcb6 55%, #b7a97f); box-shadow: inset 0 0 0 1px #8f8466, 0 2px 0 #8f8466; }
-.sw.push .lever::after { display: none; }
-.sw.push:active .lever { transform: translateY(2px); box-shadow: inset 0 0 0 1px #8f8466; }
-.colkeys { display: grid; grid-template-columns: repeat(3, 40px); gap: 6px 8px; }
-.colkeys .colcap { font-family: var(--font-display); font-size: 11px; text-align: center; color: var(--ink); letter-spacing: 0.04em; }
-.colkeys .col { display: flex; flex-direction: column; gap: 5px; }
-.key { background: linear-gradient(to bottom, #3a3d3b 0, var(--keycap) 18%, var(--keycap) 85%, #0b0c0b 100%); color: #f1efe6; border: 0; border-radius: 3px; width: 40px; height: 30px;
-  font-family: var(--font-display); font-weight: 700; font-size: 15px; box-shadow: 0 2px 0 #000, inset 0 0 0 1px #000; padding: 0; }
+.vu .what, .plate > .what { font-family: var(--font-body); color: var(--ink-soft); font-size: 12px; margin-top: 8px; min-height: 17px; }
+/* display sets: three rows each (value, deviation from the nearest setpoint, code), after the Chornobyl Family reconstruction */
+.vu.sets { display: grid; grid-template-columns: repeat(auto-fit, minmax(232px, 1fr)); gap: 8px 14px; padding: 10px 12px; }
+.vu.sets .what { grid-column: 1 / -1; margin-top: 0; }
+.dset { min-width: 0; }
+.dcap { font-family: var(--font-display); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink); margin-bottom: 3px; }
+.drow { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; min-width: 0; }
+.rcap { font-family: var(--font-display); font-size: 10.5px; letter-spacing: 0.04em; color: var(--ink-soft); width: 38px; flex: none; text-transform: uppercase; }
+.tube.t14 line { stroke-width: 3.3; stroke-linecap: round; }
+.tube.t14 .gh line { stroke: var(--off); }
+.tube.t14 .lt line { stroke: var(--on); opacity: 0; }
+.tube.t14 .lt line.on { opacity: 1; }
+/* left keyboard: seven key columns, the answer-type row, and the mode keys and switches */
+.kbL { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; align-items: flex-start; justify-content: space-between; }
+.colkeys { display: flex; gap: 3px; }
+.colkeys.seven .col:nth-child(2), .colkeys.seven .col:nth-child(4) { margin-right: 3px; }
+.colkeys .col { display: flex; flex-direction: column; gap: 4px; }
+.key { background: linear-gradient(to bottom, #3a3d3b 0, var(--keycap) 18%, var(--keycap) 85%, #0b0c0b 100%); color: #f1efe6; border: 0; border-radius: 3px; width: 28px; height: 24px;
+  font-family: var(--font-display); font-weight: 700; font-size: 14px; box-shadow: 0 2px 0 #000, inset 0 0 0 1px #000; padding: 0; display: inline-grid; place-items: center; }
 .key:active, .key.on { transform: translateY(2px); box-shadow: 0 0 0 #000, inset 0 0 0 1px #000; }
 .key.on { background: #3b3f3c; color: #fff; outline: 2px solid #d9b632; outline-offset: -2px; }
-.fnkeys { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.fkey { border: 0; border-radius: 3px; padding: 9px 10px; font-family: var(--font-display); font-weight: 700; font-size: 14px; letter-spacing: 0.06em; box-shadow: 0 3px 0 rgba(0,0,0,0.45), inset 0 0 0 1px rgba(0,0,0,0.5); text-align: center; }
+.key.sm { width: 27px; height: 22px; font-size: 13px; }
+.key.red { background: linear-gradient(to bottom, #f0705f, #d8412f 20%, #c2321f 85%, #7d1d14); }
+.key.cream { background: linear-gradient(to bottom, #fffbea, #ece3c2 20%, #ddd2ad 85%, #9d9270); color: var(--ink); }
+.kinds { display: flex; gap: 3px; margin-top: 8px; }
+.key.fn { width: 25px; height: 21px; font-size: 9.5px; letter-spacing: 0; }
+.key.dead { opacity: 0.6; cursor: default; }
+.kbside { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.qwin { display: flex; gap: 10px; padding: 2px 12px; background: #e8e0c8; border: 3px solid #5d3a2e; border-radius: 3px; font-family: var(--font-display); font-size: 18px; color: #c4baa0; line-height: 1.1; }
+.modes { display: inline-flex; border-radius: 3px; overflow: hidden; box-shadow: 0 2px 0 rgba(0,0,0,0.4); }
+.mk { border: 0; padding: 4px 4px; font-family: var(--font-display); font-weight: 700; font-size: 11px; letter-spacing: 0.02em; }
+.mk.dead { background: #1d1f1e; color: #f1efe6; cursor: default; }
+.mk.izm { background: #f2efe4; color: var(--ink); }
+.mk.zap { background: #d33a28; color: #fff; }
+.mk.on { box-shadow: inset 0 0 0 2px #d9b632, inset 0 0 10px rgba(255,214,90,0.9); }
+.swgrid { display: grid; grid-template-columns: repeat(2, auto); gap: 8px 8px; }
+.swgrid .sw { font-size: 9.5px; letter-spacing: 0; }
+.sw { display: inline-flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: 0; padding: 0; font-family: var(--font-display); font-size: 10px; letter-spacing: 0.03em; text-transform: uppercase; color: var(--ink); }
+.sw .lever { width: 24px; height: 24px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #f4f4f0, #a9aba5 60%, #6f726c); box-shadow: inset 0 0 0 1px #6f726c; position: relative; }
+.sw .lever::after { content: ""; position: absolute; left: 50%; top: 50%; width: 7px; height: 15px; margin-left: -3.5px; margin-top: -15px; border-radius: 3px; background: linear-gradient(90deg, #222, #555 50%, #1a1a1a); transform-origin: 50% 100%; transition: transform .12s; }
+.sw[aria-pressed="true"] .lever::after { transform: rotate(180deg); }
+.sw { padding-top: 0; } .sw .lever { margin-bottom: 4px; }
+@media (min-width: 1221px) and (max-width: 1400px) { .key { width: 26px; } .key.fn { width: 23px; } .kbL { gap: 8px; } }
+@media (min-width: 1221px) and (max-width: 1300px) { .key { width: 25px; } .key.fn { width: 22px; } .colkeys { gap: 2px; } }
+.kbnote { max-width: none; font-size: 11.5px; margin: 10px 0 0; }
+/* right keyboard: sign and red exponent, four decimal columns, program keys with lamps */
+.kbR { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-start; }
+.colkeys.rk .sgn { margin-right: 6px; }
+.expcap { font-family: var(--font-display); font-size: 10px; color: var(--ink-soft); text-align: center; margin-top: 4px; }
+.progs { display: flex; flex-direction: column; gap: 4px; }
+.prow { display: flex; align-items: center; gap: 5px; }
+.plamp { width: 11px; height: 11px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #e9d9b8, #9a7d52); box-shadow: inset 0 0 0 1px #6b5636; }
+.prow:has(.pk.on) .plamp { background: radial-gradient(circle at 40% 35%, #fff4c0, #ff9a2e); box-shadow: 0 0 8px #ffb347; }
+.subrow { display: flex; gap: 10px 14px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+.subcap { font-family: var(--font-display); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink); margin-top: 4px; }
+.fkey { border: 0; border-radius: 3px; padding: 7px 10px; font-family: var(--font-display); font-weight: 700; font-size: 13px; letter-spacing: 0.04em; box-shadow: 0 3px 0 rgba(0,0,0,0.45), inset 0 0 0 1px rgba(0,0,0,0.5); text-align: center; }
 .fkey:active { transform: translateY(3px); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.5); }
 .fkey.red { background: linear-gradient(to bottom, #e0574a, #b8281d); color: #fff; }
-.fkey.cream { background: linear-gradient(to bottom, #fbf6e3, #ddd2ad); color: var(--ink); }
 .fkey.dark { background: linear-gradient(to bottom, #3a3d3b, var(--keycap)); color: #f1efe6; }
-.fnkeys .note { max-width: none; font-size: 11.5px; }
+#dir { max-height: 460px; overflow: auto; padding-right: 4px; }
+.dir code i { font-style: normal; color: var(--ink-soft); }
 .dir { list-style: none; padding: 0; margin: 0; display: grid; gap: 2px; }
-.dir li button { width: 100%; text-align: left; background: transparent; border: 0; border-radius: 3px; padding: 4px 6px; display: grid; grid-template-columns: 42px minmax(0, 1fr); gap: 8px; align-items: baseline; }
+.dir li button { width: 100%; text-align: left; background: transparent; border: 0; border-radius: 3px; padding: 4px 6px; display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 8px; align-items: baseline; }
 .dir li button:hover { background: rgba(255,255,255,0.4); }
 .dir code { font-family: var(--font-mono); font-size: 14px; color: var(--ink); }
 .dir span { font-size: 13px; }
@@ -316,6 +345,7 @@ table.rho td:last-child { text-align: right; font-family: var(--font-mono); }
 .tag { display: inline-block; font-family: var(--font-display); font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; padding: 1px 6px; border-radius: 2px; margin-right: 4px; }
 .tag.doc { background: #cfe3d0; color: #1f4b28; }
 .tag.inv { background: #f4dfb7; color: #6a4410; }
+.tag.rec { background: #f6edb4; color: #5b4a07; }
 .tablewrap { overflow-x: auto; }
 table.val { border-collapse: collapse; font-size: 13px; min-width: 460px; }
 table.val th, table.val td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--panel-edge); vertical-align: top; }
@@ -466,39 +496,65 @@ footer.thanks { margin: 14px 0 0; font-size: 12px; color: var(--ink-soft); text-
     <section class="bay bay-skala">
       <div class="plate a-vu">
         <header><span class="screw"></span><h2>Вызывное устройство <span>SKALA request device</span></h2><span class="screw"></span></header>
-        <div class="vu" id="vu">
-          <div class="vurow">
-            <div><div class="cap">Код</div><div class="vfd cyan md" id="vuCode"></div></div>
-            <div class="valbox"><div class="cap">Значение <span class="vunit" id="vuUnit"></span></div><div class="vfd lg" id="vuVal"></div></div>
-          </div>
-          <div class="tablo" id="tablo" aria-live="polite"></div>
-          <div class="what" id="vuWhat" aria-live="polite">Set a code in the three columns and press ВВОД. The request codes below list what you can ask for.</div>
+        <div class="vu sets" id="vu">
+          <div class="dset hint" id="dsA" data-k="v_set"><div class="dcap">Комплект 1</div>
+            <div class="drow"><span class="rcap">Знач.</span><div class="vfd md" id="vuA"></div><span class="vunit" id="unitA"></span></div>
+            <div class="drow"><span class="rcap">Откл.</span><div class="vfd sm" id="devA"></div></div>
+            <div class="drow"><span class="rcap">Код</span><div class="vfd sm cyan" id="codeA"></div></div></div>
+          <div class="dset hint" id="dsB" data-k="v_set"><div class="dcap">Комплект 2</div>
+            <div class="drow"><span class="rcap">Знач.</span><div class="vfd md" id="vuB"></div><span class="vunit" id="unitB"></span></div>
+            <div class="drow"><span class="rcap">Откл.</span><div class="vfd sm" id="devB"></div></div>
+            <div class="drow"><span class="rcap">Код</span><div class="vfd sm cyan" id="codeB"></div></div></div>
+          <div class="what" id="vuWhat" aria-live="polite"></div>
         </div>
-        <div class="consoleface">
-          <div class="switches">
-            <button class="sw" id="swBlank" aria-pressed="false"><span class="lever"></span>Гашение</button>
-            <button class="sw push" id="swTest"><span class="lever"></span>Контроль индик.</button>
+        <div class="kbL">
+          <div class="keyblock">
+            <div class="colkeys seven hint" id="keysL" data-k="v_left" aria-label="Request code: one key in each of the seven columns"></div>
+            <div class="kinds" id="kinds">
+              <button class="key fn hint" data-kind="ПРМ" data-k="v_prm">ПРМ</button><button class="key fn hint" data-kind="АС" data-k="v_sp">АС</button><button class="key fn hint" data-kind="ПС" data-k="v_sp">ПС</button><button class="key fn hint" data-kind="ПП" data-k="v_sp">ПП</button><button class="key fn hint" data-kind="АП" data-k="v_sp">АП</button>
+              <span class="key fn dead hint" data-k="v_unk">ш</span><span class="key fn dead hint" data-k="v_unk">&lt;&gt;</span><span class="key fn dead hint" data-k="v_unk">п</span>
+            </div>
           </div>
-          <div class="colkeys" id="keys" aria-label="Code entry: one column per digit"></div>
-          <div class="fnkeys">
-            <button class="fkey cream" data-k="ent">ВВОД</button>
-            <button class="fkey red" data-k="clr">СБРОС</button>
-            <button class="fkey dark" data-k="back">← ШАГ</button>
-            <p class="note">Each column sets one digit of the code, left to right. The keys run 0–7, as on the photographed SKALA console. Typing digits on a keyboard also works.</p>
+          <div class="kbside">
+            <div class="qwin hint" data-k="v_qwin"><span>!</span><span>?</span></div>
+            <div class="modes" id="modes"><span class="mk dead hint" data-k="v_unk">ВКЛ</span><button class="mk izm hint" data-mode="ИЗМ" data-k="v_izm">ИЗМ</button><button class="mk zap hint" data-mode="ЗАП" data-k="v_zap">ЗАП</button></div>
+            <div class="swgrid">
+              <button class="sw hint" data-zamer="0" data-k="v_zamer" aria-pressed="false"><span class="lever"></span>Замер 1</button>
+              <button class="sw hint" data-zamer="1" data-k="v_zamer" aria-pressed="false"><span class="lever"></span>Замер 2</button>
+              <button class="sw hint" data-gash="0" data-k="v_gash" aria-pressed="false"><span class="lever"></span>Гашение 1</button>
+              <button class="sw hint" data-gash="1" data-k="v_gash" aria-pressed="false"><span class="lever"></span>Гашение 2</button>
+            </div>
           </div>
         </div>
+        <p class="note kbnote">One key per column: system, part, quantity, then four octal digits. ПРМ returns the value; flip ЗАМЕР 1 or 2 to measure. You can also type the code (m t d n p a r k for the first letter) and press Enter, or Shift+Enter for set 2.</p>
       </div>
       <div class="stack a-mid">
+      <div class="plate">
+        <header><span class="screw"></span><h2>Клавиатура 2 <span>numbers and subprograms</span></h2><span class="screw"></span></header>
+        <div class="kbR">
+          <div class="colkeys rk hint" id="keysR" data-k="v_right"></div>
+          <div class="progs hint" id="progs" data-k="v_prog"></div>
+        </div>
+        <div class="subrow">
+          <button class="sw hint swv" data-k="v_unk" aria-pressed="true"><span class="lever"></span>Вкл. 1</button>
+          <button class="fkey dark hint" id="btnStart" data-k="v_start">Запуск</button>
+          <button class="fkey red hint" id="btnStop" data-k="v_stop">Прерыв.</button>
+          <button class="sw hint swv" data-k="v_unk" aria-pressed="true"><span class="lever"></span>Вкл. 2</button>
+        </div>
+        <div class="subcap">Подпрограммы</div>
+        <div class="what" id="rkWhat"></div>
+      </div>
       <div class="plate">
         <header><span class="screw"></span><h2>Мнемосхема СКАЛА <span>system status</span></h2><span class="screw"></span></header>
         <div class="mnemo" id="mnemo"></div>
         <div class="mode" id="mode"></div>
+        <div class="row" style="margin-top:8px"><button class="btn hint" id="btnReload" data-k="v_reload">Перезарядка ленты ДРЕГ</button><button class="btn hint" id="btnRestart" data-k="v_restart">Перезапуск СКАЛЫ</button></div>
       </div>
 
       <div class="plate">
-        <header><span class="screw"></span><h2>Коды <span>request codes</span></h2><span class="tag inv">invented numbers</span></header>
+        <header><span class="screw"></span><h2>Коды <span>request codes</span></h2></header>
         <div id="dir"></div>
-        <p class="note" style="margin-top:8px">Operators dialled a numeric code and waited for the value on the digital display (Dyatlov, quoted by Karpan p.351). The real code table is not public, so these numbers are this simulator's own, using only the digits 0–7 so they can be keyed on the column keyboard. (The one raw SKALA code we do know, К06L005, is a DREG signal identifier, not a request code.)</p>
+        <p class="note" style="margin-top:8px">Click a code to key it in and measure it on display set 1. The grammar, and the codes marked "shown in the video", come from the Chornobyl Family reconstruction, built with former Chernobyl staff. The rest are this simulator's own, in the same grammar. «ррсс» stands for a channel's octal coordinates: row, then column, as shown when you hover a dial. (К06L005 is a DREG signal name, not a request code, and does not fit this pattern.)</p>
       </div>
       </div>
     </section>
@@ -554,8 +610,8 @@ footer.thanks { margin: 14px 0 0; font-size: 12px; color: var(--ink-soft); text-
         </ul>
         <h3>Reconstructed or invented</h3>
         <ul>
-          <li><span class="tag inv">inv</span>Console look: the VFD tubes, the column keyboard (keys 0–7), the red and cream function keys and the Гашение switch are modelled on a photograph of a SKALA engineer's console in the computer room, whose controls (cabinet power-on, subprogram start) mark it as the duty engineer's panel rather than the SIUR's request device. Applying its style to the SIUR's device is a design choice, not a documented match.</li>
-          <li><span class="tag inv">inv</span>Not an emulator: the V-3M instruction set and SKALA software are not public. Request codes, PRIZMA and cartogram printout layouts, and the choice of the 9 logged rods are this simulator's own.</li>
+          <li><span class="tag rec">rec</span>Request device: the two keyboards, the two display sets (value, deviation from the nearest setpoint, code), the code grammar, the ПРМ/ПП/АП keys, ИЗМ and ЗАП, error codes 301 and 303, and the codes П0N0000, Т0N7100, К0S0000, К5N0000 and К0S/К0G + channel follow the <a href="https://hackaday.com/2026/07/13/using-your-own-rbmk-reactor-control-center-at-home/">Chornobyl Family</a> reconstruction, built with former Chernobyl staff. Every operator had this device, and SKALA's engineers had the same one. The plant grid, which never uses the digits 8 or 9, confirms that channel coordinates are octal. Reading ПС/АС as the falling setpoints is a guess, and the unlabelled keys do nothing here.</li>
+          <li><span class="tag inv">inv</span>Not an emulator: the V-3M instruction set and SKALA software are not public. All other request codes, the subprogram numbers (except 0301), the PRIZMA and cartogram printout layouts, and the choice of the 9 logged rods are this simulator's own. The tube styling of the displays is a design choice.</li>
           <li><span class="tag inv">inv</span>Physics: 28-slice axial one-group diffusion (quasi-static) with point kinetics, per-slice void, Doppler, xenon/iodine and a burnup profile; every rod's absorber, graphite displacer and water columns at its real depth, weighted by its radial position. Rods are radially averaged, so the local character of the excursion (rows 12–30, Karpan p.380) is not captured.</li>
           <li><span class="tag inv">inv</span>Tuned, not derived: migration area, water-column absorption, burnup profile, and a boiling-crisis threshold after which channels rupture, rods jam and steam floods the core. The xenon profile at 01:22:30 is solved from the measured flux shape because it was never measured (INSAG-7 p.81).</li>
           <li><span class="tag inv">inv</span>Fuel-channel positions are inferred (every lattice cell inside the core not used by a rod or detector). Their colouring is an illustrative radial estimate, not a 2D solution. The 175 plain rods are 139 РР manual, 12 ЛАР local-automatic and 24 АЗ emergency rods, which the sources do not tell apart. 24 of them read exactly 7 cm in both maps; they are probably fully withdrawn, but their scattered positions rule them out as the АЗ group, which would be laid out symmetrically like the АР and УСП rods.</li>
