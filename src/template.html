@@ -107,6 +107,7 @@ select { font: inherit; background: var(--steel); border: 1px solid var(--panel-
 .bays { display: grid; gap: 14px 16px; margin-top: 10px; }
 .bay, .stack { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .stack > .plate:last-child { flex: 1 1 auto; }
+#kb2 { flex: none; }
 .plate { display: flex; flex-direction: column; }
 @media (min-width: 781px) {
   .bays { grid-template-columns: minmax(0, 1.06fr) minmax(0, 0.86fr) minmax(0, 1fr); grid-template-rows: auto auto; align-items: stretch; }
@@ -312,6 +313,7 @@ select { font: inherit; background: var(--steel); border: 1px solid var(--panel-
 .gl { white-space: normal; font-family: var(--font-body); font-style: italic; font-size: 12px; color: var(--gloss); margin: 0 0 3px 0; padding-left: 2ch; }
 .paper.noen .gl { display: none; }
 .pblock { margin-bottom: 8px; }
+.pblock.carto .pl { font-size: 11px; line-height: 1.32; }   /* the PRIZMA sheet is wide: a slightly smaller face keeps more of it in view */
 .pblock.alarm .pl { color: #8c1d14; }
 .pblock.sys .pl { color: #5a6457; }
 .cut { border-top: 1px dashed #b9c0b5; margin: 10px 0; }
@@ -528,8 +530,8 @@ footer.thanks { margin: 14px 0 0; font-size: 12px; color: var(--ink-soft); text-
         <p class="note kbnote">One key per column: system, part, quantity, then four octal digits. ПРМ returns the value; flip ЗАМЕР 1 or 2 to measure. You can also type the code (m t d n p a r k for the first letter) and press Enter, or Shift+Enter for set 2.</p>
       </div>
       <div class="stack a-mid">
-      <div class="plate">
-        <header><span class="screw"></span><h2>Клавиатура 2 <span>numbers and subprograms</span></h2><span class="screw"></span></header>
+      <details class="plate" id="kb2">
+        <summary>Клавиатура 2 <span>numbers, setpoints and subprograms · only needed for ЗАП and programs</span></summary>
         <div class="kbR">
           <div class="colkeys rk hint" id="keysR" data-k="v_right"></div>
           <div class="progs hint" id="progs" data-k="v_prog"></div>
@@ -542,7 +544,7 @@ footer.thanks { margin: 14px 0 0; font-size: 12px; color: var(--ink-soft); text-
         </div>
         <div class="subcap">Подпрограммы</div>
         <div class="what" id="rkWhat"></div>
-      </div>
+      </details>
       <div class="plate">
         <header><span class="screw"></span><h2>Мнемосхема СКАЛА <span>system status</span></h2><span class="screw"></span></header>
         <div class="mnemo" id="mnemo"></div>
@@ -610,7 +612,7 @@ footer.thanks { margin: 14px 0 0; font-size: 12px; color: var(--ink-soft); text-
         <h3>Reconstructed or invented</h3>
         <ul>
           <li><span class="tag rec">rec</span>Request device: the two keyboards, the two display sets (value, deviation from the nearest setpoint, code), the code grammar, the ПРМ/ПП/АП keys, ИЗМ and ЗАП, error codes 301 and 303, and the codes П0N0000, Т0N7100, К0S0000, К5N0000 and К0S/К0G + channel follow the <a href="https://www.youtube.com/watch?v=1JSP_gVXZTs">Chornobyl Family</a> reconstruction, built with former Chernobyl staff. It models the modernized SKALA of unit 3, which ran until 2000, so the 1986 codes of unit 4 may have differed in detail; the builders say the principles stayed largely the same. In the control room the keyboard and the displays were separate pieces; here they share one panel, as on the computer-hall console. Every operator had this device, and SKALA's engineers had the same one. The plant grid, which never uses the digits 8 or 9, confirms that channel coordinates are octal. Reading ПС/АС as the falling setpoints is a guess, and the unlabelled keys do nothing here.</li>
-          <li><span class="tag inv">inv</span>Not an emulator: the V-3M instruction set and SKALA software are not public. All other request codes, the subprogram numbers (except 0301), the PRIZMA and cartogram printout layouts, and the choice of the 9 logged rods are this simulator's own. The tube styling of the displays is a design choice.</li>
+          <li><span class="tag inv">inv</span>Not an emulator: the V-3M instruction set and SKALA software are not public. All other request codes, the subprogram numbers (except 0301), the PRIZMA summary lines, the rod cartogram layout, the wording of the teletype's setpoint lines and the choice of the 9 logged rods are this simulator's own. The PRIZMA channel map follows the form shown in the Chornobyl Family printer video, without the per-channel flow and boiling margin the model lacks. The tube styling of the displays is a design choice.</li>
           <li><span class="tag inv">inv</span>Physics: 28-slice axial one-group diffusion (quasi-static) with point kinetics, per-slice void, Doppler, xenon/iodine and a burnup profile; every rod's absorber, graphite displacer and water columns at its real depth, weighted by its radial position. Rods are radially averaged, so the local character of the excursion (rows 12–30, Karpan p.380) is not captured.</li>
           <li><span class="tag inv">inv</span>Tuned, not derived: migration area, water-column absorption, burnup profile, and a boiling-crisis threshold after which channels rupture, rods jam and steam floods the core. The xenon profile at 01:22:30 is solved from the measured flux shape because it was never measured (INSAG-7 p.81).</li>
           <li><span class="tag inv">inv</span>Fuel-channel positions are inferred (every lattice cell inside the core not used by a rod or detector). Their colouring is an illustrative radial estimate, not a 2D solution. The 175 plain rods are 139 РР manual, 12 ЛАР local-automatic and 24 АЗ emergency rods, which the sources do not tell apart. 24 of them read exactly 7 cm in both maps; they are probably fully withdrawn, but their scattered positions rule them out as the АЗ group, which would be laid out symmetrically like the АР and УСП rods.</li>

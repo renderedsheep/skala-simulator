@@ -1,6 +1,6 @@
 # SKALA Simulator Training Manual
 
-Fernand G. · October 2026 · version 3.2
+Fernand G. · October 2026 · version 3.3
 
 ## 1. Introduction
 
@@ -252,7 +252,7 @@ For example, П0N0000 with ПП gives 3264 MW, 2 % above nominal, and with АП 
 
 ### The right keyboard: numbers and subprograms
 
-The second keyboard enters numbers and starts programs.
+The second keyboard enters numbers and starts programs. Its panel, *Клавиатура 2*, sits folded under the request device, because ordinary readings never need it. Click its title to open it. It opens by itself when you choose ЗАП or start a program that needs it.
 
 - **Numbers:** one key in each of the four black columns gives the digits, − or + the sign, and a red key 0–4 the decimal exponent, which sets where the decimal point goes. Reading the red key as the number of decimal places (0293 with red 2 is 2.93) is an assumption.
 - **Program keys 1–10:** the program selector, which sets how SKALA presents the answer (on which МТК display or printer, for example). The chosen program's lamp lights.
@@ -305,6 +305,8 @@ Most of what survives from the night of 26 April is paper. The *Печать* ba
 
 The teletype printed urgent messages: emergency protection, system start-up and the restart banner. It is slow. At 7 characters per second, one message takes several seconds, and you watch it type. The time format follows the surviving tape, with no leading zero on the hour, for example `1.23.39 АВАР ЗАЩИТА 5`. If SKALA loses power mid-line, the line stops where it was, as the real second message did after 15 characters.
 
+SKALA also prints a line when a measured parameter crosses one of its setpoints, and another when it clears, for example `1.23.47 П0P0000 АП ВОЗН 88,2 КГС/СМ² +17,6%`. Each line gives the time, the code, the setpoint type, ВОЗН (appeared) or СНЯТ (cleared), the value and its deviation. Operators recalled the real teletype printing often. The layout follows the Chornobyl Family reconstruction of the later unit 3 system, so the 1986 wording is not known. Only directly measured parameters are watched, such as power, drum pressure and level, feedwater, inlet temperature and coolant flow. ORM is left out, because the shift did not know the ORM at 01:22:30. Protection messages always go ahead of waiting setpoint lines, so the 1986 sequence keeps its timing. A setpoint you write with ЗАП is watched too (section 5).
+
 ### ДРЕГ listing
 
 DREG (the diagnostic recorder) logged discrete signals and selected parameters. It was low priority, so it collected events and wrote them in cycles every 2 to 4 s. That is why its times run about a second behind the teletype. DREG wrote to magnetic tape. What people read was a line-printer listing made from that tape, so the tab shows it on fanfold paper. The teletype stays on its paper roll: РТА stands for рулонный телеграфный аппарат, "roll telegraph machine".
@@ -326,10 +328,10 @@ The drum printer prints long reports on plain white perforated fanfold paper. It
     - the radial and axial peaking factors (KR, KZ);
     - the hottest channel's power and the coolant flow;
     - drum pressure and inlet temperature;
-    - a 10 × 10 map of relative power across the core.
+    - a channel cartogram laid out like the core and printed in two halves, left then right, with octal coordinate rulers. Each four-character cell gives the channel type (ТК fuel, СУЗ control rod, АР, УСП, Н detector) and, for fuel channels, the power in MW. The sheet is wide, so scroll the paper sideways.
 - **The rod cartogram** (subprogram 0310) prints every rod's depth in cm on the plant grid, in the layout Karpan reproduces. It ends with the total inserted length and the number of displacer rods sitting within 1 m of the top.
 
-The printout layouts are reconstructions. No original PRIZMA sheet layout is reproduced here.
+The cartogram's form (two halves, rulers, four-character cells) follows the Chornobyl Family reconstruction. The real sheet also gave every channel's coolant flow and boiling-crisis margin. This model has neither per channel, so those lines are left out rather than invented. The summary lines above the map are this simulator's own.
 
 ### Архив 26.04.86
 
@@ -487,6 +489,7 @@ The plant grid backs up one detail independently: its numbers never use the digi
 - **Rod types.** The sources do not separate the 139 РР, 12 ЛАР and 24 АЗ rods. An earlier version guessed that the 24 rods reading 7 cm were the АЗ group. Their scattered layout ruled that out, and the guess was withdrawn.
 - **Tuning.** The explosion timing depends on one tuned parameter: how strongly the water in the rod channels absorbs neutrons. Changing it by 7 % either way stops the 01:22:30 explosion or makes the 00:39 case trip. INSAG-7 reports the same extreme sensitivity in the Soviet 3D models.
 - **Simulator aids.** The СИУР aid, the rod sectors and the hidden-physics panel did not exist.
+- **Teletype setpoint lines.** Which parameters SKALA watched in 1986, and the exact wording of its messages, are not known. The default setpoints for drum pressure and level are this simulator's own.
 
 ### Validation
 

@@ -96,12 +96,19 @@
   // ---------- teletype: 7 characters per second, one 64-column line per message (Karpan p.360) ----------
   const TTY_CPS = 7, TTY_COLS = 64;
   let tty = [], ttyOff = null;
-  function ttyQueue(t, text, en, cls) {
-    const prev = tty[tty.length - 1];
-    const start = Math.max(t, prev ? prev.start + TTY_COLS / TTY_CPS : t);
+  // Protection messages go ahead of setpoint messages that have not started printing yet, so the 1986 sequence keeps its timing.
+  function ttyQueue(t, text, en, cls, sp = false) {
     const el = document.createElement('div'); el.className = 'pblock ' + (cls || '');
     el.innerHTML = `<div class="pl"></div>${en ? `<div class="gl" hidden>${esc(en)}</div>` : ''}`;
-    tty.push({ start, text, el, shown: -1, done: false });
+    const item = { t, start: t, text, el, shown: -1, done: false, sp };
+    let at = tty.length;
+    if (!sp) while (at > 0 && tty[at - 1].sp && tty[at - 1].start > S.t) at--;
+    tty.splice(at, 0, item);
+    for (let i = Math.max(0, at); i < tty.length; i++) {
+      const prev = tty[i - 1];
+      if (tty[i].start <= S.t && i !== at) continue;          // already printing: leave it alone
+      tty[i].start = Math.max(tty[i].t, prev ? prev.start + TTY_COLS / TTY_CPS : tty[i].t);
+    }
   }
   function ttyRender() {
     const now = ttyOff !== null ? Math.min(S.t, ttyOff) : S.t;
@@ -230,7 +237,7 @@
     $('dir').innerHTML = grp('Из видео Chornobyl Family · shown in the video', vis.filter(k => k.src === 'doc'))
       + grp('По правилам из видео · follows its rules', vis.filter(k => k.src === 'inf'))
       + grp('Придуманы для симулятора · invented, same grammar', vis.filter(k => k.src === 'inv'))
-      + `<div class="dirhead">Подпрограммы · subprograms (right keyboard)</div><ul class="dir">${SUBPROGS.map(s => `<li><button data-sub="${s.n}"><code>${s.p}·${s.n}</code><span>${esc(s.ru)}<em>${esc(s.en)}</em></span></button></li>`).join('')}</ul>`;
+      + `<div class="dirhead">Подпрограммы · subprograms (Клавиатура 2)</div><ul class="dir">${SUBPROGS.map(s => `<li><button data-sub="${s.n}"><code>${s.p}·${s.n}</code><span>${esc(s.ru)}<em>${esc(s.en)}</em></span></button></li>`).join('')}</ul>`;
     $('dir').addEventListener('click', e => {
       const b = e.target.closest('button[data-code]');
       if (b) { setLeft(b.dataset.code); vu.kind = 'ПРМ'; vu.mode = 'ИЗМ'; zamer(0); return; }
@@ -254,13 +261,13 @@
     if (ended) return;
     if (S.powerLost) { vu.msg = 'SKALA has no power.'; return renderVU(); }
     if (S.restarting) { vu.msg = 'SKALA is restarting from punched tape and does not answer requests.'; return renderVU(); }
-    if (vu.left.includes(null)) { vu.msg = vu.left[0] === 'М' && vu.left.slice(1).every(c => c === null) ? 'М on its own starts a program: choose it on the right keyboard and press ЗАПУСК.' : 'Press one key in every column of the left keyboard first.'; return renderVU(); }
+    if (vu.left.includes(null)) { vu.msg = vu.left[0] === 'М' && vu.left.slice(1).every(c => c === null) ? 'М on its own starts a program: choose it on Клавиатура 2 and press ЗАПУСК.' : 'Press one key in every column of the left keyboard first.'; return renderVU(); }
     const code = codeStr(), hit = lookup(code);
     const set = { code, kind: vu.kind, hit, readyAt: S.t + 1.5, err: null, fixed: null };
     if (vu.mode === 'ЗАП') {
       if (vu.kind === 'ПРМ') { vu.msg = 'ЗАП writes a setpoint: choose ПП, АП, ПС or АС first.'; return renderVU(); }
       const v = rkValue();
-      if (v === null) { vu.msg = 'Enter the setpoint on the right keyboard: one key in each of the four black columns, plus a red exponent key if it has decimals.'; return renderVU(); }
+      if (v === null) { $('kb2').open = true; vu.msg = 'Enter the setpoint on Клавиатура 2: one key in each of the four black columns, plus a red exponent key if it has decimals.'; return renderVU(); }
       if (!hit || hit.k.nm) { set.err = '301'; vu.msg = `No code ${code} in SKALA's table.`; }
       else { (SP[code] = SP[code] || {})[vu.kind] = v; set.fixed = v; vu.msg = `Setpoint ${vu.kind} for ${code} written: ${ru(v, rk.e || 0)}. Setpoints were entered by SKALA's programmers from the engineers' setpoint charts.`; }
       vu.sets[i] = set; return renderVU();
@@ -311,6 +318,38 @@
     $('vu').classList.toggle('poweroff', !!S.powerLost);
   }
 
+  // SKALA setpoint monitoring: a teletype line when a measured parameter crosses one of its setpoints, and when it clears.
+  // The message layout follows the Chornobyl Family reconstruction (time, code, appeared or cleared, value, deviation);
+  // the 1986 wording is not known. ORM and other PRIZMA results are left out: the shift did not know the ORM at 01:22:30.
+  const WATCH = ['П0N0000', 'Я0N0000', 'П0P0000', 'П0H0000', 'П0G0000', 'Н0t0000', 'К0G0000', 'К1G0000', 'К2G0000'];
+  const SPNAME = { ПП: 'warning setpoint, rising', АП: 'emergency setpoint, rising', ПС: 'warning setpoint, falling', АС: 'emergency setpoint, falling' };
+  let spState = {};
+  function spWatch(silent) {
+    if (S.powerLost || S.restarting || ended) return;
+    for (const code of WATCH) {
+      const sp = SP[code]; if (!sp) continue;
+      const k = CODES.find(x => x.c === code), txt = k.f(), v = parseFloat(String(txt).replace(',', '.'));
+      if (!isFinite(v)) continue;
+      let hit = null;
+      if (sp.АП !== undefined && v >= sp.АП) hit = 'АП'; else if (sp.ПП !== undefined && v >= sp.ПП) hit = 'ПП';
+      else if (sp.АС !== undefined && v <= sp.АС) hit = 'АС'; else if (sp.ПС !== undefined && v <= sp.ПС) hit = 'ПС';
+      const st = spState[code] || (spState[code] = { kind: null, at: -1e9 });
+      if (!hit && st.kind && sp[st.kind] !== undefined) {         // hysteresis: clear only once clearly back inside
+        const s = sp[st.kind], m = Math.max(Math.abs(s) * 0.02, 1e-6);
+        if (st.kind[1] === 'П' ? v > s - m : v < s + m) hit = st.kind;
+      }
+      if (hit === st.kind) continue;
+      if (!silent && S.t - st.at >= 5) {
+        const ref = hit || st.kind, s = sp[ref], dev = (v - s) / Math.abs(s) * 100;
+        const devTxt = (dev >= 0 ? '+' : '−') + ru(Math.abs(dev), 1).replace('-', '') + '%';
+        const line = hit ? `${ttyClock(S.t)} ${code} ${hit} ВОЗН ${txt} ${k.u} ${devTxt}` : `${ttyClock(S.t)} ${code} ${st.kind} СНЯТ ${txt} ${k.u}`;
+        const en = hit ? `${k.en}: passed its ${SPNAME[hit]} (${String(s).replace('.', ',')} ${k.u}). SKALA setpoint message; the layout follows the Chornobyl Family reconstruction, the 1986 wording is not known.` : `${k.en}: back inside its ${SPNAME[st.kind]}.`;
+        ttyQueue(S.t, line, en, hit && hit[0] === 'А' ? 'alarm' : '', true);
+      }
+      spState[code] = { kind: hit, at: S.t };
+    }
+  }
+
   // subprograms: run with М alone on the left keyboard, a program key and a four-digit number on the right, then ЗАПУСК.
   // Only 0301 under program 4 or 8 comes from the video; the rest are this simulator's own numbers.
   const SUBPROGS = [
@@ -322,10 +361,10 @@
   function start() {
     if (ended) return;
     if (S.powerLost) { vu.msg = 'SKALA has no power.'; return renderVU(); }
-    if (vu.left[0] !== 'М' || vu.left.slice(1).some(c => c !== null)) { vu.msg = 'To start a program, press only М on the left keyboard (as in the video), then the program key and number on the right.'; return renderVU(); }
-    if (!rk.prog) { vu.msg = 'Choose a program key (1–10) on the right keyboard.'; return renderVU(); }
+    if (vu.left[0] !== 'М' || vu.left.slice(1).some(c => c !== null)) { vu.msg = 'To start a program, press only М on the left keyboard (as in the video), then the program key and number on Клавиатура 2.'; return renderVU(); }
+    if (!rk.prog) { vu.msg = 'Choose a program key (1–10) on Клавиатура 2.'; $('kb2').open = true; return renderVU(); }
     const n = rk.d.includes(null) ? null : rk.d.join('');
-    if (n === null) { vu.msg = 'Enter the four-digit subprogram number on the right keyboard.'; return renderVU(); }
+    if (n === null) { vu.msg = 'Enter the four-digit subprogram number on Клавиатура 2.'; $('kb2').open = true; return renderVU(); }
     const sp = SUBPROGS.find(s => s.n === n && (s.p === rk.prog || (s.n === '0301' && rk.prog === 8)));
     if (!sp) { vu.msg = `Program ${rk.prog}, subprogram ${n}: not simulated. See the subprogram list below.`; return renderVU(); }
     const r = sp.f(); vu.msg = `${sp.ru} · ${r && r[2] ? r[2] : sp.en}`; renderVU();
@@ -337,7 +376,7 @@
     $('keysL').innerHTML = LEFTCOLS.map((col, i) => `<div class="col">${col.map(v => `<button class="key${i === 0 || i === 2 ? ' let' : ''}" data-col="${i}" data-v="${v}" aria-label="Column ${i + 1}: ${v}">${v}</button>`).join('')}</div>`).join('');
     $('keysL').addEventListener('click', e => { const b = e.target.closest('.key'); if (!b) return; const i = +b.dataset.col; vu.left[i] = vu.left[i] === b.dataset.v ? null : b.dataset.v; vu.msg = vu.left.includes(null) ? `Code so far: ${codeStr().replace(/ /g, '·')}` : `Code ${codeStr()}. Choose what to return, then ЗАМЕР 1 or 2.`; renderVU(); });
     $('kinds').addEventListener('click', e => { const b = e.target.closest('[data-kind]'); if (!b) return; vu.kind = b.dataset.kind; vu.msg = `${vu.kind}: ${KINDS[vu.kind]}.`; renderVU(); });
-    $('modes').addEventListener('click', e => { const b = e.target.closest('[data-mode]'); if (!b) return; vu.mode = b.dataset.mode; vu.msg = vu.mode === 'ЗАП' ? 'ЗАП: write mode. The next ЗАМЕР writes the number on the right keyboard as the chosen setpoint.' : 'ИЗМ: measurement mode.'; renderVU(); });
+    $('modes').addEventListener('click', e => { const b = e.target.closest('[data-mode]'); if (!b) return; vu.mode = b.dataset.mode; if (vu.mode === 'ЗАП') $('kb2').open = true; vu.msg = vu.mode === 'ЗАП' ? 'ЗАП: write mode. Enter the number on Клавиатура 2 (opened below), choose the setpoint type, then flip ЗАМЕР.' : 'ИЗМ: measurement mode.'; renderVU(); });
     document.querySelectorAll('[data-zamer]').forEach(b => b.addEventListener('click', () => { b.setAttribute('aria-pressed', 'true'); setTimeout(() => b.setAttribute('aria-pressed', 'false'), 220); zamer(+b.dataset.zamer); }));
     document.querySelectorAll('[data-gash]').forEach(b => b.addEventListener('click', () => { const i = +b.dataset.gash; vu.blank[i] = !vu.blank[i]; b.setAttribute('aria-pressed', String(vu.blank[i])); renderVU(); }));
     // right keyboard: four decimal columns, sign, red exponent, program keys
@@ -392,29 +431,50 @@
     prizmaReq = { at, by: 'СИУР' };
     return ['ПРИНЯТ', '', `Printed when the current 5-minute cycle ends, at ${clk(at)}.`];
   }
-  function zoneMap(pw, n) {
-    const cells = Array.from({ length: n * n }, () => [0, 0]);
-    S.fuel.forEach((f, i) => { const cx = Math.min(n - 1, Math.floor((f.x + 25) / 50 * n)), cy = Math.min(n - 1, Math.floor((f.y + 25) / 50 * n)); const c = cells[cy * n + cx]; c[0] += pw[i]; c[1]++; });
-    return cells.map(c => c[1] ? c[0] / c[1] : null);
+  // PRIZMA channel cartogram, laid out like the core and printed in two halves (left, then right) with octal coordinate
+  // rulers and four-character cells, after the Chornobyl Family reconstruction. Two lines per cell: channel type, power in MW.
+  // The real sheet also gave each channel's coolant flow and boiling-crisis margin; the model has neither per channel.
+  function cartoHalves(pw) {
+    const cell = new Map();
+    S.fuel.forEach((f, i) => cell.set(f.x + ',' + f.y, ['ТК', ru(SIM.thermal(S) / 1661 * pw[i], 2)]));
+    const T = { RR: 'СУЗ', AR: 'АР', USP: 'УСП' };
+    S.rods.forEach(r => cell.set(r.x + ',' + r.y, [T[r.type] || 'СУЗ', '']));
+    S.dets.forEach(d => cell.set(d.x + ',' + d.y, ['Н', '']));
+    const xs = [...cell.keys()].map(k => +k.split(',')[0]), ys = [...cell.keys()].map(k => +k.split(',')[1]);
+    const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+    const mid = Math.floor((x0 + x1) / 2);
+    const out = [];
+    for (const [name, a, b] of [['ЛЕВАЯ ПОЛОВИНА', x0, mid], ['ПРАВАЯ ПОЛОВИНА', mid + 1, x1]]) {
+      const cols = []; for (let x = a; x <= b; x++) cols.push(x);
+      const ruler = '    ' + cols.map(x => oct2(31 + x).padStart(4) + ' ').join('');
+      out.push({ ru: `КАРТОГРАММА ЗОНЫ · ${name}` }, { ru: ruler });
+      for (let y = y0; y <= y1; y++) {
+        const row = cols.map(x => cell.get(x + ',' + y));
+        if (row.every(c => !c)) continue;
+        out.push({ ru: oct2(32 - y).padStart(3) + ' ' + row.map(c => (c ? c[0] : '').padStart(4) + ' ').join('') });
+        out.push({ ru: '    ' + row.map(c => (c ? c[1] : '').padStart(4) + ' ').join('') });
+      }
+      out.push({ ru: ruler });
+    }
+    return out;
   }
   function printPrizma(by) {
     if (S.powerLost) return;
     const pw = SIM.channelPower(S), kr = Math.max(...pw), th = SIM.thermal(S), orm = SIM.ormPrizma(S);
-    const z = zoneMap(pw, 10);
     const L = [];
     L.push({ ru: '======================== П Р И З М А ========================', en: by === 'СДИВТ' ? 'Scheduled printout, made every two hours on odd hours by the SKALA duty engineer and carried to the control room.' : 'PRIZMA printout requested from the control room.' });
     L.push({ ru: `БЛОК 4   ${S.date}   РАСЧЕТ ${clk(S.t, '.')}   ${S.skalaMode === 'ПАРНЫЙ' ? 'ПАРН.' : 'ПОЛУТ.'}` });
-    L.push({ ru: `N ТЕПЛ  = ${fmt(th).padStart(6)} МВТ      N НЕЙТР = ${fmt(S.n * 100, 1).padStart(6)} %`, en: 'Thermal and neutron power.' });
+    L.push({ ru: `N ТЕПЛ  = ${fmt(th).padStart(6)} МВТ      N НЕЙТР = ${ru(S.n * 100, 1).padStart(6)} %`, en: 'Thermal and neutron power.' });
     L.push({ ru: `ОЗР     = ${ru(orm, 1).padStart(6)} СТ.РР`, en: 'Operating reactivity margin: inserted absorber weighted by the axial flux, in equivalent manual rods.' });
     if (orm < 15) L.push({ ru: '***  ОЗР МЕНЕЕ 15 СТ.РР  ***', en: 'Below 15 rods: the regulations required an immediate shutdown.' });
     else if (orm < 26) L.push({ ru: '***  ОЗР МЕНЕЕ 26 СТ.РР  ***', en: "Below 26 rods: operation only with the chief engineer's permission." });
     L.push({ ru: `KR     = ${ru(kr, 2).padStart(6)}          KZ      = ${ru(SIM.kz(S), 2).padStart(6)}`, en: 'Radial and axial peaking factors.' });
     L.push({ ru: `WТК MAX = ${ru(th / 1661 * kr, 2).padStart(6)} МВТ   G КМПЦ  = ${fmt(SIM.flowM3(S)).padStart(6)} М3/Ч`, en: 'Hottest channel power and total coolant flow.' });
     L.push({ ru: `P БС    = ${ru(S.p, 1).padStart(6)}          T ВХ    = ${ru(inletT(), 1).padStart(6)} ГРАД`, en: 'Drum pressure and core inlet temperature.' });
-    L.push({ ru: 'ОТН. МОЩНОСТЬ ПО ЗОНАМ (10 X 10, ВЕРХ = РЯД 66)', en: 'Relative channel power by zone. Illustrative: an estimate from rod positions, not a 2D calculation.' });
-    for (let j = 0; j < 10; j++) L.push({ ru: '   ' + z.slice(j * 10, j * 10 + 10).map(v => v === null ? '    .' : ru(v, 2).padStart(5)).join('') });
+    L.push({ ru: 'ПОКАНАЛЬНАЯ КАРТОГРАММА: ТИП КАНАЛА / МОЩНОСТЬ, МВТ', en: 'Channel cartogram laid out like the core, printed in two halves as on the real PRIZMA sheet (layout after the Chornobyl Family reconstruction; wide, so scroll sideways). Each cell: channel type (ТК fuel, СУЗ control rod, АР, УСП, Н height detector), then power in MW. The real sheet also gave every channel’s coolant flow and boiling-crisis margin; this model has neither per channel, so those lines are left out. Powers are an illustrative radial estimate, not a 2D calculation, and the fuel-channel positions are inferred.' });
+    for (const l of cartoHalves(pw)) L.push(l);
     L.push({ ru: '=========================== КОНЕЦ ===========================' }, { cut: true });
-    block('lpt', L); flash('lpt');
+    block('lpt', L, 'carto'); flash('lpt');
     notice(`PRIZMA printout on the drum printer (${clk(S.t)}).`);
   }
   function printCartogram() {
@@ -857,6 +917,7 @@
       const cyc = Math.floor(clockSec(S.t) / 300);
       if (lastCycle !== null && cyc !== lastCycle && !S.restarting && !S.powerLost) ormCycle = { v: SIM.ormPrizma(S), at: S.t };
       lastCycle = cyc;
+      spWatch(false);
       drainEvents();
       if (S.setMove && [...S.setMove.ids].every(i => { const r = S.rods[i], max = r.type === 'USP' ? P.USP_MAX : H; return S.setMove.dir > 0 ? r.d >= max - 1e-6 : r.d <= 1e-6; })) S.setMove = null;
       for (const k of Object.keys(S.groupMove)) { const v = S.groupMove[k], rs = groupRods(k), max = k === 'USP' ? P.USP_MAX : H; if (S.assistMove) continue; if (rs.every(r => v > 0 ? r.d >= max - 1e-6 : r.d <= 1e-6)) delete S.groupMove[k]; }
@@ -888,6 +949,7 @@
     newRun(); $('debrief').hidden = true;
     vu.left = Array(7).fill(null); vu.kind = 'ПРМ'; vu.mode = 'ИЗМ'; vu.sets = [null, null]; rk.sign = 1; rk.d = [null, null, null, null]; rk.e = null; rk.prog = null;
     SP = JSON.parse(JSON.stringify(SP_DEFAULT)); ormCycle = { v: SIM.ormPrizma(S), at: 0 }; lastCycle = null;
+    spState = {}; spWatch(true);
     vu.msg = 'Press one key in each column of the left keyboard, then ЗАМЕР 1 or 2. Try П0N0000 (thermal power) or К0S0000 (ORM). You can also type the code.';
     buildPumps(); setSpeed(1); notice(NOTES[name]);
     drainEvents(); render();
