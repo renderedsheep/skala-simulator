@@ -213,7 +213,7 @@ select { font: inherit; background: var(--steel); border: 1px solid var(--panel-
 .dcap { font-family: var(--font-display); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink); margin-bottom: 3px; }
 .drow { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; min-width: 0; }
 .rcap { font-family: var(--font-display); font-size: 10.5px; letter-spacing: 0.04em; color: var(--ink-soft); width: 38px; flex: none; text-transform: uppercase; }
-.tube.t14 line { stroke-width: 3.3; stroke-linecap: round; }
+.tube.t14 line { stroke-width: 3.9; stroke-linecap: round; }
 .tube.t14 .gh line { stroke: var(--off); }
 .tube.t14 .lt line { stroke: var(--on); opacity: 0; }
 .tube.t14 .lt line.on { opacity: 1; }
@@ -526,12 +526,12 @@ footer.thanks { margin: 14px 0 0; font-size: 12px; color: var(--ink-soft); text-
         <div class="vu sets" id="vu">
           <div class="dset hint" id="dsA" data-k="v_set"><div class="dcap">Комплект 1</div>
             <div class="drow"><span class="rcap">Знач.</span><div class="vfd md" id="vuA"></div><span class="vunit" id="unitA"></span></div>
-            <div class="drow"><span class="rcap">Откл.</span><div class="vfd sm" id="devA"></div></div>
-            <div class="drow"><span class="rcap">Код</span><div class="vfd sm cyan" id="codeA"></div></div></div>
+            <div class="drow"><span class="rcap">Откл.</span><div class="vfd md" id="devA"></div></div>
+            <div class="drow"><span class="rcap">Код</span><div class="vfd md cyan" id="codeA"></div></div></div>
           <div class="dset hint" id="dsB" data-k="v_set"><div class="dcap">Комплект 2</div>
             <div class="drow"><span class="rcap">Знач.</span><div class="vfd md" id="vuB"></div><span class="vunit" id="unitB"></span></div>
-            <div class="drow"><span class="rcap">Откл.</span><div class="vfd sm" id="devB"></div></div>
-            <div class="drow"><span class="rcap">Код</span><div class="vfd sm cyan" id="codeB"></div></div></div>
+            <div class="drow"><span class="rcap">Откл.</span><div class="vfd md" id="devB"></div></div>
+            <div class="drow"><span class="rcap">Код</span><div class="vfd md cyan" id="codeB"></div></div></div>
           <div class="what" id="vuWhat" aria-live="polite"></div>
         </div>
         <div class="kbL">
@@ -1480,8 +1480,11 @@ if (typeof module !== 'undefined') module.exports = SIM;
   }
 
   // 14-segment alphanumeric tubes (the code row of each display set shows letters)
-  const S14 = { a: [7, 5, 29, 5], a2: [18, 5, 29, 5], b: [31, 7, 31, 28], c: [31, 32, 31, 53], d: [7, 55, 29, 55], e: [5, 32, 5, 53], f: [5, 7, 5, 28], g1: [7, 30, 16.5, 30], g2: [19.5, 30, 29, 30],
-    h: [8, 8, 16, 27], i: [18, 7, 18, 28], j: [28, 8, 20, 27], k: [8, 52, 16, 33], l: [18, 32, 18, 53], m: [28, 52, 20, 33], n: [17, 7, 6, 53] };
+  // drawn inside the same box as the seven-segment digits (x 8.4–27.6, y 7–53), so a letter fills its tube the way a digit does
+  const S14 = (() => { const L = 8.4, R = 27.6, C = 18, T = 7, M = 30, B = 53, g = 1.9;
+    return { a: [L + g, T, R - g, T], a2: [C + g, T, R - g, T], b: [R, T + g, R, M - g], c: [R, M + g, R, B - g], d: [L + g, B, R - g, B], e: [L, M + g, L, B - g], f: [L, T + g, L, M - g],
+      g1: [L + g, M, C - 1, M], g2: [C + 1, M, R - g, M], h: [L + g + 0.6, T + g + 1, C - 1.6, M - 2.6], i: [C, T + g + 0.4, C, M - g], j: [R - g - 0.6, T + g + 1, C + 1.6, M - 2.6],
+      k: [L + g + 0.6, B - g - 1, C - 1.6, M + 2.6], l: [C, M + g, C, B - g - 0.4], m: [R - g - 0.6, B - g - 1, C + 1.6, M + 2.6], n: [C - 0.4, T + g, L + 0.4, B - g] }; })();
   const BASE14 = ['a', 'b', 'c', 'd', 'e', 'f', 'g1', 'g2', 'h', 'i', 'j', 'k', 'l', 'm'];
   const G14 = { '0': 'a b c d e f', '1': 'b c', '2': 'a b g1 g2 e d', '3': 'a b c d g2 g1', '4': 'f g1 g2 b c', '5': 'a f g1 g2 c d', '6': 'a f e d c g1 g2', '7': 'a b c', '8': 'a b c d e f g1 g2', '9': 'a b c d f g1 g2',
     'Т': 'a i l', 'М': 'f e h j b c', 'Д': 'n a2 b c d', 'Н': 'f e b c g1 g2', 'П': 'a f e b c', 'А': 'a b c e f g1 g2', 'Я': 'a b c f g1 g2 k', 'К': 'f e g1 j m',
