@@ -47,6 +47,7 @@ Open `skala.html` (or `index.html`) in any modern browser (Chrome, Firefox, Edge
     - *What-if, rods as at 00:39*: the same plant state, but with the deeper rod pattern of 00:39 (ORM 16.5).
     - *25.04.1986 01:05*: 3100 MW at the start of the power reduction, for routine operation.
 - **Speed** runs the simulation paused, in real time (×1), or 10, 60 or 600 times faster. When anything fast happens (a scram, a power surge or a large reactivity change), the speed drops back to ×1 by itself, so you never skip the important seconds.
+- **Sound** turns the printer noise and the emergency horn on or off. The sounds are generated in the browser, not recorded, and your browser remembers the choice. Browsers keep sound locked until your first click or key press.
 - **Date / Time** is the plant clock, shown on VFD tubes. Times on the printers follow this clock.
 
 Terms with a dotted underline, including every reading on the unit control board and every lamp on the SKALA status panel, open a short definition when you hover over them or tap them. Many link to further reading. The pumps, the run-down test button, the regulator controls and every control on the SKALA request device also explain themselves when you hover over them. Changing the scenario restarts it. The red line under the header shows short notices, such as "Run-down test started".
@@ -174,6 +175,8 @@ The protections can also scram the reactor without you. АЗМ trips on overpowe
 
 When a protection trips, the desk tells you at once. The AZ-5 button glows red, a notice under the header names the trip (for example "АЗСР: reactor period below 20 s · automatic AZ-5"), and the reading behind it flashes for 12 s: Период for АЗСР, the power readings for АЗМ. The teletype and DREG keep their real delays, so their messages arrive seconds later.
 
+Every emergency protection also sounds the alarm horn: AZ-5, whether pressed or automatic, and the partial АЗ-1 to АЗ-3 reductions. Soviet control rooms used a horn or siren for emergency signals and a bell for warnings, and witnesses recall electric alarm buzzers honking in the unit 4 control room. The horn here is a synthesized stand-in, not a recording. Press **Съём звука** next to the AZ-5 button to silence it, as the operators did. It also stops by itself after 30 s, or when the run ends.
+
 ## 5. The SKALA console
 
 SKALA answered questions; it did not volunteer them. Every reactor operator had a request device (вызывное устройство), and SKALA's own engineers had the same device in the computer room. There were no screens. Answers came up on two indicator assemblies called display sets. ORM, the most important safety figure that night, was not on any continuous display: you had to ask for it.
@@ -201,6 +204,8 @@ So П0N0000 means steam generation, whole system, power: the reactor's thermal p
 4. Wait. The answer takes about 1.5 s of plant time to appear. It then stays live until you replace it.
 
 Clicking a code in the *Коды* list keys it in and measures it on set 1.
+
+On a phone or tablet, tap the keys; the switches sit straight under them. Since the display sets are then a screen-height above, a strip by the switches repeats each answer. Tap a lit key again to clear it.
 
 ### The display sets
 
@@ -298,6 +303,8 @@ The КРВ lamp is named in SKALA sources but not simulated. The mode line also 
 Two buttons under the panel stand in for jobs the duty engineer did in the computer room: **Перезарядка ленты ДРЕГ** reloads the DREG tape (recording stops for 60 s), and **Перезапуск СКАЛЫ** restarts SKALA from punched tape (DREG is off and SKALA answers no requests for 6 min 39 s). They are simulator shortcuts, not request-device functions.
 
 ## 6. Printers and records
+
+With sound on, the teletype ticks as each character prints and slides back at the end of the line, and the drum printer hums and rattles while it prints. Both are synthesized impressions, not recordings of the real machines.
 
 Most of what survives from the night of 26 April is paper. The *Печать* bay has one tab for each output device SKALA drove, plus an archive of the real record. An amber dot on a tab means new output has arrived there. **English gloss** adds an italic translation and explanation under each line. Turn it off to read the printouts as the staff did.
 

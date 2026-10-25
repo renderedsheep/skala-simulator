@@ -29,6 +29,7 @@
     const tubes = [...el.querySelectorAll('.tube .lt')].map(g => [...g.children]);
     let last = null, lastState = '';
     return {
+      el,
       set(text, state = '') {
         text = String(text);
         if (state !== lastState) { el.classList.remove('warn', 'alarm', 'dark', 'flash'); if (state) el.classList.add(...state.split(' ')); lastState = state; }
@@ -54,13 +55,99 @@
     el.innerHTML = '<span class="vfdscrew l"></span>' + Array.from({ length: n }, () => `<span class="tube t14"><svg viewBox="0 0 36 60" aria-hidden="true"><g class="gh">${BASE14.map(k => ln(S14[k], k)).join('')}</g><g class="lt">${Object.keys(S14).map(k => ln(S14[k], k)).join('')}</g></svg></span>`).join('') + '<span class="vfdscrew r"></span>';
     const tubes = [...el.querySelectorAll('.lt')].map(g => [...g.children]);
     let last = null;
-    return { set(text) { text = String(text); el.setAttribute('aria-label', text.trim() || 'blank'); if (text === last) return; last = text;
+    return { el, set(text) { text = String(text); el.setAttribute('aria-label', text.trim() || 'blank'); if (text === last) return; last = text;
       const cells = [...text.padEnd(n).slice(0, n)];
       cells.forEach((c, i) => { const g = (G14[c] ?? '').split(' '); tubes[i].forEach(p => p.classList.toggle('on', g.includes(p.dataset.s))); }); } };
   }
 
   function notice(msg, ms = 7000) { $('notice').textContent = msg; noticeT = performance.now() + ms; }
   function flash(dev) { marks[dev] = performance.now() + 400; }
+
+  // ---------- sound ----------
+  // Everything is synthesized with the Web Audio API: no recordings, nothing to license. Browsers keep audio locked until the
+  // first click or key press, so the first sounds after loading may be skipped. Soviet practice signalled an emergency with a horn
+  // or siren and a warning with a bell; witnesses recall electric alarm buzzers honking in the unit 4 control room.
+  const SND = (() => {
+    let ctx = null, master = null, noise = null, on = true, lastTick = 0, lastCr = 0, lastDrum = 0, drumUntil = 0, horn = null;
+    try { on = localStorage.getItem('skala-sound') !== 'off'; } catch (e) { /* storage blocked: default on */ }
+    function ensure() {
+      if (!on) return null;
+      if (!ctx) {
+        const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null;
+        try { ctx = new AC(); } catch (e) { return null; }
+        master = ctx.createGain(); master.gain.value = 1; master.connect(ctx.destination);
+        noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+        const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      }
+      if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+      return ctx.state === 'running' ? ctx : null;
+    }
+    ['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, () => { if (on) ensure(); }, true));
+    function burst(t, dur, type, freq, q, gain) {          // a filtered noise click
+      const s = ctx.createBufferSource(); s.buffer = noise;
+      const f = ctx.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;
+      const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + 0.002); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      s.connect(f); f.connect(g); g.connect(master); s.start(t, Math.random() * 0.8); s.stop(t + dur + 0.03);
+    }
+    function thump(t, f0, dur, gain) {                     // a low knock under the click
+      const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f0 * 0.55, t + dur);
+      const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + 0.003); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 0.02);
+    }
+    return {
+      get on() { return on; },
+      set(v) { on = v; try { localStorage.setItem('skala-sound', v ? 'on' : 'off'); } catch (e) { /* not saved */ } if (!v) this.silence(true); else ensure(); },
+      tick() {                                             // one teletype character: type bar striking through the ribbon
+        if (!ensure()) return; const t = ctx.currentTime; if (t - lastTick < 0.05) return; lastTick = t;
+        burst(t, 0.03, 'bandpass', 1500 + Math.random() * 700, 1.1, 0.045); thump(t, 150, 0.035, 0.035);
+      },
+      cr() {                                               // carriage return and line feed
+        if (!ensure()) return; const t = ctx.currentTime; if (t - lastCr < 0.4) return; lastCr = t;
+        const s = ctx.createBufferSource(); s.buffer = noise; const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.setValueAtTime(500, t); f.frequency.linearRampToValueAtTime(1400, t + 0.3);
+        const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.022, t + 0.05); g.gain.linearRampToValueAtTime(0.0001, t + 0.34);
+        s.connect(f); f.connect(g); g.connect(master); s.start(t, Math.random() * 0.5); s.stop(t + 0.36);
+        thump(t + 0.33, 110, 0.06, 0.05);
+      },
+      drum(lines) {                                        // drum printer: motor hum and a fast rattle of print hammers, line by line
+        if (!ensure()) return; let t = Math.max(ctx.currentTime, drumUntil); if (t - ctx.currentTime > 4) return;
+        const dur = Math.min(5, 0.3 + lines * 0.045); drumUntil = t + dur; lastDrum = t;
+        const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 98;
+        const lf = ctx.createBiquadFilter(); lf.type = 'lowpass'; lf.frequency.value = 260;
+        const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.018, t + 0.15); g.gain.setValueAtTime(0.018, t + dur - 0.2); g.gain.linearRampToValueAtTime(0.0001, t + dur);
+        o.connect(lf); lf.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 0.05);
+        for (let x = t + 0.12; x < t + dur - 0.1; x += 0.024 + Math.random() * 0.01) burst(x, 0.012, 'highpass', 2600, 0.7, 0.012 + Math.random() * 0.018);
+      },
+      alarm(sec = 30) {                                    // emergency horn: a pulsing electromechanical buzzer, until silenced
+        if (!ensure()) return;
+        const t = ctx.currentTime;
+        if (horn) { horn.until = Math.max(horn.until, t + sec); return; }
+        const out = ctx.createGain(); out.gain.value = 0.0001; out.connect(master);
+        const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 900; bp.Q.value = 0.7; bp.connect(out);
+        const rough = ctx.createGain(); rough.gain.value = 0.75; rough.connect(bp);
+        const lfo = ctx.createOscillator(); lfo.frequency.value = 50; const lg = ctx.createGain(); lg.gain.value = 0.25; lfo.connect(lg); lg.connect(rough.gain);
+        const oscs = [['sawtooth', 228], ['square', 231], ['square', 457]].map(([ty, f]) => { const o = ctx.createOscillator(); o.type = ty; o.frequency.value = f; const g = ctx.createGain(); g.gain.value = ty === 'sawtooth' ? 0.5 : 0.25; o.connect(g); g.connect(rough); o.start(t); return o; });
+        lfo.start(t);
+        horn = { out, oscs: [...oscs, lfo], until: t + sec, next: t };
+        const pulse = () => {                              // 0.8 s on, 0.45 s off
+          if (!horn) return; const now = ctx.currentTime;
+          if (now >= horn.until) { this.silence(); return; }
+          const g = horn.out.gain; g.cancelScheduledValues(now);
+          g.setValueAtTime(0.0001, now); g.exponentialRampToValueAtTime(0.11, now + 0.03); g.setValueAtTime(0.11, now + 0.8); g.exponentialRampToValueAtTime(0.0001, now + 0.85);
+          horn.timer = setTimeout(pulse, 1250);
+        };
+        pulse();
+        document.dispatchEvent(new CustomEvent('skala-horn', { detail: true }));
+      },
+      silence(fast) {
+        if (!horn) return;
+        const h = horn; horn = null; clearTimeout(h.timer);
+        if (ctx) { const now = ctx.currentTime; h.out.gain.cancelScheduledValues(now); h.out.gain.setValueAtTime(h.out.gain.value, now); h.out.gain.exponentialRampToValueAtTime(0.0001, now + (fast ? 0.05 : 0.4)); h.oscs.forEach(o => { try { o.stop(now + 0.5); } catch (e) { /* already stopped */ } }); }
+        document.dispatchEvent(new CustomEvent('skala-horn', { detail: false }));
+      },
+      get alarming() { return !!horn; },
+    };
+  })();
+
 
   // ---------- paper ----------
   const papers = { tty: $('p-tty'), dreg: $('p-dreg'), lpt: $('p-lpt'), arc: $('p-arc') };
@@ -75,6 +162,7 @@
   function block(k, lines, cls = '') {
     stickBottom(k, () => {
       const sh = sheet(k), ph = sh.querySelector('.empty'); if (ph) ph.remove();
+      if (k === 'lpt') SND.drum(lines.filter(l => !l.cut).length);
       const b = document.createElement('div'); b.className = 'pblock ' + cls;
       b.innerHTML = lines.map(l => {
         if (l.cut) return '<div class="cut"></div>';
@@ -121,9 +209,9 @@
         l.shown = n;
         const pl = l.el.querySelector('.pl');
         pl.innerHTML = esc(l.text.slice(0, n)) + (n < l.text.length && ttyOff === null ? '<span class="cursor"></span>' : '');
-        if (n > 0) flash('tty');
+        if (n > 0) { flash('tty'); if (ttyOff === null) SND.tick(); }
       }
-      if (n >= l.text.length) { l.done = true; const g = l.el.querySelector('.gl'); if (g) g.hidden = false; }
+      if (n >= l.text.length) { l.done = true; const g = l.el.querySelector('.gl'); if (g) g.hidden = false; SND.cr(); }
       else if (ttyOff !== null && S.t >= ttyOff) {
         l.done = true;
         l.el.insertAdjacentHTML('beforeend', '<div class="cutoff">Power to the teletypes fails here; the line is never finished.</div>');
@@ -307,6 +395,7 @@
   function renderVU() {
     renderSet(0); renderSet(1);
     $('vuWhat').textContent = vu.msg;
+    $('vuEcho').textContent = [0, 1].map(i => { const s = vu.sets[i]; if (!s) return ''; const v = ds[i].val.el.getAttribute('aria-label'), d = ds[i].dev.el.getAttribute('aria-label'); return `${i + 1}: ${s.code} → ${v === 'blank' ? (d && d !== 'blank' ? 'ОШ ' + d : '…') : v + ' ' + ds[i].unit.textContent}`; }).filter(Boolean).join('   ');
     document.querySelectorAll('#keysL .key').forEach(k => k.classList.toggle('on', vu.left[+k.dataset.col] === k.dataset.v));
     document.querySelectorAll('#kinds .key').forEach(k => k.classList.toggle('on', k.dataset.kind === vu.kind));
     document.querySelectorAll('#modes [data-mode]').forEach(k => k.classList.toggle('on', k.dataset.mode === vu.mode));
@@ -373,6 +462,7 @@
   function buildKeys() {
     ds[0] = { el: $('dsA'), val: vfd($('vuA'), 8), dev: vfd($('devA'), 6), code: vfd14($('codeA'), 7), unit: $('unitA') };
     ds[1] = { el: $('dsB'), val: vfd($('vuB'), 8), dev: vfd($('devB'), 6), code: vfd14($('codeB'), 7), unit: $('unitB') };
+    if (window.matchMedia && matchMedia('(pointer: coarse)').matches) $('kbNote').textContent = 'Tap one key in each column: system, part, quantity, then four octal digits. ПРМ returns the value. Then flip ЗАМЕР 1 or 2; the answer shows on that display set above, and in the strip by the switches. Tap a lit key again to clear it.';
     $('keysL').innerHTML = LEFTCOLS.map((col, i) => `<div class="col">${col.map(v => `<button class="key${i === 0 || i === 2 ? ' let' : ''}" data-col="${i}" data-v="${v}" aria-label="Column ${i + 1}: ${v}">${v}</button>`).join('')}</div>`).join('');
     $('keysL').addEventListener('click', e => { const b = e.target.closest('.key'); if (!b) return; const i = +b.dataset.col; vu.left[i] = vu.left[i] === b.dataset.v ? null : b.dataset.v; vu.msg = vu.left.includes(null) ? `Code so far: ${codeStr().replace(/ /g, '·')}` : `Code ${codeStr()}. Choose what to return, then ЗАМЕР 1 or 2.`; renderVU(); });
     $('kinds').addEventListener('click', e => { const b = e.target.closest('[data-kind]'); if (!b) return; vu.kind = b.dataset.kind; vu.msg = `${vu.kind}: ${KINDS[vu.kind]}.`; renderVU(); });
@@ -417,6 +507,10 @@
       else if (e.key === 'Escape') { vu.left = Array(7).fill(null); renderVU(); }
     });
     document.querySelectorAll('.swv').forEach(b => b.addEventListener('click', () => b.setAttribute('aria-pressed', String(b.getAttribute('aria-pressed') !== 'true'))));
+    const sndBtn = $('sndBtn'), showSnd = () => { sndBtn.setAttribute('aria-pressed', String(SND.on)); sndBtn.textContent = SND.on ? 'Звук вкл.' : 'Звук откл.'; };
+    sndBtn.addEventListener('click', () => { SND.set(!SND.on); showSnd(); }); showSnd();
+    $('hornOff').addEventListener('click', () => SND.silence());
+    document.addEventListener('skala-horn', e => { $('hornOff').hidden = !e.detail; });
     $('btnRestart').addEventListener('click', () => { const r = skalaRestart(); notice(r[2]); });
     $('btnReload').addEventListener('click', () => { const r = dregReload(); notice(r[2]); });
   }
@@ -520,6 +614,7 @@
         block('dreg', [{ ru: `ДРЕГ  БЛОК 4  ${S.date}  ${clk(0)}`, en: 'DREG writes to magnetic tape; a printout like this was made from the tape afterwards. Cycles are numbered; times are the end of each 2–4 s cycle.' }, { cut: true }], 'sys');
       } else if (e.kind === 'tty') {
         ttyQueue(e.t, `${ttyClock(e.t)} ${e.ru}`, e.en, 'alarm');
+        if (/^АВАР ЗАЩИТА [123]/.test(e.ru)) SND.alarm(30);
         if (firsts.tty === undefined) firsts.tty = e.t;
       } else if (e.kind === 'dreg') {
         block('dreg', e.lines.map((l, i) => ({ t: i === 0 ? clk(e.t) + '  ' : '          ', ru: l.ru + (l.code ? '   ' + l.code : ''), cyc: i === 0 ? `   №${e.cycle}Д` : '', en: l.en })));
@@ -533,7 +628,7 @@
     }
   }
   function showEnd() {
-    if (endShown) return; endShown = true;
+    if (endShown) return; endShown = true; SND.silence();
     $('endTxt').textContent = `In this run the teletype began "АВАР ЗАЩИТА 5" at ${firsts.tty !== undefined ? clk(firsts.tty) : '—'}` +
       (firsts.azm !== undefined ? `, DREG logged the overpower trip at ${clk(firsts.azm)}` : '') +
       (firsts.rp !== undefined ? ` and reactor-space pressure at ${clk(firsts.rp)}` : '') +
@@ -581,7 +676,7 @@
       (lesson ? `<p class="small">${esc(lesson)}</p>` : '') + `<p class="small">The model is very sensitive near the edge of stability; treat a single run as a clue, not a prediction.</p>`;
   }
   function showDebrief() {
-    run.debriefed = true;
+    run.debriefed = true; SND.silence();
     $('dbBody').innerHTML = debriefHTML();
     $('debrief').hidden = false; $('dbRestart').focus({ preventScroll: true });
   }
@@ -887,7 +982,7 @@
     $('az5').classList.toggle('fired', S.scram);
     if (S.scram) $('az5').classList.add('armed');
     if (S.scram && !scramShown) {                // say at once what tripped; the teletype and DREG keep their real delays
-      scramShown = true;
+      scramShown = true; SND.alarm(30);
       const c = S.scramCause;
       if (c && c.key === 'azsr') notice('АЗСР: reactor period below 20 s · automatic AZ-5. The teletype message follows at 7 characters per second.', 15000);
       else if (c && c.key === 'azm') notice('АЗМ: power above the trip setting · automatic AZ-5. The teletype message follows at 7 characters per second.', 15000);
@@ -946,7 +1041,7 @@
       : '<div class="pl empty">The last PRIZMA printout was carried to the control room at about 01:00 (ORM 17–19 by testimony, Karpan p.351). PRIZMA was not run again before the test. Subprogram 0300 (program 1) requests one; it prints when the current 5-minute cycle ends.</div>';
     sel = { kind: 'group', key: 'RR0' }; multi = false; drag = null; scramShown = false; renderGroups();
     $('az5').classList.remove('armed'); az5Armed = 0;
-    newRun(); $('debrief').hidden = true;
+    newRun(); $('debrief').hidden = true; SND.silence(true);
     vu.left = Array(7).fill(null); vu.kind = 'ПРМ'; vu.mode = 'ИЗМ'; vu.sets = [null, null]; rk.sign = 1; rk.d = [null, null, null, null]; rk.e = null; rk.prog = null;
     SP = JSON.parse(JSON.stringify(SP_DEFAULT)); ormCycle = { v: SIM.ormPrizma(S), at: 0 }; lastCycle = null;
     spState = {}; spWatch(true);

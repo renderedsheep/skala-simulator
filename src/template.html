@@ -187,6 +187,9 @@ select { font: inherit; background: var(--steel); border: 1px solid var(--panel-
 @keyframes vfdflash { 50% { box-shadow: inset 0 0 0 2px #ff8a7a, inset 0 0 0 3px #000, 0 0 14px rgba(255,80,60,0.9); } }
 @media (prefers-reduced-motion: reduce) { .az5.fired, .vfd.flash { animation: none; box-shadow: 0 4px 0 #4a120e, 0 0 16px 6px rgba(255,70,50,0.6); } }
 .az5box { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.hornoff { background: #f3dcd8; border-color: var(--red); color: #6d140c; animation: blink 1s steps(2) infinite; }
+.sndbtn { padding: 6px 10px; font-size: 13px; }
+@media (prefers-reduced-motion: reduce) { .hornoff { animation: none; } }
 .az5 { width: 96px; height: 96px; border-radius: 50%; border: 6px solid #6b1c16; background: radial-gradient(circle at 38% 32%, #ef6a5c, var(--red) 55%, #7d1d16); color: #fff; font-family: var(--font-display); font-weight: 700; font-size: 22px; letter-spacing: 0.06em; box-shadow: 0 4px 0 #4a120e; position: relative; flex: none; }
 .az5:active { transform: translateY(3px); box-shadow: 0 1px 0 #4a120e; }
 .az5 .cap { position: absolute; inset: -6px; border-radius: 50%; background: rgba(214, 230, 220, 0.78); border: 2px solid #8a958c; display: grid; place-items: center; text-align: center; line-height: 1.1; color: var(--ink); font-size: 12px; letter-spacing: 0.02em; font-weight: 400; transition: transform .25s, opacity .25s; }
@@ -241,6 +244,19 @@ select { font: inherit; background: var(--steel); border: 1px solid var(--panel-
 .sw { padding-top: 0; } .sw .lever { margin-bottom: 4px; }
 @media (min-width: 1221px) and (max-width: 1400px) { .key { width: 26px; } .key.fn { width: 23px; } .kbL { gap: 8px; } }
 @media (min-width: 1221px) and (max-width: 1300px) { .key { width: 25px; } .key.fn { width: 22px; } .colkeys { gap: 2px; } }
+/* phones and tablets: finger-sized keys, the ЗАМЕР switches straight under the keys, and a short echo of the answers there,
+   because the display sets are a screen-height above */
+.echo { display: none; }
+@media (max-width: 780px) {
+  .key { width: 40px; height: 32px; font-size: 16px; }
+  .key.fn { width: 36px; height: 30px; font-size: 11px; }
+  .key.sm { width: 34px; height: 28px; font-size: 14px; }
+  .kbside { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 12px 18px; }
+  .swgrid { order: -2; grid-template-columns: repeat(4, auto); gap: 8px 14px; }
+  .echo { display: block; order: -1; flex-basis: 100%; font-family: var(--font-mono); font-size: 13px; color: var(--ink); background: var(--enamel-deep); border: 1px solid var(--enamel-edge); border-radius: 3px; padding: 4px 8px; min-height: 1.5em; }
+  .echo:empty { display: none; }
+  .sw .lever { width: 30px; height: 30px; }
+}
 .kbnote { max-width: none; font-size: 11.5px; margin: 10px 0 0; }
 /* right keyboard: sign and red exponent, four decimal columns, program keys with lamps */
 .kbR { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-start; }
@@ -400,6 +416,10 @@ footer.thanks { margin: 14px 0 0; font-size: 12px; color: var(--ink-soft); text-
         </select>
       </div>
       <div>
+        <div class="lbl">Sound</div>
+        <button class="btn sndbtn hint" id="sndBtn" data-k="b_sound" aria-pressed="true">Звук вкл.</button>
+      </div>
+      <div>
         <div class="lbl">Speed</div>
         <div class="seg" id="speed" role="group" aria-label="Simulation speed">
           <button data-s="0" aria-pressed="false" aria-label="Pause">❚❚</button>
@@ -487,6 +507,7 @@ footer.thanks { margin: 14px 0 0; font-size: 12px; color: var(--ink-soft); text-
 
         <div class="sub az5box">
           <button class="az5" id="az5" aria-label="AZ-5 emergency shutdown button"><span class="cap" aria-hidden="true">Снять<br>колпачок</span>АЗ-5</button>
+          <button class="btn hornoff hint" id="hornOff" data-k="b_horn" hidden>Съём звука · silence alarm</button>
           <div class="note" style="color:#932705">AZ-5 (the scram, or emergency shutdown) drives every rod except УСП into the core at 0.4 m/s. First tap lifts the guard cap, second tap presses the button. Before 1987 it had to be held down.</div>
         </div>
       </div>
@@ -525,9 +546,10 @@ footer.thanks { margin: 14px 0 0; font-size: 12px; color: var(--ink-soft); text-
               <button class="sw hint" data-gash="0" data-k="v_gash" aria-pressed="false"><span class="lever"></span>Гашение 1</button>
               <button class="sw hint" data-gash="1" data-k="v_gash" aria-pressed="false"><span class="lever"></span>Гашение 2</button>
             </div>
+            <div class="echo" id="vuEcho" aria-hidden="true"></div>
           </div>
         </div>
-        <p class="note kbnote">One key per column: system, part, quantity, then four octal digits. ПРМ returns the value; flip ЗАМЕР 1 or 2 to measure. You can also type the code (m t d n p a r k for the first letter) and press Enter, or Shift+Enter for set 2.</p>
+        <p class="note kbnote" id="kbNote">One key per column: system, part, quantity, then four octal digits. ПРМ returns the value; flip ЗАМЕР 1 or 2 to measure. You can also type the code (m t d n p a r k for the first letter) and press Enter, or Shift+Enter for set 2.</p>
       </div>
       <div class="stack a-mid">
       <details class="plate" id="kb2">

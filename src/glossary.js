@@ -98,6 +98,8 @@ return [
   { k: 'v_stop', m: [], t: 'ПРЕРЫВ · interrupt', d: 'Stops the running program. Here it cancels a queued PRIZMA printout and clears the program key.' },
   { k: 'v_reload', m: [], t: 'Reload the DREG tape', d: 'A computer-room job for the duty engineer, not a request-device code. DREG stops for 60 s while the tape is changed, and anything that happens meanwhile is lost, as in the gap at 01:12:10–01:18:49. A simulator shortcut.' },
   { k: 'v_restart', m: [], t: 'Restart SKALA from punched tape', d: 'What the duty engineer did twice that night to load the test parameters: stop SKALA and restart it from the programmer’s punched tape. DREG is off and SKALA answers no requests for 6 min 39 s. A simulator shortcut.' },
+  { k: 'b_sound', m: [], t: 'Sound on or off', d: 'Teletype and drum-printer noise, and the emergency horn. All synthesized in the browser, not recordings. Your choice is remembered in this browser. Browsers keep sound locked until your first click or key press.' },
+  { k: 'b_horn', m: [], t: 'Съём звука · silence the alarm', d: 'Stops the emergency horn, as the operators silenced audible alarms on the desk. Soviet control rooms used a horn or siren for emergency signals and a bell for warnings; witnesses recall electric alarm buzzers honking in the unit 4 control room after the explosion. The sound here is a stand-in, not a recording of the real horn. It also stops by itself after 30 s.' },
 ];
 })();
 if (typeof module !== 'undefined') module.exports = GLOSSARY;
