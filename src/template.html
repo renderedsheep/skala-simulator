@@ -17,8 +17,7 @@
   --ink-soft: #485349;
   --face: #f3efe0;            /* dial face */
   --paper: #f3f1e6;           /* teletype roll */
-  --fanfold: #f4f6f0;         /* drum-printer paper */
-  --fanfold-bar: #dfeadb;
+  --fanfold: #fbfbf6;         /* drum-printer paper: plain white perforated fanfold */
   --ribbon: #273046;
   --gloss: #6d766a;
   --window: #121512;
@@ -302,8 +301,8 @@ select { font: inherit; background: var(--steel); border: 1px solid var(--panel-
 /* teletype roll: narrow cream roll on a dark platen */
 .paper.roll { background: linear-gradient(90deg, #6e786c 0, #6e786c 12px, transparent 12px, transparent calc(100% - 12px), #6e786c calc(100% - 12px)); padding: 0 12px; }
 .paper.roll .sheet { background: var(--paper); min-height: 100%; padding: 14px 16px 26px; box-shadow: 0 0 0 1px #d6d2c0; max-width: calc(64ch + 34px); margin: 0 auto; }
-/* drum-printer fanfold: green bars and tractor holes both sides */
-.paper.fanfold .sheet { background-color: var(--fanfold); background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 39px, var(--fanfold-bar) 39px, var(--fanfold-bar) 78px); background-attachment: local; min-height: 100%; padding: 14px 30px 26px; position: relative; }
+/* drum-printer fanfold: plain white, tractor holes both sides, a faint perforated fold every sheet */
+.paper.fanfold .sheet { background-color: var(--fanfold); background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 659px, rgba(120,130,118,0.35) 659px, rgba(120,130,118,0.35) 660px); background-attachment: local; min-height: 100%; padding: 14px 30px 26px; position: relative; }
 .paper.fanfold .sheet::before, .paper.fanfold .sheet::after { content: ""; position: absolute; top: 0; bottom: 0; width: 12px; background-image: radial-gradient(circle, #a8b2a5 3px, transparent 3.6px); background-size: 12px 20px; }
 .paper.fanfold .sheet::before { left: 8px; } .paper.fanfold .sheet::after { right: 8px; }
 .paper.tape .sheet { background: #f0eee6; min-height: 100%; padding: 14px 16px 26px; }
@@ -554,7 +553,7 @@ footer.thanks { margin: 14px 0 0; font-size: 12px; color: var(--ink-soft); text-
       <div class="plate">
         <header><span class="screw"></span><h2>Коды <span>request codes</span></h2></header>
         <div id="dir"></div>
-        <p class="note" style="margin-top:8px">Click a code to key it in and measure it on display set 1. The grammar, and the codes marked "shown in the video", come from the Chornobyl Family reconstruction, built with former Chernobyl staff. The rest are this simulator's own, in the same grammar. «ррсс» stands for a channel's octal coordinates: row, then column, as shown when you hover a dial. (К06L005 is a DREG signal name, not a request code, and does not fit this pattern.)</p>
+        <p class="note" style="margin-top:8px">Click a code to key it in and measure it on display set 1. The grammar, and the codes marked "shown in the video", come from the Chornobyl Family reconstruction, built with former Chernobyl staff and based on the modernized unit 3 system, which ran until 2000. The rest are this simulator's own, in the same grammar. «ррсс» stands for a channel's octal coordinates: row, then column, as shown when you hover a dial. (К06L005 is a DREG signal name, not a request code, and does not fit this pattern.)</p>
       </div>
       </div>
     </section>
@@ -610,7 +609,7 @@ footer.thanks { margin: 14px 0 0; font-size: 12px; color: var(--ink-soft); text-
         </ul>
         <h3>Reconstructed or invented</h3>
         <ul>
-          <li><span class="tag rec">rec</span>Request device: the two keyboards, the two display sets (value, deviation from the nearest setpoint, code), the code grammar, the ПРМ/ПП/АП keys, ИЗМ and ЗАП, error codes 301 and 303, and the codes П0N0000, Т0N7100, К0S0000, К5N0000 and К0S/К0G + channel follow the <a href="https://hackaday.com/2026/07/13/using-your-own-rbmk-reactor-control-center-at-home/">Chornobyl Family</a> reconstruction, built with former Chernobyl staff. Every operator had this device, and SKALA's engineers had the same one. The plant grid, which never uses the digits 8 or 9, confirms that channel coordinates are octal. Reading ПС/АС as the falling setpoints is a guess, and the unlabelled keys do nothing here.</li>
+          <li><span class="tag rec">rec</span>Request device: the two keyboards, the two display sets (value, deviation from the nearest setpoint, code), the code grammar, the ПРМ/ПП/АП keys, ИЗМ and ЗАП, error codes 301 and 303, and the codes П0N0000, Т0N7100, К0S0000, К5N0000 and К0S/К0G + channel follow the <a href="https://www.youtube.com/watch?v=1JSP_gVXZTs">Chornobyl Family</a> reconstruction, built with former Chernobyl staff. It models the modernized SKALA of unit 3, which ran until 2000, so the 1986 codes of unit 4 may have differed in detail; the builders say the principles stayed largely the same. In the control room the keyboard and the displays were separate pieces; here they share one panel, as on the computer-hall console. Every operator had this device, and SKALA's engineers had the same one. The plant grid, which never uses the digits 8 or 9, confirms that channel coordinates are octal. Reading ПС/АС as the falling setpoints is a guess, and the unlabelled keys do nothing here.</li>
           <li><span class="tag inv">inv</span>Not an emulator: the V-3M instruction set and SKALA software are not public. All other request codes, the subprogram numbers (except 0301), the PRIZMA and cartogram printout layouts, and the choice of the 9 logged rods are this simulator's own. The tube styling of the displays is a design choice.</li>
           <li><span class="tag inv">inv</span>Physics: 28-slice axial one-group diffusion (quasi-static) with point kinetics, per-slice void, Doppler, xenon/iodine and a burnup profile; every rod's absorber, graphite displacer and water columns at its real depth, weighted by its radial position. Rods are radially averaged, so the local character of the excursion (rows 12–30, Karpan p.380) is not captured.</li>
           <li><span class="tag inv">inv</span>Tuned, not derived: migration area, water-column absorption, burnup profile, and a boiling-crisis threshold after which channels rupture, rods jam and steam floods the core. The xenon profile at 01:22:30 is solved from the measured flux shape because it was never measured (INSAG-7 p.81).</li>

@@ -178,7 +178,7 @@ When a protection trips, the desk tells you at once. The AZ-5 button glows red, 
 
 SKALA answered questions; it did not volunteer them. Every reactor operator had a request device (вызывное устройство), and SKALA's own engineers had the same device in the computer room. There were no screens. Answers came up on two indicator assemblies called display sets. ORM, the most important safety figure that night, was not on any continuous display: you had to ask for it.
 
-The layout of the device and the way its codes are built follow the Chornobyl Family reconstruction, made with former Chernobyl staff. Section 9 says what that rests on.
+The layout of the device and the way its codes are built follow the Chornobyl Family reconstruction, made with former Chernobyl staff. It is based on the later, modernized system of unit 3, and section 9 says what else it rests on. In the control room the keyboard and the display sets were separate pieces; here they share one panel, as on the console in the computer hall.
 
 ### How a code is built
 
@@ -255,7 +255,7 @@ For example, П0N0000 with ПП gives 3264 MW, 2 % above nominal, and with АП 
 The second keyboard enters numbers and starts programs.
 
 - **Numbers:** one key in each of the four black columns gives the digits, − or + the sign, and a red key 0–4 the decimal exponent, which sets where the decimal point goes. Reading the red key as the number of decimal places (0293 with red 2 is 2.93) is an assumption.
-- **Program keys 1–10:** the chosen program's lamp lights.
+- **Program keys 1–10:** the program selector, which sets how SKALA presents the answer (on which МТК display or printer, for example). The chosen program's lamp lights.
 - **ЗАПУСК** starts the program and **ПРЕРЫВ** interrupts it.
 
 To run a subprogram, press only **М** on the left keyboard, choose a program key, set the four-digit subprogram number and press ЗАПУСК. The video's example is program 4 (or 8), subprogram 0301: a search for channels with low coolant flow, which lights them up on one of the two large МТК channel displays. The МТК is not built here, so that search only reports itself. The simulator's own subprograms, all under program 1, are:
@@ -318,7 +318,7 @@ Reloading the tape and restarting SKALA (the two buttons under the mnemonic pane
 
 ### АЦПУ drum printer
 
-The drum printer prints long reports on green-barred fanfold paper.
+The drum printer prints long reports on plain white perforated fanfold paper. Its rotating drum carried every character, and a hammer for each print position struck the paper as the right character came round, so it printed whole lines at once. The machine weighed around 300 kg.
 
 - **PRIZMA** (subprogram 0300, and on odd hours automatically) gives:
     - thermal and neutron power;
@@ -463,7 +463,7 @@ The simulator reproduces the documented 1986 sequence, but the reactor model and
 
 ### From the Chornobyl Family reconstruction
 
-Chornobyl Family rebuilt the request device with help from former Chernobyl staff, and showed how it works in a video ([Hackaday's write-up](https://hackaday.com/2026/07/13/using-your-own-rbmk-reactor-control-center-at-home/)). From it come:
+Chornobyl Family rebuilt the request device with help from former Chernobyl staff, and showed how it works in a [video](https://www.youtube.com/watch?v=1JSP_gVXZTs). Their reconstruction follows the modernized SKALA of unit 3, which ran until 2000, not unit 4 as it was in April 1986. They say the basic principles stayed largely the same, but codes and details of 1986 may have differed. From it come:
 
 - the two keyboards and the two display sets, with their three rows;
 - the code grammar (system, part, quantity, four digits), and channel coordinates in the last four digits;
@@ -506,4 +506,4 @@ The plant grid backs up one detail independently: its numbers never use the digi
 - A.S. Dyatlov, [Чернобыль. Как это было](http://lib.ru/MEMUARY/CHERNOBYL/dyatlow.txt_with-big-pictures.html).
 - Hackaday, [Inside SKALA: How Chornobyl's Reactor Was Actually Controlled](https://hackaday.com/2026/03/03/inside-skala-how-chernobyls-reactor-was-actually-controlled/), 2026, on the Chornobyl Family reconstruction.
 - Chornobyl Family, [Exploring SKALA: Chernobyl Reactor Control Computer](https://www.youtube.com/watch?v=ZbaptQh2AM4), 2023.
-- Chornobyl Family, "We rebuilt Chernobyl's SKALA" (Chernobyl reactor at home, part 2), 2026: the request device and its codes. Covered by Hackaday in [Using Your Own RBMK Reactor Control Center At Home](https://hackaday.com/2026/07/13/using-your-own-rbmk-reactor-control-center-at-home/).
+- Chornobyl Family, [We rebuilt Chernobyl's SKALA (Chernobyl reactor at home, part 2)](https://www.youtube.com/watch?v=1JSP_gVXZTs), 2026: the request device and its codes. Hackaday's write-up: [Using Your Own RBMK Reactor Control Center At Home](https://hackaday.com/2026/07/13/using-your-own-rbmk-reactor-control-center-at-home/).
