@@ -1,0 +1,31 @@
+SKALA Simulator
+Copyright 2026 Fernand G.
+
+This repository is under two licenses, plus one third-party exception.
+
+1. Code: Apache License 2.0 (LICENSE, also LICENSES/Apache-2.0.txt)
+   - src/ (all of it, including the hover-definition text in src/glossary.js)
+   - tests/, .github/, and the built page index.html
+
+2. Content: Creative Commons Attribution-ShareAlike 4.0 International
+   (LICENSES/CC-BY-SA-4.0.txt, https://creativecommons.org/licenses/by-sa/4.0/)
+   - docs/ (both training manuals, their PDFs, validation notes, images)
+   - references/ (reconstructed data tables and notes)
+   - README.md, CHANGELOG.md, CONTRIBUTING.md
+
+3. Exception: CC BY-NC 4.0, not covered by 1 or 2
+   The DREG message lines of the last seconds before the accident, shown in the
+   simulator's Archive tab (src/ui.js) and in the rows of
+   references/message_catalogue.csv whose source column cites "Sturm", are taken
+   from the DREG protocol transcript by L. Sturm and R. Plaskov:
+   https://archive.org/details/dreg-protocol-last-40-seconds-of-chernobyl
+   That transcript is licensed CC BY-NC 4.0
+   (https://creativecommons.org/licenses/by-nc/4.0/). Keep their attribution, and
+   do not use that material commercially without their permission.
+
+Facts from INSAG-7 (IAEA, 1993) and N.V. Karpan, "Chernobyl. Revenge of the Peaceful
+Atom" (2005), such as rod positions, timings and figures, are cited by page in
+references/. No text or images from either work are reproduced.
+
+Versions 3.3 and earlier were released under CC BY-NC 4.0 as a whole. Copies of
+those versions remain under that license.

@@ -517,3 +517,7 @@ The plant grid backs up one detail independently: its numbers never use the digi
 - Hackaday, [Inside SKALA: How Chornobyl's Reactor Was Actually Controlled](https://hackaday.com/2026/03/03/inside-skala-how-chernobyls-reactor-was-actually-controlled/), 2026, on the Chornobyl Family reconstruction.
 - Chornobyl Family, [Exploring SKALA: Chernobyl Reactor Control Computer](https://www.youtube.com/watch?v=ZbaptQh2AM4), 2023.
 - Chornobyl Family, [We rebuilt Chernobyl's SKALA (Chernobyl reactor at home, part 2)](https://www.youtube.com/watch?v=1JSP_gVXZTs), 2026: the request device and its codes. Hackaday's write-up: [Using Your Own RBMK Reactor Control Center At Home](https://hackaday.com/2026/07/13/using-your-own-rbmk-reactor-control-center-at-home/).
+
+---
+
+*This manual is licensed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). The simulator's code is under the Apache License 2.0. See NOTICE in the repository.*

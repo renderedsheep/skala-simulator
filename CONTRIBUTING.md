@@ -27,3 +27,6 @@ If a change moves a validated number (see `docs/validation.md`), say so in the p
 ## What not to add
 - Scans or PDFs of books and reports. Add a reference with page numbers to `references/sources.md` instead.
 - Invented detail presented as fact. If something must be invented to make the simulator work, label it on the page and in `docs/validation.md`.
+
+## Licensing of contributions
+By contributing, you agree that code you add is licensed under the Apache License 2.0 and content (documentation, data, translations) under CC BY-SA 4.0, as set out in [NOTICE](NOTICE). Do not add third-party material under other terms without saying so in your pull request.

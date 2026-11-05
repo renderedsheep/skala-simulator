@@ -521,3 +521,7 @@ Chornobyl Family восстановили вызывное устройство 
 - Hackaday, [Inside SKALA: How Chornobyl's Reactor Was Actually Controlled](https://hackaday.com/2026/03/03/inside-skala-how-chernobyls-reactor-was-actually-controlled/), 2026, о реконструкции Chornobyl Family (на английском).
 - Chornobyl Family, [Exploring SKALA: Chernobyl Reactor Control Computer](https://www.youtube.com/watch?v=ZbaptQh2AM4), 2023 (на английском).
 - Chornobyl Family, [We rebuilt Chernobyl's SKALA (Chernobyl reactor at home, part 2)](https://www.youtube.com/watch?v=1JSP_gVXZTs), 2026 (на английском): вызывное устройство и его коды. Обзор Hackaday: [Using Your Own RBMK Reactor Control Center At Home](https://hackaday.com/2026/07/13/using-your-own-rbmk-reactor-control-center-at-home/).
+
+---
+
+*Это пособие распространяется по лицензии [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/deed.ru). Код симулятора распространяется по лицензии Apache 2.0. Подробности в файле NOTICE в репозитории.*

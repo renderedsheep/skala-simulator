@@ -11,7 +11,8 @@
   <img src="https://img.shields.io/badge/install-none-23292a?style=flat-square" alt="No install">
   <img src="https://img.shields.io/badge/core%20map-211%20real%20rods-3f78c8?style=flat-square" alt="211 real rod positions">
   <a href="docs/validation.md"><img src="https://img.shields.io/badge/validation-12%20checks-2f6b3a?style=flat-square" alt="Validation checks"></a>
-  <a href="LICENSE.md"><img src="https://img.shields.io/badge/license-CC%20BY--NC%204.0-d9b632?style=flat-square" alt="License: CC BY-NC 4.0"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/code-Apache%202.0-d9b632?style=flat-square" alt="Code license: Apache 2.0"></a>
+  <a href="NOTICE"><img src="https://img.shields.io/badge/content-CC%20BY--SA%204.0-d9b632?style=flat-square" alt="Content license: CC BY-SA 4.0"></a>
 </p>
 
 <a href="https://hackaday.com/2026/03/03/inside-skala-how-chernobyls-reactor-was-actually-controlled/" title="SKALA (СКАЛА): the process computer of each RBMK-1000 unit. It read thousands of sensors, calculated the core state and logged events, but did not control the reactor.">SKALA</a> (СКАЛА) was the process computer of each <a href="https://en.wikipedia.org/wiki/RBMK" title="RBMK-1000: the Soviet graphite-moderated, water-cooled reactor type at Chernobyl, with 1661 fuel channels and 211 control rods. Its design flaws were central to the accident.">RBMK-1000</a> reactor. At Chernobyl unit 4 it watched thousands of sensors, ran the <abbr title="PRIZMA (ПРИЗМА): SKALA’s core-calculation program. About every 5 minutes it computed the power in each fuel channel and the operating margin (ORM).">PRIZMA</abbr> core calculation every five minutes and logged events to its diagnostic recorder, <a href="https://archive.org/details/dreg-protocol-last-40-seconds-of-chernobyl" title="DREG (ДРЕГ): SKALA’s low-priority logging program. Every 2–4 s it wrote signals and parameters to magnetic tape; its printout is the main second-by-second record of the accident.">DREG</a>. It did not control the reactor. The operators did, asking SKALA for numbers by keying codes on a request device and waiting for the answer to light up.
@@ -182,7 +183,7 @@ skala-simulator/
 │   ├── validation.md
 │   └── assets/             images for this README
 ├── .github/workflows/check.yml     runs the checks and verifies index.html on every push
-├── CONTRIBUTING.md · CHANGELOG.md · CITATION.cff · LICENSE.md
+├── CONTRIBUTING.md · CHANGELOG.md · CITATION.cff · LICENSE · NOTICE · LICENSES/
 └── README.md
 ```
 
@@ -223,7 +224,13 @@ This reconstruction rests on the shoulders of experts and their work (and some i
 
 ## License
 
-Built by Fernand G. (2026). This simulation, its source code, reference data and documentation are released under the [Creative Commons Attribution-NonCommercial 4.0 International license (CC BY-NC 4.0)](https://creativecommons.org/licenses/by-nc/4.0/): share and adapt it with credit, not for commercial use. Details in [LICENSE.md](LICENSE.md). If you use the data, [CITATION.cff](CITATION.cff) has a citation.
+Built by Fernand G. (2026).
+
+- **Code** (`src/`, `tests/`, the build and the page itself) is under the [Apache License 2.0](LICENSE).
+- **Content** (the training manuals, docs, reference data and this README) is under [Creative Commons Attribution-ShareAlike 4.0 (CC BY-SA 4.0)](https://creativecommons.org/licenses/by-sa/4.0/).
+- **One exception:** the DREG lines from L. Sturm and R. Plaskov's transcript stay under their [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/) license.
+
+Both main licenses allow commercial use with credit; CC BY-SA also asks that adapted content be shared under the same license. [NOTICE](NOTICE) says exactly which files fall under which. Versions up to 3.3 were released under CC BY-NC 4.0, and copies of those keep that license. If you use the data, [CITATION.cff](CITATION.cff) has a citation.
 
 ---
 
