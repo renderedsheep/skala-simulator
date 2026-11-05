@@ -230,8 +230,6 @@ Built by Fernand G. (2026).
 - **Content** (the training manuals, docs, reference data and this README) is under [Creative Commons Attribution-ShareAlike 4.0 (CC BY-SA 4.0)](https://creativecommons.org/licenses/by-sa/4.0/).
 - **One exception:** the DREG lines from L. Sturm and R. Plaskov's transcript stay under their [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/) license.
 
-Both main licenses allow commercial use with credit; CC BY-SA also asks that adapted content be shared under the same license. [NOTICE](NOTICE) says exactly which files fall under which. Versions up to 3.3 were released under CC BY-NC 4.0, and copies of those keep that license. If you use the data, [CITATION.cff](CITATION.cff) has a citation.
-
 ---
 
 <p align="center"><sub>
